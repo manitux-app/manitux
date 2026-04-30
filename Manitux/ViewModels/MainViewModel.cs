@@ -1,0 +1,255 @@
+﻿using System;
+using System.Collections.ObjectModel;
+using Avalonia;
+using Avalonia.Controls.Notifications;
+using Avalonia.Styling;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Messaging;
+using Manitux.Services.Notifications;
+using Semi.Avalonia;
+using System.Threading;
+using SemiTheme = Semi.Avalonia.SemiTheme;
+using CodeLogic.Framework.Application.Plugins;
+using System.Text.Json;
+using Manitux.Core.Plugins;
+using Manitux.Core.Framework;
+using System.Threading.Tasks;
+using Avalonia.Controls;
+using System.Collections.Generic;
+using Manitux.Models;
+using System.Linq;
+using Manitux.Pages;
+using Manitux.Core.Application;
+using Ursa.Controls;
+using Manitux.Views;
+using System.Diagnostics;
+
+namespace Manitux.ViewModels;
+
+public partial class MainViewModel : ViewModelBase
+{
+    [ObservableProperty]
+    private string _greeting = "Welcome to Manitux!";
+
+    private readonly IToastService _toastService;
+    private readonly INotificationService _notificationService;
+    private PluginManager? _pluginManager;
+
+    private AppConfig _config = new();
+    [ObservableProperty] private AppStrings _localize = new();
+    private ManituxFramework _framework = new ManituxFramework();
+
+    //private PluginManager? _pluginManager;
+    private PluginBase? _currentPlugin;
+    private List<PluginMenuModel>? _pluginMenus;
+
+    public MenuViewModel Menus { get; set; } = new MenuViewModel();
+
+    [ObservableProperty] private object? _content;
+    [ObservableProperty] private bool _isReady = false;
+    [ObservableProperty] private bool _isInitialized = false;
+    [ObservableProperty] private bool _isPluginsLoaded = false;
+
+    public MainViewModel(IToastService toastService, INotificationService notificationService)
+    {
+        _toastService = toastService;
+        _notificationService = notificationService;
+        //_pluginManager = pluginManager;
+
+        WeakReferenceMessenger.Default.Register<MainViewModel, MenuItemChangedMessage>(this, OnNavigation);
+        //WeakReferenceMessenger.Default.Register<MainViewModel, string, string>(this, "JumpTo", OnNavigation);
+        //OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
+
+        InitFramework();
+        //TestMessage();
+        //TestPlugin();
+    }
+
+
+    private void OnNavigation(MainViewModel vm, string s)
+    {
+        Content = s switch
+        {
+            MenuKeys.MenuKeyEmptyPage => new EmptyPageViewModel(),
+            MenuKeys.MenuKeyAboutUs => new AboutUsViewModel(),
+            MenuKeys.MenuKeyCategories => new CategoriesViewModel(),
+            MenuKeys.MenuKeyPageItems => new PageItemsViewModel(),
+            _ => null //throw new ArgumentOutOfRangeException(nameof(s), s, null)
+        };
+
+        if (Content is null)
+        {
+            ShowToast($"{Localize.NotPageFound} {s}", NotificationType.Error);
+        }
+    }
+
+    private void OnNavigation(MainViewModel vm, MenuItemChangedMessage message)
+    {
+        string key = message.Value.Key ?? "";
+
+        Content = key switch
+        {
+            MenuKeys.MenuKeyEmptyPage => new EmptyPageViewModel(),
+            MenuKeys.MenuKeyAboutUs => new AboutUsViewModel(),
+            MenuKeys.MenuKeyCategories => new CategoriesViewModel(),
+            MenuKeys.MenuKeyPageItems => new PageItemsViewModel(),
+            _ => null //throw new ArgumentOutOfRangeException(nameof(s), s, null)
+        };
+
+        if (Content is null)
+        {
+            ShowToast($"{Localize.NotPageFound} {key}", NotificationType.Error);
+        }
+    }
+
+    private async void InitFramework()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(3));
+        while (await timer.WaitForNextTickAsync())
+        {
+            if (IsInitialized) break;
+
+            _pluginManager = await _framework.InitAsync();
+            LoadPlugins();
+        }
+    }
+
+    private async void LoadPlugins()
+    {
+        if (_pluginManager is null)
+        {
+            Debug.WriteLine("_pluginManager is null, try again");
+            _pluginManager = CodeLogic.CodeLogic.GetPluginManager();
+        }
+
+        if (_pluginManager is not null)
+        {
+            var strings = CodeLogic.CodeLogic.GetApplicationContext()?.Localization.Get<AppStrings>("tr-TR");
+            if (strings is not null) Localize = strings;
+            //Console.WriteLine($"AppStrings: {JsonSerializer.Serialize(Localize)}" + Environment.NewLine);
+
+            _pluginMenus = new List<PluginMenuModel>();
+
+            var loadedPlugins = _pluginManager.GetLoadedPlugins();
+
+            if (loadedPlugins is not null && loadedPlugins.Any())
+            {
+                Console.WriteLine("\n  Loaded plugins:");
+                foreach (var p in loadedPlugins)
+                {
+                    Console.WriteLine($"[{p.State,-12}] {p.Manifest.Name} v{p.Manifest.Version} — {p.Manifest.Description}");
+                    var plugin = _pluginManager?.GetPlugin<PluginBase>(p.Manifest.Id);
+
+                    if (plugin is not null && plugin.State == PluginState.Started)
+                    {
+                        var model = new PluginMenuModel()
+                        {
+                            Plugin = plugin,
+                            Categories = await plugin.GetCategories()
+                        };
+
+                        _pluginMenus.Add(model);
+                    }
+                }
+            }
+
+            if (_pluginMenus.Any())
+            {
+                IsPluginsLoaded = true;
+                Menus.LoadMenus(_pluginMenus, Localize);
+                OnNavigation(this, MenuKeys.MenuKeyPageItems);
+            }
+            else
+            {
+                IsPluginsLoaded = false;
+                Menus.LoadDefaultMenu(Localize);
+                OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
+            }
+
+            IsInitialized = true;
+            IsReady = true;
+        }
+        else
+        {
+            // framework is not initialized!
+            IsInitialized = false;
+            IsReady = false;
+            ShowToast($"{Localize.NotInitialized}", NotificationType.Error);
+        }
+    }
+
+
+    private async void TestMessage()
+    {
+        var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
+        while (await timer.WaitForNextTickAsync())
+        {
+            LoadPlugins();
+
+            //ShowMessage("test", "test 123");
+            //ShowNotify("test", "test 123", NotificationType.Success);
+            //ShowMessage("test", "test 123", NotificationType.Warning);
+            //ShowMessage("test", "test 123", NotificationType.Error);
+
+            //ShowToast("test 123456", NotificationType.Information, "Light");
+            //ShowToast("test 123456", NotificationType.Success, "Light");
+            //ShowToast(_pluginManager, NotificationType.Warning, "Light");
+            //ShowToast("test 123456", NotificationType.Error, "Light");
+        }
+    }
+
+    public void ShowNotify(string title, string message, NotificationType type = NotificationType.Information, string style = "Dark")
+    {
+        _notificationService.ShowNotify(message, title, type, true, true);
+    }
+
+    //[RelayCommand]
+    public void ShowToast(string message, NotificationType type = NotificationType.Information, string style = "Dark")
+    {
+        _toastService.ShowToast(message, type, true);
+    }
+
+
+
+    public ObservableCollection<ThemeItem> Themes { get; } =
+    [
+        new("Default", ThemeVariant.Default),
+        new("Light", ThemeVariant.Light),
+        new("Dark", ThemeVariant.Dark),
+        new("Aquatic", SemiTheme.Aquatic),
+        new("Desert", SemiTheme.Desert),
+        new("Dusk", SemiTheme.Dusk),
+        new("NightSky", SemiTheme.NightSky)
+    ];
+
+    [ObservableProperty] private ThemeItem? _selectedTheme;
+
+    partial void OnSelectedThemeChanged(ThemeItem? oldValue, ThemeItem? newValue)
+    {
+        if (newValue is null) return;
+        var app = Application.Current;
+        if (app is not null)
+        {
+            app.RequestedThemeVariant = newValue.Theme;
+            // NotificationManager?.Show(
+            //     new Notification("Theme changed", $"Theme changed to {newValue.Name}"),
+            //     type: NotificationType.Success,
+            //     classes: ["Light"]);
+        }
+    }
+
+    [ObservableProperty] private string? _footerText = "Settings";
+
+    [ObservableProperty] private bool _isCollapsed;
+
+    partial void OnIsCollapsedChanged(bool value)
+    {
+        FooterText = value ? null : "Settings";
+    }
+}
+
+public class ThemeItem(string name, ThemeVariant theme)
+{
+    public string Name { get; set; } = name;
+    public ThemeVariant Theme { get; set; } = theme;
+}

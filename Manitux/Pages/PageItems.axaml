@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:collections="clr-namespace:Avalonia.Collections;assembly=Avalonia.Base"
+             xmlns:iri="https://irihi.tech/shared"
+             xmlns:u="https://irihi.tech/ursa"
+             xmlns:async="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             xmlns:viewModels="clr-namespace:Manitux.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800"
+             d:DesignHeight="450"
+             x:DataType="viewModels:PageItemsViewModel"
+             x:Class="Manitux.Pages.PageItems">
+    
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <!-- ItemsSource kısmına ViewModel'deki listenizi bağlayın -->
+        <ItemsControl ItemsSource="{Binding PageItems}">
+            
+            <!-- ItemsPanel: WrapPanel, elemanları yan yana dizer, sığmazsa alt satıra geçer -->
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+            <!-- ItemTemplate: Her bir medya öğesinin nasıl görüneceği -->
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Width="150" Margin="10">
+                        
+                        <!-- Media Posteri (Görsel) -->
+                        <Border CornerRadius="8" ClipToBounds="True" BoxShadow="0 4 10 0 #40000000">
+                            <Image Source="{Binding Poster}" 
+                                   Height="220" 
+                                   Stretch="UniformToFill"
+                                   HorizontalAlignment="Center"/>
+                        </Border>
+
+                        <!-- Media Adı (Metin) -->
+                        <TextBlock Text="{Binding Title}" 
+                                   Margin="0,8,0,0"
+                                   FontSize="14"
+                                   FontWeight="Medium"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap" />
+                        
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+            
+        </ItemsControl>
+    </ScrollViewer>
+   
+</UserControl>

@@ -1,0 +1,28 @@
+<Project>
+  <!-- https://learn.microsoft.com/en-us/nuget/consume-packages/central-package-management -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Avalonia packages -->
+    <!-- Important: keep version in sync! -->
+    <PackageVersion Include="AsyncImageLoader.Avalonia" Version="3.7.0" />
+    <PackageVersion Include="Avalonia" Version="11.3.14" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="11.3.14" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="11.3.14" />
+    <PackageVersion Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.1" />
+    <PackageVersion Include="Avalonia.Desktop" Version="11.3.14" />
+    <PackageVersion Include="Avalonia.iOS" Version="11.3.14" />
+    <PackageVersion Include="Avalonia.Browser" Version="11.3.14" />
+    <PackageVersion Include="Avalonia.Android" Version="11.3.14" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageVersion Include="Irihi.Ursa" Version="1.15.1" />
+    <PackageVersion Include="Irihi.Ursa.Themes.Semi" Version="1.15.1" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.7" />
+    <PackageVersion Include="Semi.Avalonia" Version="11.3.14" />
+    <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.15" />
+    <PackageVersion Include="AngleSharp" Version="1.4.0" />
+    <PackageVersion Include="TlsClient.Native" Version="0.4.6" />
+    <PackageVersion Include="TlsClient.Native.linux-ubuntu-amd64" Version="1.11.2" />
+  </ItemGroup>
+</Project>

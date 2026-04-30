@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>CodeLogic</RootNamespace>
+    <AssemblyName>CodeLogic</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>13</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Version>4.0.0</Version>
+    <!-- Pin assembly binding identity to minor — patches load interchangeably. -->
+    <AssemblyVersion>3.3.0.0</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
+    <Authors>Media2A</Authors>
+    <Copyright>Copyright © 2026 Media2A</Copyright>
+    <Description>Modular .NET 10 framework with lifecycle-managed libraries, applications, and plugins. Zero external NuGet dependencies.</Description>
+    <PackageId>CodeLogic</PackageId>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Media2A/CodeLogic</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Media2A/CodeLogic</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>framework;modular;lifecycle;libraries;plugins;dotnet</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="/" />
+    <None Include="../LICENSE" Pack="true" PackagePath="/" />
+  </ItemGroup>
+  <!-- Treat warnings as errors for cleaner code -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>

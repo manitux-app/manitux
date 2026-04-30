@@ -1,0 +1,12 @@
+<Solution>
+  <Project Path="Manitux.Android/Manitux.Android.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="Manitux.Core/Manitux.Core.csproj" />
+  <Project Path="Manitux.Framework/CodeLogic.csproj" />
+  <Project Path="Manitux.Desktop/Manitux.Desktop.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="Manitux/Manitux.csproj" />
+</Solution>
+
