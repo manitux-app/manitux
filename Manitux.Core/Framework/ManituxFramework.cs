@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using CodeLogic.Framework.Application;
 using CodeLogic.Framework.Application.Plugins;
 using Manitux.Core.Application;
@@ -50,9 +52,17 @@ public class ManituxFramework
         // with the rest of the app. It is registered with the runtime for health
         // checks and graceful shutdown.
 
+        string baseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
+            ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android /data/user/0/.../files/
+            : AppContext.BaseDirectory;
+
+        string pluginsDir = Path.Combine(baseDir, "data/plugins");
+
+        //Debug.WriteLine(pluginsDir);
+
         var pluginMgr = new PluginManager(
             CodeLogic.CodeLogic.GetEventBus(),
-            new PluginOptions { PluginsDirectory = "data/plugins", EnableHotReload = false });
+            new PluginOptions { PluginsDirectory = pluginsDir, EnableHotReload = false });
 
         // Load our demo plugins directly (no separate DLL needed for in-process plugins)
         await LoadInProcessPluginAsync(pluginMgr, new HdFilmCehennemi());
@@ -147,7 +157,15 @@ public class ManituxFramework
             ?? throw new InvalidOperationException("Application context not available.");
 
         // Build a PluginContext that reuses the app's paths/services
-        var pluginDir = Path.Combine("data/plugins", plugin.Manifest.Id);
+        //var pluginDir = Path.Combine("data/plugins", plugin.Manifest.Id);
+
+        string baseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
+           ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android /data/user/0/.../files/
+           : AppContext.BaseDirectory;
+
+        string pluginsDir = Path.Combine(baseDir, "data/plugins");
+
+        var pluginDir = Path.Combine(pluginsDir, plugin.Manifest.Id);
         Directory.CreateDirectory(pluginDir);
 
         var pluginCtx = new PluginContext

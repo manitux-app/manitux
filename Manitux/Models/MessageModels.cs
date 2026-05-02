@@ -18,9 +18,9 @@ public class MenuItemChangedMessage : ValueChangedMessage<MenuItemViewModel>
     }
 }
 
-public class PageItemsChangedMessage : ValueChangedMessage<List<PageItemModel>>
+public class PageItemChangedMessage : ValueChangedMessage<PageItemModel>
 {
-    public PageItemsChangedMessage(List<PageItemModel> value) : base(value)
+    public PageItemChangedMessage(PageItemModel value) : base(value)
     {
     }
 }

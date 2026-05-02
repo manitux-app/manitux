@@ -6,38 +6,79 @@
              xmlns:iri="https://irihi.tech/shared"
              xmlns:u="https://irihi.tech/ursa"
              xmlns:async="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
-             xmlns:viewModels="clr-namespace:Manitux.ViewModels"
+             xmlns:vm="clr-namespace:Manitux.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800"
              d:DesignHeight="450"
-             x:DataType="viewModels:PageItemsViewModel"
+             x:DataType="vm:PageItemsViewModel"
              x:Class="Manitux.Pages.PageItems">
-    
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <!-- ItemsSource kısmına ViewModel'deki listenizi bağlayın -->
+	<UserControl.Styles>
+		<Style Selector="Border.MovieCard">
+			<Setter Property="Transitions">
+				<Transitions>
+					<TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+					<BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.3" />
+				</Transitions>
+			</Setter>
+		</Style>
+
+		<Style Selector="Border.MovieCard:pointerover">
+			<Setter Property="RenderTransform" Value="scale(1.05)"/>
+			<Setter Property="BoxShadow" Value="0 10 20 0 #80000000"/>
+			<Setter Property="ZIndex" Value="1"/>
+		</Style>
+
+		<Style Selector="Border.MovieCard Image">
+			<Setter Property="Transitions">
+				<Transitions>
+					<DoubleTransition Property="Opacity" Duration="0:0:0.3"/>
+				</Transitions>
+			</Setter>
+		</Style>
+
+		<Style Selector="Border.MovieCard:pointerover Image">
+			<Setter Property="Opacity" Value="0.8"/>
+		</Style>
+	</UserControl.Styles>
+
+
+	<Grid RowDefinitions="Auto, *">
+		<!--<TextBlock Text="İçerikler" FontSize="24" Foreground="White" Margin="20,20,0,10" FontWeight="Bold"/>-->
+        <ScrollViewer Grid.Row="1"  HorizontalScrollBarVisibility="Disabled"
+              VerticalScrollBarVisibility="Auto">
         <ItemsControl ItemsSource="{Binding PageItems}">
             
-            <!-- ItemsPanel: WrapPanel, elemanları yan yana dizer, sığmazsa alt satıra geçer -->
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center" />
+                    <WrapPanel Orientation="Horizontal"/>
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
 
-            <!-- ItemTemplate: Her bir medya öğesinin nasıl görüneceği -->
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Width="150" Margin="10">
-                        
-                        <!-- Media Posteri (Görsel) -->
-                        <Border CornerRadius="8" ClipToBounds="True" BoxShadow="0 4 10 0 #40000000">
-                            <Image Source="{Binding Poster}" 
+
+						<Border Classes="MovieCard"
+                                CornerRadius="8"
+                                ClipToBounds="True"
+                                Background="Black"
+                                BoxShadow="0 4 10 0 #40000000">
+							<Button Height="220"
+                                    Padding="0"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch"
+									Command="{Binding $parent[ItemsControl].((vm:PageItemsViewModel)DataContext).OnActivate}"
+									CommandParameter="{Binding}">
+							<!--<Image Source="/Assets/avalonia-logo.ico" Margin="0,0,0,0" />-->
+							<Image async:ImageLoader.Source="{Binding Poster}" 
                                    Height="220" 
                                    Stretch="UniformToFill"
-                                   HorizontalAlignment="Center"/>
+                                   HorizontalAlignment="Stretch"/>
+							</Button>
                         </Border>
+						
 
-                        <!-- Media Adı (Metin) -->
-                        <TextBlock Text="{Binding Title}" 
+                       <TextBlock Text="{Binding Title}" 
                                    Margin="0,8,0,0"
                                    FontSize="14"
                                    FontWeight="Medium"
@@ -50,5 +91,5 @@
             
         </ItemsControl>
     </ScrollViewer>
-   
+	</Grid>
 </UserControl>

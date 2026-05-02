@@ -1,0 +1,147 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:async="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+			 xmlns:vm="clr-namespace:Manitux.ViewModels"
+			 xmlns:u="https://irihi.tech/ursa"
+             mc:Ignorable="d" MinWidth="450" Width="960" Height="540"
+			 d:DesignWidth="800" d:DesignHeight="450"
+			 x:DataType="vm:MediaInfoViewModel"
+             x:Class="Manitux.MediaInfo">
+	<!--<UserControl.Background>
+		<LinearGradientBrush StartPoint="5%, 5%" EndPoint="80%, 80%">
+			<GradientStop Offset="0.0" Color="{DynamicResource SemiLightBlue0Color}" />
+			<GradientStop Offset="0.4" Color="{DynamicResource SemiLightBlue2Color}" />
+			<GradientStop Offset="0.9" Color="{DynamicResource SemiLightBlue1Color}" />
+		</LinearGradientBrush>
+	</UserControl.Background>-->
+	<UserControl.Styles>
+		<Style Selector="Button.BackBtn:pointerover Path">
+			<Setter Property="Fill" Value="#f39c12"/>
+		</Style>
+		<Style Selector="Border.CastCard:pointerover">
+			<Setter Property="Background" Value="#33FFFFFF"/>
+		</Style>
+	</UserControl.Styles>
+	<Control.Styles>
+		<Style Selector="u|IconDropDownButton, u|IconSplitButton, u|IconToggleSplitButton">
+			<Setter Property="Button.Flyout">
+				<MenuFlyout Placement="BottomEdgeAlignedRight">
+					<MenuItem Header="Manitux Player" Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).Play}" CommandParameter="{Binding}"/>
+					<MenuItem Header="VLC Player" Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).VlcPlay}" CommandParameter="{Binding}"/>
+					<MenuItem Header="MPV Player" Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).MpvPlay}" CommandParameter="{Binding}"/>
+				</MenuFlyout>
+			</Setter>
+		</Style>
+	</Control.Styles>
+	<Grid RowDefinitions="Auto, *">
+		<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="20,15" Spacing="10">
+			<TextBlock Text="Film Detayı" VerticalAlignment="Center" FontSize="16" Opacity="0.7"/>
+		</StackPanel>
+
+		<ScrollViewer Grid.Row="1">
+			<StackPanel Margin="40,10,40,40" Spacing="40">
+
+				<Grid ColumnDefinitions="Auto, *">
+					<Border Grid.Column="0" CornerRadius="12" ClipToBounds="True" BoxShadow="0 10 30 0 #A0000000" Width="260">
+						<Image async:ImageLoader.Source="{Binding MediaInfo.Poster}" Stretch="Uniform"/>
+					</Border>
+
+					<StackPanel Grid.Column="1" Margin="30,0,0,0" Spacing="15">
+						<TextBlock Text="{Binding MediaInfo.Title}" FontSize="36" FontWeight="Bold" TextWrapping="Wrap"/>
+						<TextBlock Text="{Binding MediaInfo.Description}" FontSize="15" Opacity="0.8" TextWrapping="Wrap" LineHeight="22"/>
+
+						<!-- Türler -->
+						<!--<ItemsControl ItemsSource="{Binding Tags}">
+							<ItemsControl.ItemsPanel>
+								<ItemsPanelTemplate>
+									<StackPanel Orientation="Horizontal" Spacing="8"/>
+								</ItemsPanelTemplate>
+							</ItemsControl.ItemsPanel>
+							<ItemsControl.ItemTemplate>
+								<DataTemplate>
+									<Border BorderBrush="#f39c12" BorderThickness="1" CornerRadius="4" Padding="8,2">
+										<TextBlock Text="{Binding Name}" FontSize="11" Foreground="#f39c12"/>
+									</Border>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>-->
+					</StackPanel>
+				</Grid>
+
+				<!-- Orta Bölüm: Oyuncular (Yatay Liste) -->
+				<!--<StackPanel Spacing="15">
+					<TextBlock Text="Oyuncular" FontSize="20" FontWeight="SemiBold"/>
+					<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+						<ItemsControl ItemsSource="{Binding Actors}">
+							<ItemsControl.ItemsPanel>
+								<ItemsPanelTemplate>
+									<StackPanel Orientation="Horizontal" Spacing="15"/>
+								</ItemsPanelTemplate>
+							</ItemsControl.ItemsPanel>
+							<ItemsControl.ItemTemplate>
+								<DataTemplate>
+									<Border Classes="CastCard" CornerRadius="8" Background="#11FFFFFF" Width="120" Padding="8">
+										<StackPanel Spacing="8">
+											<Ellipse Width="80" Height="80" HorizontalAlignment="Center">
+												<Ellipse.Fill>
+													<ImageBrush async:ImageLoader.Source="{Binding PhotoUrl}" Stretch="UniformToFill"/>
+												</Ellipse.Fill>
+											</Ellipse>
+											<TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Bold" TextAlignment="Center" TextWrapping="Wrap"/>
+											<TextBlock Text="{Binding Character}" FontSize="10" Opacity="0.6" TextAlignment="Center" TextWrapping="Wrap"/>
+										</StackPanel>
+									</Border>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+					</ScrollViewer>
+				</StackPanel>-->
+
+				<Grid>
+				<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+					<ItemsControl ItemsSource="{Binding MediaInfo.VideoSources}">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<StackPanel Orientation="Horizontal" Spacing="15"/>
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<!--<Button Content="{Binding Name}"/>-->
+								<u:IconDropDownButton
+									Icon="{StaticResource SemiIconCamera}" 
+									Content="{Binding Name}" 
+									Classes="Tertiary" 
+									Theme="{DynamicResource SolidIconDropDownButton}" />
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</ScrollViewer>
+				</Grid>
+
+				<!-- Alt Bölüm: Benzer Filmler -->
+				<StackPanel Spacing="15">
+					<TextBlock Text="Benzer İçerikler" FontSize="20" FontWeight="SemiBold"/>
+					<ItemsControl ItemsSource="{Binding MediaInfo.RelatedVideos}">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<WrapPanel />
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<Border Margin="0,0,15,15" CornerRadius="6" ClipToBounds="True" Width="140" Height="210">
+									<!--<Image async:ImageLoader.Source="{Binding MediaInfo.Poster}" Stretch="UniformToFill"/>-->
+								</Border>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</StackPanel>
+
+			</StackPanel>
+		</ScrollViewer>
+	</Grid>
+
+</UserControl>

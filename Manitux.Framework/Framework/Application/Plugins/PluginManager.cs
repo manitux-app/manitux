@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.InteropServices;
 using CodeLogic.Core.Configuration;
 using CodeLogic.Core.Events;
 using CodeLogic.Core.Localization;
@@ -76,10 +77,24 @@ public sealed class PluginManager : IAsyncDisposable
 
         try
         {
-            var loadCtx    = new PluginLoadContext(pluginPath);
-            var assembly   = loadCtx.LoadFromAssemblyPath(pluginPath);
+            // test for android?
+            //Assembly? assembly;
+
+            //if (RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID")))
+            //{
+            //    var loadCtx = new PluginLoadContext(pluginPath);
+            //    assembly = loadCtx.LoadFromAssemblyPath(pluginPath);
+            //}
+            //else
+            //{
+            //    assembly = await LoadPluginForAndroid(pluginPath);
+            //}
+
+            var loadCtx = new PluginLoadContext(pluginPath);
+            var assembly = loadCtx.LoadFromAssemblyPath(pluginPath);
+
             var pluginType = FindPluginType(assembly)
-                ?? throw new InvalidOperationException($"No IPlugin in {Path.GetFileName(pluginPath)}");
+                    ?? throw new InvalidOperationException($"No IPlugin in {Path.GetFileName(pluginPath)}");
 
             var plugin   = (IPlugin)Activator.CreateInstance(pluginType)!;
             var manifest = plugin.Manifest;
@@ -125,6 +140,63 @@ public sealed class PluginManager : IAsyncDisposable
             Console.ResetColor();
             throw;
         }
+    }
+
+    public async Task<Assembly?> LoadPluginForAndroid(string dllPath)
+    {
+        try
+        {
+            if (!File.Exists(dllPath)) return null;
+
+            byte[] data = await File.ReadAllBytesAsync(dllPath);
+            var assembly = Assembly.Load(data);
+
+            return assembly;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Plugin Load Error: {ex.Message}");
+        }
+        return null;
+    }
+
+    public async Task<IPlugin?> LoadPluginForAndroid_Test(string dllPath)
+    {
+        try
+        {
+            // Loaded assembly: "/data/user/0/com.Manitux/files/plugins/test.dll
+
+            //    string baseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
+            //?   Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android /data/user/0/.../files/
+            //:   AppContext.BaseDirectory; // Windows, Linux and macOS standard directory
+
+            //    return Path.Combine(baseDir, "plugins");
+
+            // 1. DLL'in varlığını kontrol et
+            if (!File.Exists(dllPath)) return null;
+
+            // 2. Belleğe yükle (Android dosya kilitleme sorunlarını önler)
+            byte[] data = await File.ReadAllBytesAsync(dllPath);
+            var assembly = Assembly.Load(data);
+
+            // 3. IPlugin arayüzünü uygulayan tipi bul
+            var type = assembly.GetTypes().FirstOrDefault(t =>
+                typeof(IPlugin).IsAssignableFrom(t) &&
+                !t.IsInterface &&
+                !t.IsAbstract);
+
+            if (type != null)
+            {
+                // 4. Nesneyi oluştur
+                return Activator.CreateInstance(type) as IPlugin;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Android Logcat'e hatayı yazdır
+            Console.WriteLine($"Plugin Load Error: {ex.Message}");
+        }
+        return null;
     }
 
     /// <summary>Discovers and loads all plugins from the plugins directory.</summary>

@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.RegularExpressions;
+using AngleSharp.Dom;
 using CodeLogic.Core.Logging;
 using CodeLogic.Framework.Application.Plugins;
 using Manitux.Core.Application;
@@ -7,6 +8,7 @@ using Manitux.Core.Extractors;
 using Manitux.Core.Helpers;
 using Manitux.Core.Models;
 using TlsClient.Core.Models.Entities;
+using static Manitux.Core.Helpers.LogHelper;
 
 namespace Manitux.Core.Plugins;
 
@@ -270,7 +272,38 @@ public class HdFilmCehennemi : PluginBase
             // https://www.hdfilmcehennemi.nl/load/page/3/genres/aile-filmleri-izleyin-7/
             //string? html = await HttpGet($"{category.Url}/{pageNumber}");
 
-            string? html = await HttpGet($"{category.Url}");
+            string apiUrl = category.Url;
+
+            if(!category.Url.EndsWith("/")) category.Url += "/"; // önemli!
+
+            apiUrl += "/?router=1";
+
+            var headers = new Dictionary<string, string>();
+            headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36");
+            headers.Add("Upgrade-Insecure-Requests", "1");
+            headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+            headers.Add("Referer", $"{category.Url}");
+
+            //string referer = "https://hdfilmcehennemi.nl/";
+
+            //string? html = await HttpGet(apiUrl, headers: headers, identifier: TlsClientIdentifier.Cloudscraper);
+
+            string? json = await HttpGet(apiUrl, headers: headers, identifier: TlsClientIdentifier.Cloudscraper);
+
+            if (json is null) return null;
+
+            string? html = null;
+
+            using (JsonDocument doc = JsonDocument.Parse(json))
+            {
+                JsonElement root = doc.RootElement;
+                //string name = root.GetProperty("Name").GetString();
+                //int number = root.GetProperty("Number").GetInt32();
+
+                html = root.GetProperty("html").GetString() ?? null;
+            }
+
+            //string? html = await HttpGet($"{category.Url}");
 
             if (html is null) return null;
 

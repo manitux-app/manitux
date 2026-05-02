@@ -3,8 +3,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:u="https://irihi.tech/ursa"
+			 xmlns:vm="using:Manitux.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="Manitux.Views.TitleBarRightContent">
+             x:Class="Manitux.Views.TitleBarRightContent"
+			 x:DataType="vm:LocaleViewModel">
     <StackPanel Orientation="Horizontal">
         <u:IconButton
             Theme="{StaticResource BorderlessIconButton}"
@@ -14,5 +16,21 @@
         <u:ThemeToggleButton
             IsThreeState="False"
             Mode="Controller" />
+		<u:IconButton
+            Theme="{StaticResource BorderlessIconButton}"
+            Classes="Tertiary"
+            Icon="{StaticResource SemiIconLanguage}">
+			<u:IconButton.Flyout>
+				<MenuFlyout Placement="Bottom" ItemsSource="{Binding MenuItems}" />
+			</u:IconButton.Flyout>
+			<u:IconButton.Styles>
+				<Style Selector="MenuItem" x:DataType="vm:LocaleItemViewModel">
+					<Setter Property="Header" Value="{Binding Header}" />
+					<Setter Property="ItemsSource" Value="{Binding Items}" />
+					<Setter Property="Command" Value="{Binding Command}" />
+					<Setter Property="CommandParameter" Value="{Binding CommandParameter}" />
+				</Style>
+			</u:IconButton.Styles>
+		</u:IconButton>
     </StackPanel>
 </UserControl>

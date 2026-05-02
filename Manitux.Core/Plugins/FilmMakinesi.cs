@@ -70,7 +70,19 @@ public class FilmMakinesi : PluginBase
 
             string targetUrl = pageNumber == 1 ? category.Url : $"{category.Url.TrimEnd('/')}/page/{pageNumber}/";
 
-            string? html = await HttpGet(targetUrl);
+            var headers = new Dictionary<string, string>();
+            headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36");
+            headers.Add("Upgrade-Insecure-Requests", "1");
+            headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+            headers.Add("Referer", $"{category.Url}/");
+
+            //string referer = "https://hdfilmcehennemi.nl/";
+
+            if (!targetUrl.EndsWith("/")) targetUrl += "/"; // önemli!
+
+            string? html = await HttpGet(targetUrl, headers: headers, identifier: TlsClientIdentifier.Cloudscraper);
+
+            //string? html = await HttpGet(targetUrl);
 
             if (html is null) return null;
 
@@ -87,6 +99,7 @@ public class FilmMakinesi : PluginBase
 
                 var imgElement = item.QuerySelector("img");
                 var poster = imgElement?.GetAttribute("data-src") ?? imgElement?.GetAttribute("src");
+                poster = poster?.Replace("liste", "detay");
 
                 if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(href))
                 {

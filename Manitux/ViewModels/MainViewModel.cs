@@ -1,28 +1,32 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Linq;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using AngleSharp.Dom;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.Notifications;
+using Avalonia.Data;
 using Avalonia.Styling;
+using CodeLogic.Framework.Application.Plugins;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
-using Manitux.Services.Notifications;
-using Semi.Avalonia;
-using System.Threading;
-using SemiTheme = Semi.Avalonia.SemiTheme;
-using CodeLogic.Framework.Application.Plugins;
-using System.Text.Json;
-using Manitux.Core.Plugins;
-using Manitux.Core.Framework;
-using System.Threading.Tasks;
-using Avalonia.Controls;
-using System.Collections.Generic;
-using Manitux.Models;
-using System.Linq;
-using Manitux.Pages;
 using Manitux.Core.Application;
-using Ursa.Controls;
+using Manitux.Core.Framework;
+using Manitux.Core.Models;
+using Manitux.Core.Plugins;
+using Manitux.Models;
+using Manitux.Pages;
+using Manitux.Services.Notifications;
 using Manitux.Views;
-using System.Diagnostics;
+using Semi.Avalonia;
+using Ursa.Controls;
+using static Manitux.Core.Helpers.LogHelper;
+using SemiTheme = Semi.Avalonia.SemiTheme;
 
 namespace Manitux.ViewModels;
 
@@ -44,6 +48,7 @@ public partial class MainViewModel : ViewModelBase
     private List<PluginMenuModel>? _pluginMenus;
 
     public MenuViewModel Menus { get; set; } = new MenuViewModel();
+    public LocaleViewModel Locales { get; set; } = new LocaleViewModel();
 
     [ObservableProperty] private object? _content;
     [ObservableProperty] private bool _isReady = false;
@@ -57,6 +62,7 @@ public partial class MainViewModel : ViewModelBase
         //_pluginManager = pluginManager;
 
         WeakReferenceMessenger.Default.Register<MainViewModel, MenuItemChangedMessage>(this, OnNavigation);
+        WeakReferenceMessenger.Default.Register<MainViewModel, PageItemChangedMessage>(this, OnNavigation);
         //WeakReferenceMessenger.Default.Register<MainViewModel, string, string>(this, "JumpTo", OnNavigation);
         //OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
 
@@ -73,7 +79,7 @@ public partial class MainViewModel : ViewModelBase
             MenuKeys.MenuKeyEmptyPage => new EmptyPageViewModel(),
             MenuKeys.MenuKeyAboutUs => new AboutUsViewModel(),
             MenuKeys.MenuKeyCategories => new CategoriesViewModel(),
-            MenuKeys.MenuKeyPageItems => new PageItemsViewModel(),
+            MenuKeys.MenuKeyPageItems => new PageItemsViewModel(null),
             _ => null //throw new ArgumentOutOfRangeException(nameof(s), s, null)
         };
 
@@ -83,23 +89,47 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    private void OnNavigation(MainViewModel vm, MenuItemChangedMessage message)
+    private async void OnNavigation(MainViewModel vm, MenuItemChangedMessage message)
     {
         string key = message.Value.Key ?? "";
 
-        Content = key switch
+        //Content = key switch
+        //{
+        //    MenuKeys.MenuKeyEmptyPage => new EmptyPageViewModel(),
+        //    MenuKeys.MenuKeyAboutUs => new AboutUsViewModel(),
+        //    MenuKeys.MenuKeyCategories => new CategoriesViewModel(),
+        //    MenuKeys.MenuKeyPageItems => new PageItemsViewModel(null),
+        //    _ => null //throw new ArgumentOutOfRangeException(nameof(s), s, null)
+        //};
+
+        Content = null;
+
+        switch (key)
         {
-            MenuKeys.MenuKeyEmptyPage => new EmptyPageViewModel(),
-            MenuKeys.MenuKeyAboutUs => new AboutUsViewModel(),
-            MenuKeys.MenuKeyCategories => new CategoriesViewModel(),
-            MenuKeys.MenuKeyPageItems => new PageItemsViewModel(),
-            _ => null //throw new ArgumentOutOfRangeException(nameof(s), s, null)
-        };
+            case MenuKeys.MenuKeyEmptyPage:
+                Content = new EmptyPageViewModel();
+                break;
+            case MenuKeys.MenuKeyAboutUs:
+                Content = new AboutUsViewModel();
+                break;
+            case MenuKeys.MenuKeySettings:
+                break;
+            case MenuKeys.MenuKeyPageItems:
+                //ShowMediaInfo();
+                var items = await GetPageItems(message);
+                Content = new PageItemsViewModel(items);
+                break;
+        }
 
         if (Content is null)
         {
             ShowToast($"{Localize.NotPageFound} {key}", NotificationType.Error);
         }
+    }
+
+    private void OnNavigation(MainViewModel vm, PageItemChangedMessage message)
+    {
+        ShowMediaInfo(message.Value);
     }
 
     private async void InitFramework()
@@ -178,6 +208,69 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    private async Task<List<PageItemModel>?> GetPageItems(MenuItemChangedMessage message)
+    {
+        string key = message.Value.Key ?? "";
+        string? pluginId = message.Value.PluginId ?? null;
+
+        if (pluginId is not null)
+        {
+            var plugin = _pluginManager?.GetPlugin<PluginBase>(pluginId);
+
+            if (plugin is not null && plugin.State == PluginState.Started)
+            {
+                _currentPlugin = plugin;
+
+                Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(plugin.Manifest)}" + Environment.NewLine);
+                var cat = message.Value.Category;
+                Debug.WriteLine($"Category: {JsonSerializer.Serialize(cat)}" + Environment.NewLine);
+                if (cat is null) return null;
+                var pageItems = await plugin.GetPageItems(1, cat);
+                if (pageItems is null) return null;
+                Debug.WriteLine($"PageItems: {JsonSerializer.Serialize(pageItems)}" + Environment.NewLine);
+                return pageItems;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task<MediaInfoModel?> GetMediaInfo(PageItemModel pageItem)
+    {
+       
+        return null;
+    }
+    private async void ShowMediaInfo(PageItemModel pageItem)
+    {
+        var options = new OverlayDialogOptions()
+        {
+            FullScreen = false,
+            Buttons = DialogButton.None,
+            Title = "Tavus Kuşu - Peacock",
+            Mode = DialogMode.None,
+            CanDragMove = false,
+            CanResize = false
+        };
+
+        //var mediaInfo = new MediaInfoModel() { Url="", Title = "Tavus Kuşu - Peacock", Description = "John Skillpa, sessiz kendi halinde Peacock adında küçük bir kasabada gözlerden uzak bir hayat sürmektedir. Gözlerden uzak yaşamasının nedeni güne başlamadan önce her sabah kendisine kahvaltısını hazırlayan, kimsenin bilmediği diğer kadın kişiliğini gizli tutmaya çalışmasından kaynaklanmaktadır. Evinin dibinde yaşanan beklenmedik tren kazasıyla birlikte tüm yaşantısı alt üst olacaktır.", Poster = "https://www.hdfilmcehennemi.nl/images/list/poster/peacock.webp" };
+        var mediaInfo = new MediaInfoModel()
+        {
+            Url = pageItem.Url,
+            Title = pageItem.Title,
+            Poster = pageItem.Poster
+        };
+
+        if(_currentPlugin is not null)
+        {
+            Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(_currentPlugin.Manifest)}" + Environment.NewLine);
+            mediaInfo = await _currentPlugin.GetMediaInfo(pageItem);
+            Debug.WriteLine($"MediaInfo: {JsonSerializer.Serialize(mediaInfo)}" + Environment.NewLine);
+        }
+
+        //OverlayDialog.Show<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(), null, options: options);
+        //await OverlayDialog.ShowModal<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(mediaInfo), null, options: options);
+        await OverlayDialog.ShowCustomModal<MediaInfo, MediaInfoViewModel, object>(new MediaInfoViewModel(mediaInfo), null, options: options);
+    }
 
     private async void TestMessage()
     {

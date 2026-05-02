@@ -9,7 +9,7 @@
         xmlns:iri="https://irihi.tech/shared"
         Icon="/Assets/avalonia-logo.ico"
         Title="Manitux" WindowStartupLocation="CenterScreen" WindowState="Normal"
-        Width="1380" Height="768"
+        Width="1366" Height="768"
         IsFullScreenButtonVisible="{OnPlatform {x:True}, macOS={x:False}}"
         IsManagedResizerVisible="{OnPlatform {x:False}, Linux={x:True}}"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:CompileBindings="True">

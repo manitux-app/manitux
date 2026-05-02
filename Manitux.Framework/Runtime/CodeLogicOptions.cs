@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace CodeLogic;
 
 /// <summary>
@@ -85,8 +87,19 @@ public sealed class CodeLogicOptions
     /// Returns the absolute path to the framework root directory.
     /// Combines <see cref="AppContext.BaseDirectory"/> with <see cref="FrameworkRootPath"/>.
     /// </summary>
-    public string GetFrameworkPath() =>
-        Path.Combine(AppContext.BaseDirectory, FrameworkRootPath);
+    /// using System.Runtime.InteropServices;
+    public string GetFrameworkPath()
+    {
+        // Android için güvenli bir başlangıç dizini seçiyoruz
+        string baseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
+            ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android /data/user/0/.../files/
+            : AppContext.BaseDirectory; // Windows, Linux and macOS standard directory
+
+        return Path.Combine(baseDir, FrameworkRootPath);
+    }
+
+    //public string GetFrameworkPath() =>
+    //    Path.Combine(AppContext.BaseDirectory, FrameworkRootPath);
 
     /// <summary>
     /// Returns the absolute path to the main framework configuration file (CodeLogic.json).
@@ -123,16 +136,31 @@ public sealed class CodeLogicOptions
     /// Uses <see cref="ApplicationRootPath"/> if set; otherwise defaults to
     /// <c>{FrameworkRoot}/Application</c>.
     /// </summary>
-    public string GetApplicationPath() =>
-        ApplicationRootPath != null
-            ? Path.Combine(AppContext.BaseDirectory, ApplicationRootPath)
-            : Path.Combine(GetFrameworkPath(), "Application");
+    public string GetApplicationPath()
+    {
+        string baseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
+            ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+            : AppContext.BaseDirectory;
+
+        if (ApplicationRootPath != null)
+        {
+            return Path.Combine(baseDir, ApplicationRootPath);
+        }
+
+        return Path.Combine(GetFrameworkPath(), "Application");
+    }
+
+
+    //public string GetApplicationPath() =>
+    //    ApplicationRootPath != null
+    //        ? Path.Combine(AppContext.BaseDirectory, ApplicationRootPath)
+    //        : Path.Combine(GetFrameworkPath(), "Application");
 
     /// <summary>
     /// Returns the absolute path to the application config directory.
     /// Config files (config.json, config.db.json, etc.) are stored here.
     /// </summary>
-    public string GetApplicationConfigPath()       => GetApplicationPath();
+    public string GetApplicationConfigPath() => GetApplicationPath();
 
     /// <summary>
     /// Returns the absolute path to the application localization directory.
