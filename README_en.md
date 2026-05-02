@@ -1,6 +1,8 @@
 ﻿# manitux
 
-[Türkçe](README.md) [⚠️ This project is currently under development]
+[Türkçe](README.md) 
+
+⚠️ This project is currently under development
 
 ## Manitux Cross-Platform Desktop Application
 
