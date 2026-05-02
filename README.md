@@ -1,6 +1,8 @@
 # manitux
 
- [English](README_en.md)   [⚠️ Bu proje şu anda geliştirme aşamasındadır]
+ [English](README_en.md)  
+ 
+ ⚠️ Bu proje şu anda geliştirme aşamasındadır
 
 ## Manitux Cross Platform Masaüstü Uygulama
 
