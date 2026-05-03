@@ -65,7 +65,7 @@ public class MenuViewModel : ViewModelBase
     //     // };
     // }
 
-    public async void LoadDefaultMenu(AppStrings localize)
+    public void LoadDefaultMenu(AppStrings localize)
     {
         MenuItems = new ObservableCollection<MenuItemViewModel>
         {
@@ -76,7 +76,7 @@ public class MenuViewModel : ViewModelBase
         OnPropertyChanged(nameof(MenuItems));
      }
 
-    public async void LoadMenu(PluginBase plugin, List<CategoryModel>? categories)
+    public void LoadMenu(PluginBase plugin, List<CategoryModel>? categories)
     {
         var menus = new ObservableCollection<MenuItemViewModel>();
 
@@ -105,7 +105,7 @@ public class MenuViewModel : ViewModelBase
         //return menus;
     }
 
-    public async void LoadMenus(List<PluginMenuModel> pluginMenus, AppStrings localize)
+    public void LoadMenus(List<PluginMenuModel> pluginMenus, AppStrings localize)
     {
         MenuItems = new ObservableCollection<MenuItemViewModel>
         {

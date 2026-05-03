@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text.RegularExpressions;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using CodeLogic.Core.Events;
@@ -60,7 +61,21 @@ public class HtmlHelper: IDisposable
 
         return url.Replace("\\", "");
     }
-    
+
+    public string CleanString(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
+
+        string cleanStr = Regex.Replace(text, "<.*?>", string.Empty);
+
+        cleanStr = Regex.Replace(cleanStr, @"[\r\n\t]+", string.Empty);
+
+        cleanStr = cleanStr.Replace("&nbsp;", " ");
+
+        return cleanStr.Trim();
+    }
+
     public void Dispose()
     {
         LogHelper.Html.Log(LogLevel.Debug, "HtmlHelper Disposed");

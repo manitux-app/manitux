@@ -259,7 +259,7 @@ public class FilmMakinesi : PluginBase
 
             return new MediaInfoModel
             {
-                Title = title ?? pageItem.Title,
+                Title = CleanString(title ?? "") ?? pageItem.Title,
                 Url = pageItem.Url,
                 Poster = !string.IsNullOrEmpty(poster) ? FixUrl(poster, Config.MainUrl) : pageItem.Poster,
                 Description = description,

@@ -43,8 +43,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private AppStrings _localize = new();
     private ManituxFramework _framework = new ManituxFramework();
 
-    //private PluginManager? _pluginManager;
-    private PluginBase? _currentPlugin;
+    [ObservableProperty] private PluginBase? _currentPlugin;
     private List<PluginMenuModel>? _pluginMenus;
 
     public MenuViewModel Menus { get; set; } = new MenuViewModel();
@@ -67,7 +66,7 @@ public partial class MainViewModel : ViewModelBase
         //OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
 
         InitFramework();
-        //TestMessage();
+        TestMessage();
         //TestPlugin();
     }
 
@@ -85,7 +84,7 @@ public partial class MainViewModel : ViewModelBase
 
         if (Content is null)
         {
-            ShowToast($"{Localize.NotPageFound} {s}", NotificationType.Error);
+            ShowToast($"{Localize.PageNotFound} {s}", NotificationType.Error);
         }
     }
 
@@ -115,21 +114,28 @@ public partial class MainViewModel : ViewModelBase
             case MenuKeys.MenuKeySettings:
                 break;
             case MenuKeys.MenuKeyPageItems:
-                //ShowMediaInfo();
                 var items = await GetPageItems(message);
-                Content = new PageItemsViewModel(items);
+                if(items is not null) Content = new PageItemsViewModel(items);
                 break;
         }
 
         if (Content is null)
         {
-            ShowToast($"{Localize.NotPageFound} {key}", NotificationType.Error);
+            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
         }
     }
 
-    private void OnNavigation(MainViewModel vm, PageItemChangedMessage message)
+    private async void OnNavigation(MainViewModel vm, PageItemChangedMessage message)
     {
-        ShowMediaInfo(message.Value);
+        var mediaInfo = await GetMediaInfo(message);
+        if (mediaInfo is not null)
+        {
+            ShowMediaInfo(mediaInfo);
+        }
+        else
+        {
+            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
+        }
     }
 
     private async void InitFramework()
@@ -212,6 +218,7 @@ public partial class MainViewModel : ViewModelBase
     {
         string key = message.Value.Key ?? "";
         string? pluginId = message.Value.PluginId ?? null;
+        int pageNumber = message.Value.PageNumber;
 
         if (pluginId is not null)
         {
@@ -219,13 +226,13 @@ public partial class MainViewModel : ViewModelBase
 
             if (plugin is not null && plugin.State == PluginState.Started)
             {
-                _currentPlugin = plugin;
+                CurrentPlugin = plugin;
 
                 Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(plugin.Manifest)}" + Environment.NewLine);
                 var cat = message.Value.Category;
                 Debug.WriteLine($"Category: {JsonSerializer.Serialize(cat)}" + Environment.NewLine);
                 if (cat is null) return null;
-                var pageItems = await plugin.GetPageItems(1, cat);
+                var pageItems = await plugin.GetPageItems(pageNumber, cat);
                 if (pageItems is null) return null;
                 Debug.WriteLine($"PageItems: {JsonSerializer.Serialize(pageItems)}" + Environment.NewLine);
                 return pageItems;
@@ -235,24 +242,12 @@ public partial class MainViewModel : ViewModelBase
         return null;
     }
 
-    private async Task<MediaInfoModel?> GetMediaInfo(PageItemModel pageItem)
+    private async Task<MediaInfoModel?> GetMediaInfo(PageItemChangedMessage message)
     {
-       
-        return null;
-    }
-    private async void ShowMediaInfo(PageItemModel pageItem)
-    {
-        var options = new OverlayDialogOptions()
-        {
-            FullScreen = false,
-            Buttons = DialogButton.None,
-            Title = "Tavus Kuşu - Peacock",
-            Mode = DialogMode.None,
-            CanDragMove = false,
-            CanResize = false
-        };
+        var pageItem = message.Value;
 
-        //var mediaInfo = new MediaInfoModel() { Url="", Title = "Tavus Kuşu - Peacock", Description = "John Skillpa, sessiz kendi halinde Peacock adında küçük bir kasabada gözlerden uzak bir hayat sürmektedir. Gözlerden uzak yaşamasının nedeni güne başlamadan önce her sabah kendisine kahvaltısını hazırlayan, kimsenin bilmediği diğer kadın kişiliğini gizli tutmaya çalışmasından kaynaklanmaktadır. Evinin dibinde yaşanan beklenmedik tren kazasıyla birlikte tüm yaşantısı alt üst olacaktır.", Poster = "https://www.hdfilmcehennemi.nl/images/list/poster/peacock.webp" };
+        if (pageItem is null) return null;
+
         var mediaInfo = new MediaInfoModel()
         {
             Url = pageItem.Url,
@@ -260,16 +255,32 @@ public partial class MainViewModel : ViewModelBase
             Poster = pageItem.Poster
         };
 
-        if(_currentPlugin is not null)
+        if (CurrentPlugin is not null)
         {
-            Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(_currentPlugin.Manifest)}" + Environment.NewLine);
-            mediaInfo = await _currentPlugin.GetMediaInfo(pageItem);
+            Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(CurrentPlugin.Manifest)}" + Environment.NewLine);
+            mediaInfo = await CurrentPlugin.GetMediaInfo(pageItem);
             Debug.WriteLine($"MediaInfo: {JsonSerializer.Serialize(mediaInfo)}" + Environment.NewLine);
         }
 
+        return mediaInfo;
+    }
+    private async void ShowMediaInfo(MediaInfoModel mediaInfo)
+    {
+        var options = new OverlayDialogOptions()
+        {
+            FullScreen = true,
+            Buttons = DialogButton.None,
+            Title = mediaInfo.Title,
+            Mode = DialogMode.None,
+            CanDragMove = false,
+            CanResize = false,
+            //TopLevelHashCode = this.GetHashCode(),
+            //OnDialogControlClosed = (object? _, object? _) => target.Focus()
+        };
+
+        await OverlayDialog.ShowCustomModal<MediaInfo, MediaInfoViewModel, object>(new MediaInfoViewModel(CurrentPlugin, mediaInfo, Localize), null, options: options);
         //OverlayDialog.Show<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(), null, options: options);
         //await OverlayDialog.ShowModal<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(mediaInfo), null, options: options);
-        await OverlayDialog.ShowCustomModal<MediaInfo, MediaInfoViewModel, object>(new MediaInfoViewModel(mediaInfo), null, options: options);
     }
 
     private async void TestMessage()
@@ -277,14 +288,12 @@ public partial class MainViewModel : ViewModelBase
         var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
         while (await timer.WaitForNextTickAsync())
         {
-            LoadPlugins();
-
             //ShowMessage("test", "test 123");
             //ShowNotify("test", "test 123", NotificationType.Success);
             //ShowMessage("test", "test 123", NotificationType.Warning);
             //ShowMessage("test", "test 123", NotificationType.Error);
 
-            //ShowToast("test 123456", NotificationType.Information, "Light");
+            ShowToast("test 123456", NotificationType.Information, "Light");
             //ShowToast("test 123456", NotificationType.Success, "Light");
             //ShowToast(_pluginManager, NotificationType.Warning, "Light");
             //ShowToast("test 123456", NotificationType.Error, "Light");

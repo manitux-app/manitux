@@ -17,6 +17,8 @@ namespace Manitux.Core.Models
         public required string Url { get; set; }
         public string? CategoryName { get; set; }
         public string? Poster { get; set; }
+        public string? Rating { get; set; }
+        public string? Year { get; set; }
         public IpTvChannelModel? IpTvChannel { get; set; }
     }
 
@@ -37,16 +39,19 @@ namespace Manitux.Core.Models
     /// </summary>
     public class MediaInfoModel
     {
+        public string? ImdbId { get; set; }
         public required string Title { get; set; }
         public required string Url { get; set; }
         public string? Description { get; set; }
         public string? Poster { get; set; }
+        public string? Backdrop { get; set; }
         public string? Trailer { get; set; }
         public string? Tags { get; set; }
         public string? Rating { get; set; }
         public string? Year { get; set; }
         public string? Duration { get; set; }
         public string? Actors { get; set; }
+        public string? Country { get; set; }
         public List<VideoSourceModel>? VideoSources { get; set; }
         public List<EpisodeModel>? Episodes { get; set; }
         //public List<SeasonModel>? Seasons { get; set; }
@@ -96,6 +101,7 @@ namespace Manitux.Core.Models
     public class SeasonModel
     {
         public int SeasonNumber { get; set; }
+        public required string Title { get; set; }
         public List<EpisodeModel>? Episodes { get; set; }
     }
 

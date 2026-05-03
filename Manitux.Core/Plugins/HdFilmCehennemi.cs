@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Diagnostics.Metrics;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using AngleSharp.Dom;
 using CodeLogic.Core.Logging;
@@ -101,8 +103,30 @@ public class HdFilmCehennemi : PluginBase
 
             // --- Temel Metadata Ayıklama ---
             var title = document.QuerySelector("h1.section-title")?.TextContent?.Trim();
+
+            // Poster ve Backdrop
             var poster = document.QuerySelector("aside.post-info-poster img.lazyload")?.GetAttribute("data-src")
                          ?? document.QuerySelector("aside.post-info-poster img.lazyload")?.GetAttribute("src");
+
+            var backdrop = document.QuerySelector("div.play-that-video > img")?.GetAttribute("data-src") ??
+                           document.QuerySelector("div.play-that-video > img")?.GetAttribute("srcset")?.Trim() ??
+                           document.QuerySelector("div.play-that-video > img")?.GetAttribute("src")?.Trim() ?? "";
+
+            if (backdrop.Contains("1x,"))
+            {
+                var match = Regex.Match(backdrop, @"1x,\s*(https?://\S+)");
+
+                if (match.Success)
+                {
+                    backdrop = match.Groups[1].Value;
+                    //Debug.WriteLine(backdrop);
+                }
+            }
+            
+            if (backdrop.StartsWith("data:image"))
+            {
+                backdrop = null;
+            }
 
             var description = document.QuerySelector("article.post-info-content > p")?.TextContent?.Trim();
 
@@ -114,7 +138,9 @@ public class HdFilmCehennemi : PluginBase
             var ratingRaw = document.QuerySelector("div.post-info-imdb-rating span")?.TextContent?.Trim();
             var rating = ratingRaw?.Split('(')[0].Trim();
 
+            // Yıl ve Ülke
             var year = document.QuerySelector("div.post-info-year-country a")?.TextContent?.Trim();
+            var country = document.QuerySelector("div.post-info-year-country a[href*='/ulke/']")?.TextContent?.Trim();
 
             // Oyuncular
             var actorsList = document.QuerySelectorAll("div.post-info-cast a > strong").Select(x => x.TextContent.Trim());
@@ -124,7 +150,7 @@ public class HdFilmCehennemi : PluginBase
             var durationText = document.QuerySelector("div.post-info-duration")?.TextContent?.Trim() ?? "";
             var duration = Regex.Match(durationText, @"(\d+)").Value;
 
-            // --- Dizi/Bölüm Kontrolü ---
+            // Dizi/Bölüm Kontrolü
             var epLinks = document.QuerySelectorAll("div.seasons-tab-content a");
 
             var videoSources = new List<VideoSourceModel>();
@@ -133,9 +159,8 @@ public class HdFilmCehennemi : PluginBase
             //var seasons = new List<SeasonModel>();
 
 
-            if (epLinks.Any()) // dizi
+            if (epLinks.Any()) // dizi bölümleri
             {
-                // Bölümleri sezonlarına göre gruplayarak SeasonModel listesini doldur
                 foreach (var ep in epLinks)
                 {
                     var epName = ep.QuerySelector("h4")?.TextContent?.Trim();
@@ -178,10 +203,13 @@ public class HdFilmCehennemi : PluginBase
                 foreach (var related in relateds)
                 {
                     var relatedTitle = related.QuerySelector("strong.poster-title")?.TextContent.Trim() ?? "";
-                    var relatedUrl = related.QuerySelector("a.poster poster-slider")?.GetAttribute("href")?.Trim() ?? "";
-                    var relatedPoster = related.QuerySelector("img")?.GetAttribute("data-src")?.Trim() ?? "";
+                    var relatedUrl = related.QuerySelector("a")?.GetAttribute("href")?.Trim() ?? "";
 
-                    relatedVideos.Add(new() { Title = relatedTitle, Url = FixUrl(relatedUrl, Config.MainUrl), Poster = FixUrl(relatedPoster, Config.MainUrl) });
+                    var relatedPoster = related.QuerySelector("img")?.GetAttribute("data-src")?.Trim() ??
+                                        related.QuerySelector("img")?.GetAttribute("data-srcset")?.Split("1x")[0].Trim() ??
+                                        related.QuerySelector("img")?.GetAttribute("src")?.Trim() ?? "";
+
+                    relatedVideos.Add(new() { Title = CleanString(relatedTitle), Url = FixUrl(relatedUrl, Config.MainUrl), Poster = FixUrl(relatedPoster, Config.MainUrl) });
                 }
             }
 
@@ -241,17 +269,22 @@ public class HdFilmCehennemi : PluginBase
 
             }
 
+            poster = !string.IsNullOrEmpty(poster) ? FixUrl(poster, Config.MainUrl) : null;
+            backdrop = !string.IsNullOrEmpty(backdrop) ? FixUrl(backdrop, Config.MainUrl) : null;
+
             return new MediaInfoModel
             {
-                Title = title ?? "Bilinmiyor",
+                Title = CleanString(title ?? "") ?? pageItem.Title,
                 Url = url,
-                Poster = !string.IsNullOrEmpty(poster) ? FixUrl(poster, Config.MainUrl) : null,
+                Poster = poster,
+                Backdrop = backdrop ?? poster,
                 Description = description,
                 Tags = tags,
                 Rating = rating,
                 Year = year,
                 Actors = actors,
                 Duration = duration,
+                Country = country,
                 VideoSources = videoSources.Any() ? videoSources : null,
                 Episodes = episodes.Any() ? episodes : null,
                 RelatedVideos = relatedVideos.Any() ? relatedVideos : null
@@ -327,6 +360,10 @@ public class HdFilmCehennemi : PluginBase
                 // Poster: img etiketinin data-src özniteliği
                 var poster = item.QuerySelector("img")?.GetAttribute("data-src");
 
+                var year = item.QuerySelector("div.poster-info span")?.TextContent?.Trim();
+
+                var rating = item.QuerySelector("span.imdb")?.TextContent?.Trim();
+
                 // Başlık ve link varsa modeli oluşturup listeye ekle
                 if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(href))
                 {
@@ -335,7 +372,9 @@ public class HdFilmCehennemi : PluginBase
                         CategoryName = category.Title,
                         Title = title,
                         Url = FixUrl(href, Config.MainUrl),
-                        Poster = !string.IsNullOrEmpty(poster) ? FixUrl(poster, Config.MainUrl) : null
+                        Poster = !string.IsNullOrEmpty(poster) ? FixUrl(poster, Config.MainUrl) : null,
+                        Rating = CleanString(rating ?? ""),
+                        Year = CleanString(year ?? "")
                     });
                 }
             }

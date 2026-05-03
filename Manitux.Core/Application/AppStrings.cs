@@ -27,9 +27,17 @@ public class AppStrings: LocalizationModelBase
     public string AboutUs { get; set; } = "About Us";
     public string Settings { get; set; } = "Settings";
     public string Plugins { get; set; } = "Plugins";
+    public string Search { get; set; } = "Search";
+    public string Refresh { get; set; } = "Refresh";
+
+    // ── GUI  ────────────────────────────────────────────────────────────
+    public string Country { get; set; } = "Country";
+    public string Duration { get; set; } = "Duration";
+    public string Year { get; set; } = "Year";
+    public string Season { get; set; } = "Season";
 
     // ── GUI Messages ────────────────────────────────────────────────────────────
     public string NotInitialized { get; set; } = "ManituxApp is not initialized!";
-    public string NotPageFound { get; set; } = "Not page found: ";
+    public string PageNotFound { get; set; } = "Page not found!";
     
 }

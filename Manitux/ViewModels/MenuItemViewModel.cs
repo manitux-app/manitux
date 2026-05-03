@@ -25,7 +25,7 @@ public class MenuItemViewModel: ViewModelBase
     public string? PluginId { get; set; }
     public CategoryModel? Category { get; set; }
     public string? Status { get; set; }
-    
+    public int PageNumber { get; set; } = 1;
     public bool IsSeparator { get; set; }
     public ObservableCollection<MenuItemViewModel> Children { get; set; } = new();
     

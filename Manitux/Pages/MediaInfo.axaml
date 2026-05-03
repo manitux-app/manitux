@@ -2,28 +2,50 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:u="https://irihi.tech/ursa"
 			 xmlns:async="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
 			 xmlns:vm="clr-namespace:Manitux.ViewModels"
-			 xmlns:u="https://irihi.tech/ursa"
-             mc:Ignorable="d" MinWidth="450" Width="960" Height="540"
+			 xmlns:local="clr-namespace:Manitux.Core.Models;assembly=Manitux.Core"
+			 xmlns:converters="clr-namespace:Manitux.Converters"
+             mc:Ignorable="d" MinWidth="450"
 			 d:DesignWidth="800" d:DesignHeight="450"
 			 x:DataType="vm:MediaInfoViewModel"
              x:Class="Manitux.MediaInfo">
 	<!--<UserControl.Background>
-		<LinearGradientBrush StartPoint="5%, 5%" EndPoint="80%, 80%">
-			<GradientStop Offset="0.0" Color="{DynamicResource SemiLightBlue0Color}" />
-			<GradientStop Offset="0.4" Color="{DynamicResource SemiLightBlue2Color}" />
-			<GradientStop Offset="0.9" Color="{DynamicResource SemiLightBlue1Color}" />
-		</LinearGradientBrush>
+		<ImageBrush async:ImageBrushLoader.Source="{Binding MediaInfo.Backdrop}" Stretch="UniformToFill"/>
 	</UserControl.Background>-->
+	<UserControl.Resources>
+		<converters:IconNameToPathConverter x:Key="IconConverter" />
+	</UserControl.Resources>
 	<UserControl.Styles>
-		<Style Selector="Button.BackBtn:pointerover Path">
-			<Setter Property="Fill" Value="#f39c12"/>
+		<Style Selector="Border.MovieCard">
+			<Setter Property="Transitions">
+				<Transitions>
+					<TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+					<BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.3" />
+				</Transitions>
+			</Setter>
 		</Style>
-		<Style Selector="Border.CastCard:pointerover">
-			<Setter Property="Background" Value="#33FFFFFF"/>
+
+		<Style Selector="Border.MovieCard:pointerover">
+			<Setter Property="RenderTransform" Value="scale(1.05)"/>
+			<Setter Property="BoxShadow" Value="0 10 20 0 #80000000"/>
+			<Setter Property="ZIndex" Value="1"/>
+		</Style>
+
+		<Style Selector="Border.MovieCard Image">
+			<Setter Property="Transitions">
+				<Transitions>
+					<DoubleTransition Property="Opacity" Duration="0:0:0.3"/>
+				</Transitions>
+			</Setter>
+		</Style>
+
+		<Style Selector="Border.MovieCard:pointerover Image">
+			<Setter Property="Opacity" Value="0.8"/>
 		</Style>
 	</UserControl.Styles>
+
 	<Control.Styles>
 		<Style Selector="u|IconDropDownButton, u|IconSplitButton, u|IconToggleSplitButton">
 			<Setter Property="Button.Flyout">
@@ -35,43 +57,81 @@
 			</Setter>
 		</Style>
 	</Control.Styles>
-	<Grid RowDefinitions="Auto, *">
-		<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="20,15" Spacing="10">
-			<TextBlock Text="Film Detayı" VerticalAlignment="Center" FontSize="16" Opacity="0.7"/>
-		</StackPanel>
 
-		<ScrollViewer Grid.Row="1">
-			<StackPanel Margin="40,10,40,40" Spacing="40">
+	<Grid>
+		<Border IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+			<Border.Background>
+				<ImageBrush async:ImageBrushLoader.Source="{Binding MediaInfo.Backdrop}"
+                            Stretch="UniformToFill" />
+			</Border.Background>
+		</Border>
 
-				<Grid ColumnDefinitions="Auto, *">
-					<Border Grid.Column="0" CornerRadius="12" ClipToBounds="True" BoxShadow="0 10 30 0 #A0000000" Width="260">
-						<Image async:ImageLoader.Source="{Binding MediaInfo.Poster}" Stretch="Uniform"/>
-					</Border>
+		<Border Background="Black" Opacity="0.7" IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+		
+		<Grid RowDefinitions="Auto, *" Width="{Binding $parent.Bounds.Width}" Height="{Binding $parent.Bounds.Height}">
 
-					<StackPanel Grid.Column="1" Margin="30,0,0,0" Spacing="15">
-						<TextBlock Text="{Binding MediaInfo.Title}" FontSize="36" FontWeight="Bold" TextWrapping="Wrap"/>
-						<TextBlock Text="{Binding MediaInfo.Description}" FontSize="15" Opacity="0.8" TextWrapping="Wrap" LineHeight="22"/>
 
-						<!-- Türler -->
-						<!--<ItemsControl ItemsSource="{Binding Tags}">
-							<ItemsControl.ItemsPanel>
-								<ItemsPanelTemplate>
-									<StackPanel Orientation="Horizontal" Spacing="8"/>
-								</ItemsPanelTemplate>
-							</ItemsControl.ItemsPanel>
-							<ItemsControl.ItemTemplate>
-								<DataTemplate>
-									<Border BorderBrush="#f39c12" BorderThickness="1" CornerRadius="4" Padding="8,2">
-										<TextBlock Text="{Binding Name}" FontSize="11" Foreground="#f39c12"/>
-									</Border>
-								</DataTemplate>
-							</ItemsControl.ItemTemplate>
-						</ItemsControl>-->
-					</StackPanel>
-				</Grid>
 
-				<!-- Orta Bölüm: Oyuncular (Yatay Liste) -->
-				<!--<StackPanel Spacing="15">
+			<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="20,15" Spacing="10">
+				<TextBlock Text="{Binding MediaInfo.Title}" VerticalAlignment="Center" FontSize="16" Opacity="0.7"/>
+			</StackPanel>
+
+			<ScrollViewer Name="MainScrollViewer" Grid.Row="1">
+				<StackPanel Margin="40,10,40,40" Spacing="40">
+
+					<Grid ColumnDefinitions="Auto, *">
+						<Border Grid.Column="0" CornerRadius="12" ClipToBounds="True" BoxShadow="0 10 30 0 #A0000000" Width="260">
+							<Image async:ImageLoader.Source="{Binding MediaInfo.Poster}" Stretch="Uniform"/>
+						</Border>
+
+						<StackPanel Grid.Column="1" Margin="30,0,0,0" Spacing="15">
+							<TextBlock Text="{Binding MediaInfo.Title}" FontSize="32" FontWeight="Bold" TextWrapping="Wrap"/>
+							<TextBlock Text="{Binding MediaInfo.Description}" FontSize="18" Opacity="0.8" TextWrapping="Wrap" LineHeight="22"/>
+							<TextBlock Text="{Binding MediaInfo.Tags}" FontSize="16" Opacity="0.8" TextWrapping="Wrap" LineHeight="22"/>
+							<TextBlock Text="{Binding MediaInfo.Actors}" FontSize="16" Opacity="0.8" TextWrapping="Wrap" LineHeight="22"/>
+
+							<StackPanel Orientation="Horizontal" Spacing="10">
+								<u:IconButton IsVisible="True"
+									HorizontalAlignment="Stretch"
+									Classes="Tertiary"
+									Icon="{StaticResource SemiIconStar}"
+									Content="{Binding MediaInfo.Rating}"
+									RenderTransform="{x:Null}"
+									ToolTip.Tip="IMDB"
+									FontWeight="Normal" FontSize="16"
+									Theme="{DynamicResource BorderlessIconButton}"/>
+								<u:IconButton IsVisible="True"
+									HorizontalAlignment="Stretch"
+									Classes="Tertiary"
+									Icon="{StaticResource SemiIconCalendar}"
+									Content="{Binding MediaInfo.Year}"
+									RenderTransform="{x:Null}"
+									ToolTip.Tip="{Binding Localize.Year}"
+									FontWeight="Normal" FontSize="16"
+									Theme="{DynamicResource BorderlessIconButton}"/>
+								<u:IconButton IsVisible="True"
+									HorizontalAlignment="Stretch"
+									Classes="Tertiary"
+									Icon="{StaticResource SemiIconGlobe}"
+									Content="{Binding MediaInfo.Country}"
+									RenderTransform="{x:Null}"
+									ToolTip.Tip="{Binding Localize.Country}"
+									FontWeight="Normal" FontSize="16"
+									Theme="{DynamicResource BorderlessIconButton}"/>
+								<u:IconButton IsVisible="True"
+									HorizontalAlignment="Stretch"
+									Classes="Tertiary"
+									Icon="{StaticResource SemiIconClock}"
+									Content="{Binding MediaInfo.Duration}"
+									RenderTransform="{x:Null}"
+									ToolTip.Tip="{Binding Localize.Duration}"
+									FontWeight="Normal" FontSize="16"
+									Theme="{DynamicResource BorderlessIconButton}"/>
+							</StackPanel>
+						</StackPanel>
+					</Grid>
+
+					<!--<StackPanel Spacing="15">
 					<TextBlock Text="Oyuncular" FontSize="20" FontWeight="SemiBold"/>
 					<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
 						<ItemsControl ItemsSource="{Binding Actors}">
@@ -99,49 +159,118 @@
 					</ScrollViewer>
 				</StackPanel>-->
 
-				<Grid>
-				<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-					<ItemsControl ItemsSource="{Binding MediaInfo.VideoSources}">
-						<ItemsControl.ItemsPanel>
-							<ItemsPanelTemplate>
-								<StackPanel Orientation="Horizontal" Spacing="15"/>
-							</ItemsPanelTemplate>
-						</ItemsControl.ItemsPanel>
-						<ItemsControl.ItemTemplate>
-							<DataTemplate>
-								<!--<Button Content="{Binding Name}"/>-->
-								<u:IconDropDownButton
-									Icon="{StaticResource SemiIconCamera}" 
-									Content="{Binding Name}" 
-									Classes="Tertiary" 
-									Theme="{DynamicResource SolidIconDropDownButton}" />
-							</DataTemplate>
-						</ItemsControl.ItemTemplate>
-					</ItemsControl>
-				</ScrollViewer>
-				</Grid>
+					<Grid>
+						<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+							<ItemsControl ItemsSource="{Binding MediaInfo.VideoSources}">
+								<ItemsControl.ItemsPanel>
+									<ItemsPanelTemplate>
+										<StackPanel Orientation="Horizontal" Spacing="15"/>
+									</ItemsPanelTemplate>
+								</ItemsControl.ItemsPanel>
+								<ItemsControl.ItemTemplate>
+									<DataTemplate>
+										<!--<Button Content="{Binding Name}"/>-->
+										<u:IconDropDownButton
+											Icon="{StaticResource SemiIconCamera}"
+											Content="{Binding Name}"
+											Classes="Tertiary"
+											Theme="{DynamicResource SolidIconDropDownButton}" />
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</ScrollViewer>
+					</Grid>
 
-				<!-- Alt Bölüm: Benzer Filmler -->
-				<StackPanel Spacing="15">
-					<TextBlock Text="Benzer İçerikler" FontSize="20" FontWeight="SemiBold"/>
-					<ItemsControl ItemsSource="{Binding MediaInfo.RelatedVideos}">
-						<ItemsControl.ItemsPanel>
-							<ItemsPanelTemplate>
-								<WrapPanel />
-							</ItemsPanelTemplate>
-						</ItemsControl.ItemsPanel>
-						<ItemsControl.ItemTemplate>
-							<DataTemplate>
-								<Border Margin="0,0,15,15" CornerRadius="6" ClipToBounds="True" Width="140" Height="210">
-									<!--<Image async:ImageLoader.Source="{Binding MediaInfo.Poster}" Stretch="UniformToFill"/>-->
-								</Border>
+					<TabControl ItemsSource="{Binding Seasons}" Margin="10">
+
+						<TabControl.ItemTemplate>
+							<DataTemplate x:DataType="local:SeasonModel">
+								<TextBlock Text="{Binding Title}"
+										   FontSize="16"
+										   FontWeight="SemiBold"
+										   Padding="4,2"/>
 							</DataTemplate>
-						</ItemsControl.ItemTemplate>
-					</ItemsControl>
+						</TabControl.ItemTemplate>
+
+						<TabControl.ContentTemplate>
+							<DataTemplate x:DataType="local:SeasonModel">
+								<ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+									<ItemsControl ItemsSource="{Binding Episodes}" Margin="0,10,0,0">
+
+										<ItemsControl.ItemsPanel>
+											<ItemsPanelTemplate>
+												<WrapPanel Orientation="Horizontal"/>
+											</ItemsPanelTemplate>
+										</ItemsControl.ItemsPanel>
+
+										<ItemsControl.ItemTemplate>
+											<DataTemplate x:DataType="local:EpisodeModel">
+												<u:IconDropDownButton Margin="10"
+													Icon="{StaticResource SemiIconCamera}"
+													Content="{Binding Title}"
+													Classes="Tertiary"
+													Theme="{DynamicResource SolidIconDropDownButton}"/>
+											</DataTemplate>
+										</ItemsControl.ItemTemplate>
+
+									</ItemsControl>
+								</ScrollViewer>
+							</DataTemplate>
+						</TabControl.ContentTemplate>
+
+					</TabControl>
+
+
+					<StackPanel Spacing="15">
+						<!--<TextBlock Text="Benzer İçerikler" FontSize="20" FontWeight="SemiBold"/>-->
+						<ItemsControl ItemsSource="{Binding MediaInfo.RelatedVideos}">
+							<ItemsControl.ItemsPanel>
+								<ItemsPanelTemplate>
+									<WrapPanel />
+								</ItemsPanelTemplate>
+							</ItemsControl.ItemsPanel>
+							<ItemsControl.ItemTemplate>
+								<DataTemplate>
+									<StackPanel Width="150" Margin="10">
+
+										<Border Classes="MovieCard"
+												CornerRadius="8"
+												ClipToBounds="True"
+												Background="Black"
+												BoxShadow="0 4 10 0 #40000000">
+											<Button Height="220"
+													Padding="0"
+													HorizontalAlignment="Stretch"
+													HorizontalContentAlignment="Stretch"
+													VerticalContentAlignment="Stretch"
+													Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).GetMediaInfo}"
+													CommandParameter="{Binding}">
+												<Image async:ImageLoader.Source="{Binding Poster}"
+													   Height="220"
+													   Stretch="UniformToFill"
+													   HorizontalAlignment="Stretch"/>
+											</Button>
+										</Border>
+
+
+										<TextBlock Text="{Binding Title}"
+													Margin="0,8,0,0"
+													FontSize="14"
+													FontWeight="Medium"
+													TextAlignment="Center"
+													TextWrapping="Wrap" />
+
+									</StackPanel>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+					</StackPanel>
+
 				</StackPanel>
+			</ScrollViewer>
+		</Grid>
 
-			</StackPanel>
-		</ScrollViewer>
 	</Grid>
-
+	
+	
 </UserControl>
