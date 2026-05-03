@@ -20,6 +20,7 @@
     <PackageVersion Include="Irihi.Ursa.Themes.Semi" Version="1.15.1" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.7" />
     <PackageVersion Include="Semi.Avalonia" Version="11.3.14" />
+    <PackageVersion Include="TlsClient.Native.win-x64" Version="1.11.2" />
     <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.15" />
     <PackageVersion Include="AngleSharp" Version="1.4.0" />
     <PackageVersion Include="TlsClient.Native" Version="0.4.6" />
