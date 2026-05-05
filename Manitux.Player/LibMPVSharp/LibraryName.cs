@@ -13,7 +13,7 @@ namespace LibMPVSharp
         public const string Name = "libmpv";
 
         public static string WindowsLibrary { get; set; } = "libmpv-2";
-        public static string LinuxLibrary { get; set; } = "libmpv.so";
+        public static string LinuxLibrary { get; set; } = "libmpv.so.2";
         public static string AndroidLibrary { get; set; } = "libmpv.so";
         public static string MacLibrary { get; set; } = "libmpv.2.dylib";
 

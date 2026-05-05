@@ -24,7 +24,7 @@ public class HtmlHelper: IDisposable
             return null;
         }
 
-        LogHelper.Html.Log(LogLevel.Debug, $"[HtmlParse] Html: {html}");
+        //LogHelper.Html.Log(LogLevel.Debug, $"[HtmlParse] Html: {html}");
 
         try
         {

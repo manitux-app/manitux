@@ -149,7 +149,7 @@ public class HttpHelper: HtmlHelper, IDisposable
                     {
 
                         string html = await content.ReadAsStringAsync();
-                         LogHelper.Http.Log(LogLevel.Debug, $"[HttpGet] Html: {html}");
+                        //LogHelper.Http.Log(LogLevel.Debug, $"[HttpGet] Html: {html}");
                         return html;
                     }
                 }
@@ -215,12 +215,12 @@ public class HttpHelper: HtmlHelper, IDisposable
 
             if (response.IsSuccessStatus)
             {
-                 LogHelper.Http.Log(LogLevel.Debug, "[HttpGetWithTLS] " + response.Body);
+                //LogHelper.Http.Log(LogLevel.Debug, "[HttpGetWithTLS] " + response.Body);
                 return response.Body;
             }
             else
             {
-                 LogHelper.Http.Log(LogLevel.Debug, $"[HttpGetWithTLS] Status: {response.Status} Body: {response.Body}");
+                LogHelper.Http.Log(LogLevel.Debug, $"[HttpGetWithTLS] Status: {response.Status} Body: {response.Body}");
             }
         }
         catch (Exception ex)
