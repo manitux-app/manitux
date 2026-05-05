@@ -13,7 +13,7 @@ namespace Manitux.Player;
 
 public partial class PlayerViewNative : UserControl //, IDisposable
 {
-    public MPVMediaPlayer? Player { get; set; } = new();
+    //public MPVMediaPlayer? Player { get; set; } = new();
     
     public PlayerViewNative()
     {

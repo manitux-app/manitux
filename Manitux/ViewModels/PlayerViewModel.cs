@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.Primitives;
@@ -12,6 +13,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using LibMPVSharp;
 using LibMPVSharp.Avalonia;
 using LibMPVSharp.Extensions;
+using Manitux.Core.Application;
 using Manitux.Core.Models;
 
 namespace Manitux.ViewModels
@@ -28,13 +30,17 @@ namespace Manitux.ViewModels
         public bool HasError { get; set; }
         public string? ErrorString { get; set; }
 
-        public event Action? OnRequestClose;
+        private AppStrings? _localize;
 
-        public PlayerViewModel(VideoSourceModel? videoSource)
+        public event Action? OnRequestClose;
+        public event Action<List<SubtitleModel>>? OnAddSubtitleRequested;
+
+        public PlayerViewModel(VideoSourceModel? videoSource, AppStrings? localize)
         {
             if (videoSource is null || string.IsNullOrEmpty(videoSource?.Url) || !IsValidUrlFormat(videoSource?.Url ?? ""))
             {
-                ErrorString = "VideoSource is not initialized!";
+                _localize = localize;
+                ErrorString = _localize?.VideoNotInitialized;
                 HasError = true;
                 return;
             }
@@ -76,7 +82,14 @@ namespace Manitux.ViewModels
                     }
                 };
 
-            if (videoSource is not null) Play(videoSource);
+            if (videoSource is not null)
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    Play(videoSource);
+                });
+            }
+               
 
             //Task.Run(() => Play(videoSource));
             //Task.Run(async () => await Play(videoSource));
@@ -89,12 +102,12 @@ namespace Manitux.ViewModels
         {
             if (MediaPlayer is null)
             {
-                ErrorString = "MediaPlayer is not initialized!";
+                ErrorString = _localize?.PlayerNotInitialized;
                 HasError = true;
                 return;
             }
 
-            await Task.Delay(10000);
+            await Task.Delay(1000);
 
             try
             {
@@ -128,10 +141,20 @@ namespace Manitux.ViewModels
 
                 if (source.Subtitles != null && source.Subtitles.Any())
                 {
+                    // System.FormatException
+                    //MediaPlayer.ExecuteCommand(new[] { "sub-add", "no" });
+                    //MediaPlayer.SetProperty("sub-add", "no");
+
                     foreach (var track in source.Subtitles)
                     {
-                        MediaPlayer.ExecuteCommand(new[] { "sub-add", track.Url });
+                        MediaPlayer.ExecuteCommand(new[] { "sub-add", track.Url, "auto" });
                     }
+
+                    MediaPlayer.SetProperty( "sid", "no" );
+
+                    source.Subtitles.Insert(0, new() { Id = "no", Name = _localize?.Closed ?? "Closed", Url = "" });
+                    Debug.WriteLine($"Tracks: {JsonSerializer.Serialize(source.Subtitles)}" + Environment.NewLine);
+                    OnAddSubtitleRequested?.Invoke(source.Subtitles);
                 }
             }
             catch (Exception ex)
@@ -144,13 +167,15 @@ namespace Manitux.ViewModels
                 //IsReady = true;
                 //OnPropertyChanged(nameof(IsReady));
             }
+
+            //await Task.Delay(10000);
+            //Dispose();
         }
 
         private bool IsValidUrlFormat(string url)
         {
             if (string.IsNullOrWhiteSpace(url)) return false;
 
-            // Geçerli bir URI formatı mı ve HTTP/HTTPS ile mi başlıyor?
             return Uri.TryCreate(url, UriKind.Absolute, out Uri? uriResult)
                    && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
         }
@@ -162,8 +187,11 @@ namespace Manitux.ViewModels
                 MediaPlayer.ExecuteCommand(new[] { "stop" });
                 MediaPlayer.Dispose();
                 MediaPlayer = null;
-                Debug.WriteLine("PlayerViewModel Dispose");
+
+                Debug.WriteLine("PlayerViewModel.MediaPlayer Disposed");
             }
+
+            Debug.WriteLine("PlayerViewModel Disposed");
         }
     }
 }

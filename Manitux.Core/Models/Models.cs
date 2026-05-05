@@ -186,6 +186,7 @@ namespace Manitux.Core.Models
     {
         public required string Name { get; set; }
         public required string Url { get; set; }
+        public bool IsTrailer { get; set; }
         public string? Referer { get; set; }
         public List<HeaderModel>? Headers { get; set; }
         public List<SubtitleModel>? Subtitles { get; set; }
@@ -196,6 +197,7 @@ namespace Manitux.Core.Models
     /// </summary>
     public class SubtitleModel
     {
+        public string Id { get; set; } = "no"; // "no", "1", "2"
         public required string Name { get; set; }
         public required string Url { get; set; }
     }

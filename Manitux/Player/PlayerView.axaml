@@ -12,7 +12,7 @@
 	<Grid Name="Root" Background="#111111" ColumnDefinitions="*,Auto">
 		<u:LoadingContainer IsLoading="{Binding !IsReady}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
 			<Panel Grid.Column="0" Background="#111111">
-				<local:MediaPlayerView MediaPlayer="{Binding MediaPlayer}" IsHitTestVisible="True"/>
+				<local:MediaPlayerView Name="MPView" MediaPlayer="{Binding MediaPlayer}" IsHitTestVisible="True"/>
 				<!--<mpv:VideoView Name="VideoView"/>-->
 				<!--<mpv:VideoView Name="VideoView" MediaPlayer="{Binding MediaPlayer}"/>-->
 			</Panel>

@@ -17,28 +17,40 @@ namespace Manitux.Player;
 public partial class PlayerView : UserControl, IDisposable
 {
     private PlayerViewModel? _viewModel;
+    private PlayerViewModel? _vm;
+    protected bool disposed = false;
+
     public PlayerView()
     {
         InitializeComponent();
-
         DataContextChanged += VM_DataContextChanged;
     }
 
     private void VM_DataContextChanged(object? sender, EventArgs e)
     {
+        if (_vm is not null)
+        {
+            _vm.OnRequestClose -= CloseView;
+            _vm.OnAddSubtitleRequested -= AddSubtitle;
+        }
+
         _viewModel = DataContext as PlayerViewModel;
 
         if (_viewModel is not null)
         {
             _viewModel.OnRequestClose -= CloseView;
             _viewModel.OnRequestClose += CloseView;
+
+            _viewModel.OnAddSubtitleRequested -= AddSubtitle;
+            _viewModel.OnAddSubtitleRequested += AddSubtitle;
+
+            _vm = _viewModel;
         }
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        _viewModel = DataContext as PlayerViewModel;
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -46,20 +58,32 @@ public partial class PlayerView : UserControl, IDisposable
         base.OnDetachedFromVisualTree(e);
         Dispose();
     }
+
+    private void AddSubtitle(List<SubtitleModel> subtitles)
+    {
+        var playerView = this.FindControl<MediaPlayerView>("MPView");
+        playerView?.AddSubtitles(subtitles);
+    }
+
     private void CloseView()
     {
         if (this.FindLogicalAncestorOfType<DialogControlBase>() is { } dialog) dialog.Close();
     }
 
-    protected bool disposed = false;
     protected virtual void Dispose(bool disposing)
     {
         if (!this.disposed && disposing)
         {
             Debug.WriteLine("PlayerView Disposing");
-            if (_viewModel is not null)
+
+            DataContextChanged -= VM_DataContextChanged;
+
+            if (_vm is not null)
             {
-                _viewModel.Dispose();
+                _vm.OnRequestClose -= CloseView;
+                _vm.OnAddSubtitleRequested -= AddSubtitle;
+                _vm.Dispose();
+                _vm = null;
                 Debug.WriteLine("PlayerView Dispose");
             }
         }
@@ -71,6 +95,5 @@ public partial class PlayerView : UserControl, IDisposable
     {
         Dispose(true);
         GC.SuppressFinalize(this);
-        GC.Collect();
     }
 }

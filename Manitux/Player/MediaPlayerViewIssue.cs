@@ -19,76 +19,69 @@ using Manitux.Core.Models;
 
 namespace Manitux.Player
 {
-    public class MediaPlayerView : TemplatedControl
+    public class MediaPlayerViewIssue : TemplatedControl
     {
-        public static readonly StyledProperty<MPVMediaPlayer?> MediaPlayerProperty = AvaloniaProperty.Register<MediaPlayerView, MPVMediaPlayer?>(nameof(MediaPlayer));
+        public static readonly StyledProperty<MPVMediaPlayer?> MediaPlayerProperty = AvaloniaProperty.Register<MediaPlayerViewIssue, MPVMediaPlayer?>(nameof(MediaPlayer));
         public MPVMediaPlayer? MediaPlayer
         {
             get => GetValue(MediaPlayerProperty);
             set => SetValue(MediaPlayerProperty, value);
         }
 
-        public static readonly StyledProperty<TimeSpan> DurationProperty = AvaloniaProperty.Register<MediaPlayerView, TimeSpan>(nameof(Duration));
+        public static readonly StyledProperty<TimeSpan> DurationProperty = AvaloniaProperty.Register<MediaPlayerViewIssue, TimeSpan>(nameof(Duration));
         public TimeSpan Duration
         {
             get => GetValue(DurationProperty);
             set => SetValue(DurationProperty, value);
         }
 
-        public static readonly StyledProperty<TimeSpan> TimeProperty = AvaloniaProperty.Register<MediaPlayerView, TimeSpan>(nameof(Time));
+        public static readonly StyledProperty<TimeSpan> TimeProperty = AvaloniaProperty.Register<MediaPlayerViewIssue, TimeSpan>(nameof(Time));
         public TimeSpan Time
         {
             get => GetValue(TimeProperty);
             set => SetValue(TimeProperty, value);
         }
 
-        public static readonly StyledProperty<long> VolumeProperty = AvaloniaProperty.Register<MediaPlayerView, long>(nameof(Volume));
+        public static readonly StyledProperty<long> VolumeProperty = AvaloniaProperty.Register<MediaPlayerViewIssue, long>(nameof(Volume));
         public long Volume
         {
             get => GetValue(VolumeProperty);
             set => SetValue(VolumeProperty, value);
         }
 
-        public static readonly StyledProperty<long> MaxVolumeProperty = AvaloniaProperty.Register<MediaPlayerView, long>(nameof(MaxVolume), 1000L);
+        public static readonly StyledProperty<long> MaxVolumeProperty = AvaloniaProperty.Register<MediaPlayerViewIssue, long>(nameof(MaxVolume), 1000L);
         public long MaxVolume
         {
             get => GetValue(MaxVolumeProperty);
             set => SetValue(MaxVolumeProperty, value);
         }
 
-        public static readonly StyledProperty<double> SpeedProperty = AvaloniaProperty.Register<MediaPlayerView, double>(nameof(Speed), 1d);
+        public static readonly StyledProperty<double> SpeedProperty = AvaloniaProperty.Register<MediaPlayerViewIssue, double>(nameof(Speed), 1d);
         public double Speed
         {
             get => GetValue(SpeedProperty);
             set => SetValue(SpeedProperty, value);
         }
 
-        public static readonly StyledProperty<bool> PlayingProperty = AvaloniaProperty.Register<MediaPlayerView, bool>(nameof(Playing), false);
+        public static readonly StyledProperty<bool> PlayingProperty = AvaloniaProperty.Register<MediaPlayerViewIssue, bool>(nameof(Playing), false);
         public bool Playing
         {
             get => (bool)GetValue(PlayingProperty);
             set => SetValue(PlayingProperty, value);
         }
 
-        public static readonly StyledProperty<string?> TitleProperty = AvaloniaProperty.Register<MediaPlayerView, string?>(nameof(Title), "");
+        public static readonly StyledProperty<string?> TitleProperty = AvaloniaProperty.Register<MediaPlayerViewIssue, string?>(nameof(Title), "");
         public string? Title
         {
             get => GetValue(TitleProperty);
             set => SetValue(TitleProperty, value);
         }
 
-        public static readonly StyledProperty<string> AspectRatioProperty = AvaloniaProperty.Register<MediaPlayerView, string>(nameof(AspectRatio), "no");
+        public static readonly StyledProperty<string> AspectRatioProperty = AvaloniaProperty.Register<MediaPlayerViewIssue, string>(nameof(AspectRatio), "no");
         public string AspectRatio
         {
             get => GetValue(AspectRatioProperty);
             set => SetValue(AspectRatioProperty, value);
-        }
-
-        public static readonly StyledProperty<string> VideoParamsProperty = AvaloniaProperty.Register<MediaPlayerView, string>(nameof(VideoParams), "");
-        public string VideoParams
-        {
-            get => GetValue(VideoParamsProperty);
-            set => SetValue(VideoParamsProperty, value);
         }
 
         public static readonly StyledProperty<AvaloniaList<SubtitleModel>> SubTitlesProperty =
@@ -100,6 +93,13 @@ namespace Manitux.Player
         {
             get => GetValue(SubTitlesProperty);
             set => SetValue(SubTitlesProperty, value);
+        }
+
+        public static readonly StyledProperty<string> VideoParamsProperty = AvaloniaProperty.Register<MediaPlayerViewIssue, string>(nameof(VideoParams), "");
+        public string VideoParams
+        {
+            get => GetValue(VideoParamsProperty);
+            set => SetValue(VideoParamsProperty, value);
         }
 
         public static readonly StyledProperty<SubtitleModel?> SelectedSubTitleProperty =
@@ -118,21 +118,26 @@ namespace Manitux.Player
         public static readonly RoutedCommand SubTitleCmd = new RoutedCommand(nameof(SubTitleCmd));
 
         private static Queue<string> _aspectRatio = new Queue<string>();
-        static MediaPlayerView()
+
+
+        static MediaPlayerViewIssue()
         {
-            MediaPlayerProperty.Changed.AddClassHandler<MediaPlayerView>((s, e) => s.OnPropertyChanged(e));
-            TimeProperty.Changed.AddClassHandler<MediaPlayerView>((s, e) => s.OnPropertyChanged(e));
-            VolumeProperty.Changed.AddClassHandler<MediaPlayerView>((s, e) => s.OnPropertyChanged(e));
-            AspectRatioProperty.Changed.AddClassHandler<MediaPlayerView>((s, e) => s.OnPropertyChanged(e));
+            MediaPlayerProperty.Changed.AddClassHandler<MediaPlayerViewIssue>((s, e) => s.OnPropertyChanged(e));
+            TimeProperty.Changed.AddClassHandler<MediaPlayerViewIssue>((s, e) => s.OnPropertyChanged(e));
+            VolumeProperty.Changed.AddClassHandler<MediaPlayerViewIssue>((s, e) => s.OnPropertyChanged(e));
+            AspectRatioProperty.Changed.AddClassHandler<MediaPlayerViewIssue>((s, e) => s.OnPropertyChanged(e));
+            SubTitlesProperty.Changed.AddClassHandler<MediaPlayerViewIssue>((s, e) => s.OnPropertyChanged(e));
 
             _aspectRatio.Enqueue("no");
             _aspectRatio.Enqueue("16:9");
             _aspectRatio.Enqueue("4:3");
+
+            // _subTitle.Enqueue({ "", ""});    
         }
 
-        protected override Type StyleKeyOverride => typeof(MediaPlayerView);
+        protected override Type StyleKeyOverride => typeof(MediaPlayerViewIssue);
 
-        public MediaPlayerView()
+        public MediaPlayerViewIssue()
         {
             var binds = new[]
             {
@@ -149,6 +154,7 @@ namespace Manitux.Player
         {
             base.OnApplyTemplate(e);
             var slider = e.NameScope.Get<Slider>("PART_TimeBar");
+            slider.Value = 0;
             slider.Focus();
         }
 
@@ -207,7 +213,132 @@ namespace Manitux.Player
                 if (MediaPlayer == null) return;
                 MediaPlayer.SetProperty(MPVMediaPlayer.VideoOpts.VideoAspectOverride, change.GetNewValue<string>());
             }
+            else if (change.Property == SubTitlesProperty)
+            {
+                var oldNew = change.GetOldAndNewValue<AvaloniaList<SubtitleModel>>();
+
+                // 1. Eski koleksiyonun dinlenmesini durdurun
+                if (oldNew.oldValue != null)
+                {
+                    oldNew.oldValue.CollectionChanged -= SubTitles_CollectionChanged;
+                }
+
+                // 2. Yeni koleksiyonun değişim olaylarını dinleyin
+                if (oldNew.newValue != null)
+                {
+                    oldNew.newValue.CollectionChanged += SubTitles_CollectionChanged;
+
+                    // İlk yüklemede UI'a altyazıları yansıtın
+                    UpdateDefaultSubtitleSelection(oldNew.newValue);
+                }
+            }
+
         }
+
+        private void SubTitles_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            // ViewModel listeye her yeni altyazı eklediğinde UI Thread üzerinde tetiklenir
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (SubTitles != null)
+                {
+                    UpdateDefaultSubtitleSelection(SubTitles);
+                }
+            });
+        }
+
+        private void UpdateDefaultSubtitleSelection(AvaloniaList<SubtitleModel> list)
+        {
+            if (list.Count > 0 && SelectedSubTitle == null)
+            {
+                SetCurrentValue(SelectedSubTitleProperty, list.FirstOrDefault());
+            }
+        }
+
+        private void OnSelectedSubTitleChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            var newSub = change.NewValue as SubtitleModel;
+            if (newSub != null && MediaPlayer != null)
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    MediaPlayer.ExecuteCommand("sid", newSub.Id);
+                });
+            }
+        }
+
+        public void AddSubtitles(List<SubtitleModel> subtitles)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (MediaPlayer == null) return;
+
+                var newList = new AvaloniaList<SubtitleModel>(subtitles);
+
+                SetCurrentValue(SubTitlesProperty, newList);
+
+                SetCurrentValue(SelectedSubTitleProperty, newList.FirstOrDefault());
+            });
+        }
+
+        public void AddSubtitles()
+        {
+
+            // Video yüklendiğinde mpv içindeki altyazı kanallarını tarıyoruz
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (MediaPlayer == null) return;
+
+                var newList = new AvaloniaList<SubtitleModel>{new SubtitleModel { Id = "no", Name = "Kapalı", Url = "" }};
+
+                // mpv üzerindeki tüm kanalları (video, audio, subtitle) sorgula
+                long trackCount = MediaPlayer.GetPropertyLong("track-list/count");
+
+                for (long i = 0; i < trackCount; i++)
+                {
+                    string? type = MediaPlayer.GetPropertyString($"track-list/{i}/type");
+
+                    // Eğer kanal bir altyazı kanalıysa (internal veya external)
+                    if (type == "sub")
+                    {
+                        string? id = MediaPlayer.GetPropertyString($"track-list/{i}/id");
+
+                        // Altyazı adını sırasıyla: title -> lang -> varsayılan isim şeklinde belirle
+                        string? title = MediaPlayer.GetPropertyString($"track-list/{i}/title")
+                                        ?? MediaPlayer.GetPropertyString($"track-list/{i}/lang")
+                                        ?? $"Altyazı {id}";
+
+                        newList.Add(new SubtitleModel { Id = id ?? "no", Name = title, Url = "" });
+                    }
+                }
+
+                // Oluşturulan listeyi View üzerindeki SubTitles property'sine ata
+                SetCurrentValue(SubTitlesProperty, newList);
+
+                // İlk altyazı varsayılan olarak "Altyazı Yok" seçilsin
+                SetCurrentValue(SelectedSubTitleProperty, newList.FirstOrDefault());
+            });
+
+        }
+
+        private void TrySwitchSubTitle(object? parameter)
+        {
+            string? subTitleId = parameter as string;
+            Debug.WriteLine("subTitleId: " + subTitleId);
+
+            if (string.IsNullOrEmpty(subTitleId) || SubTitles == null || MediaPlayer == null)
+                return;
+
+            var targetSub = SubTitles.FirstOrDefault(s => s.Id == subTitleId);
+
+            if (targetSub != null)
+            {
+                // UI ve MPV tarafını güncelle
+                SetCurrentValue(SelectedSubTitleProperty, targetSub);
+                MediaPlayer.SetProperty("sid", targetSub.Id);
+            }
+        }
+
 
         private void MpvEvent(object? sender, MpvEvent mpvEvent)
         {
@@ -231,6 +362,7 @@ namespace Manitux.Player
                     break;
                 case MpvEventId.MPV_EVENT_FILE_LOADED:
                     MpvFiledLoaded(sender);
+                    //AddSubtitles();
                     break;
                 case MpvEventId.MPV_EVENT_IDLE:
                     break;
@@ -366,37 +498,6 @@ namespace Manitux.Player
             var vp = sw.ToString();
             Debug.WriteLine(vp);
             DispatchSetCurrentValue(VideoParamsProperty, vp);
-        }
-
-        private void TrySwitchSubTitle(object? parameter)
-        {
-            string? subTitleId = parameter as string;
-            Debug.WriteLine("subTitleId: " + subTitleId);
-
-            if (string.IsNullOrEmpty(subTitleId) || SubTitles == null || MediaPlayer == null)
-                return;
-
-            var targetSub = SubTitles.FirstOrDefault(s => s.Id == subTitleId);
-
-            if (targetSub != null)
-            {
-                SetCurrentValue(SelectedSubTitleProperty, targetSub);
-                MediaPlayer.SetProperty("sid", targetSub.Id);
-            }
-        }
-
-        public void AddSubtitles(List<SubtitleModel> subtitles)
-        {
-            Dispatcher.UIThread.Post(() =>
-            {
-                if (MediaPlayer == null) return;
-
-                var newList = new AvaloniaList<SubtitleModel>(subtitles);
-
-                SetCurrentValue(SubTitlesProperty, newList);
-
-                SetCurrentValue(SelectedSubTitleProperty, newList.FirstOrDefault());
-            });
         }
     }
 }

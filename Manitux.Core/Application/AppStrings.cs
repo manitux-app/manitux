@@ -22,22 +22,24 @@ public class AppStrings: LocalizationModelBase
     public string Healthy     { get; set; } = "All systems healthy";
     public string Unhealthy   { get; set; } = "Degraded: {0}";
 
-    // ── GUI Menu────────────────────────────────────────────────────────────
+    // ── GUI ────────────────────────────────────────────────────────────
     //[LocalizedString]
     public string AboutUs { get; set; } = "About Us";
     public string Settings { get; set; } = "Settings";
     public string Plugins { get; set; } = "Plugins";
     public string Search { get; set; } = "Search";
     public string Refresh { get; set; } = "Refresh";
-
-    // ── GUI  ────────────────────────────────────────────────────────────
     public string Country { get; set; } = "Country";
     public string Duration { get; set; } = "Duration";
     public string Year { get; set; } = "Year";
     public string Season { get; set; } = "Season";
+    public string Close { get; set; } = "Close";
+    public string Closed { get; set; } = "Closed";
 
     // ── GUI Messages ────────────────────────────────────────────────────────────
-    public string NotInitialized { get; set; } = "ManituxApp is not initialized!";
+    public string AppNotInitialized { get; set; } = "ManituxApp is not initialized!";
+    public string PlayerNotInitialized { get; set; } = "Player is not initialized!";
+    public string VideoNotInitialized { get; set; } = "Video is not initialized!";
     public string PageNotFound { get; set; } = "Page not found!";
     
 }

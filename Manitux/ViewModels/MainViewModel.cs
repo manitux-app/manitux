@@ -211,7 +211,7 @@ public partial class MainViewModel : ViewModelBase
             // framework is not initialized!
             IsInitialized = false;
             IsReady = false;
-            ShowToast($"{Localize.NotInitialized}", NotificationType.Error);
+            ShowToast($"{Localize.AppNotInitialized}", NotificationType.Error);
         }
     }
 
@@ -295,7 +295,7 @@ public partial class MainViewModel : ViewModelBase
             CanResize = false,
         };
 
-        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(videoSource), null, options: options);
+        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(videoSource, Localize), null, options: options);
     }
 
     private async void TestMessage()
