@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+			 xmlns:u="https://irihi.tech/ursa"
+             xmlns:mpv="using:LibMPVSharp.Avalonia"
+			 xmlns:local="clr-namespace:Manitux.Player"
+			 xmlns:vm="clr-namespace:Manitux.ViewModels"
+			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" Background="Black"
+             x:DataType="vm:PlayerViewModel"
+			 x:Class="Manitux.Player.PlayerView">
+	<Grid Name="Root" Background="#111111" ColumnDefinitions="*,Auto">
+		<u:LoadingContainer IsLoading="{Binding !IsReady}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+			<Panel Grid.Column="0" Background="#111111">
+				<local:MediaPlayerView MediaPlayer="{Binding MediaPlayer}" IsHitTestVisible="True"/>
+				<!--<mpv:VideoView Name="VideoView"/>-->
+				<!--<mpv:VideoView Name="VideoView" MediaPlayer="{Binding MediaPlayer}"/>-->
+			</Panel>
+       </u:LoadingContainer>
+		<Grid Grid.Column="0" RowDefinitions="Auto, *" IsVisible="{Binding HasError}">
+			<u:Banner ShowIcon="True" Type="Error"
+				   Name="banner"
+				   Classes.Bordered="True"
+				   Header="Manitux Player"
+				   Content="{Binding ErrorString}" />
+		</Grid>
+   </Grid>
+</UserControl>

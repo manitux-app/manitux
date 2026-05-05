@@ -10,7 +10,7 @@
              mc:Ignorable="d" MinWidth="450"
 			 d:DesignWidth="800" d:DesignHeight="450"
 			 x:DataType="vm:MediaInfoViewModel"
-             x:Class="Manitux.MediaInfo">
+             x:Class="Manitux.Pages.MediaInfo">
 	<!--<UserControl.Background>
 		<ImageBrush async:ImageBrushLoader.Source="{Binding MediaInfo.Backdrop}" Stretch="UniformToFill"/>
 	</UserControl.Background>-->

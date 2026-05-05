@@ -8,6 +8,7 @@
     <!-- Important: keep version in sync! -->
     <PackageVersion Include="AsyncImageLoader.Avalonia" Version="3.7.0" />
     <PackageVersion Include="Avalonia" Version="11.3.14" />
+    <PackageVersion Include="Avalonia.Labs.CommandManager" Version="11.3.1" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="11.3.14" />
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="11.3.14" />
     <PackageVersion Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.1" />

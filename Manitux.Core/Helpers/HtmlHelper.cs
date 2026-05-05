@@ -76,6 +76,14 @@ public class HtmlHelper: IDisposable
         return cleanStr.Trim();
     }
 
+    public bool IsValidUrlFormat(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return false;
+
+        return Uri.TryCreate(url, UriKind.Absolute, out Uri? uriResult)
+               && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+    }
+
     public void Dispose()
     {
         LogHelper.Html.Log(LogLevel.Debug, "HtmlHelper Disposed");

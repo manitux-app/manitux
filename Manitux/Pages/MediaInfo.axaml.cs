@@ -11,7 +11,7 @@ using Ursa.Controls;
 using Notification = Ursa.Controls.Notification;
 using WindowNotificationManager = Ursa.Controls.WindowNotificationManager;
 
-namespace Manitux;
+namespace Manitux.Pages;
 
 public partial class MediaInfo : UserControl
 {

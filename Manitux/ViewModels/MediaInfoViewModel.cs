@@ -18,6 +18,7 @@ using Manitux.Core.Models;
 using Manitux.Core.Plugins;
 using Manitux.Models;
 using Manitux.Pages;
+using Manitux.Player;
 using Ursa.Controls;
 using Notification = Ursa.Controls.Notification;
 using WindowNotificationManager = Ursa.Controls.WindowNotificationManager;
@@ -58,19 +59,28 @@ public partial class MediaInfoViewModel : ViewModelBase
         OnPropertyChanged(nameof(MediaInfo));
     }
 
-    private void OnActivate()
-    {
-        //WeakReferenceMessenger.Default.Send(new PageItemChangedMessage(this));
-    }
-
-    public void Play(VideoSourceModel videoSource)
+    public async void Play(VideoSourceModel videoSource)
     {
         Debug.WriteLine(videoSource.Url);
-        ShowToast();
+        var source = await GetVideoSources(videoSource);
+
+        Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
+        ShowPlayer(source);
+
+        //if(source is not null & IsValidUrlFormat(source?.Url ?? ""))
+        //{
+        //    Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
+        //    ShowPlayer(source);
+        //}
+        //else
+        //{
+        //    ShowError(Localize?.PageNotFound);
+        //}
     }
 
     public void VlcPlay(VideoSourceModel videoSource)
     {
+        ShowTesýPlayer();
         Debug.WriteLine(videoSource.Url);
     }
 
@@ -93,13 +103,36 @@ public partial class MediaInfoViewModel : ViewModelBase
             }
             else
             {
-                ShowError();
+                ShowError(Localize?.PageNotFound);
             }
         }
         else
         {
-            ShowError();
+            ShowError(Localize?.PageNotFound);
         }
+    }
+
+    private async Task<VideoSourceModel?> GetVideoSources(VideoSourceModel videoSource)
+    {
+        if (_plugin is not null)
+        {
+            var source = await _plugin.GetVideoSources(videoSource);
+            
+            if (source is not null)
+            {
+                return source;
+            }
+            else
+            {
+                ShowError(Localize?.PageNotFound);
+            }
+        }
+        else
+        {
+            ShowError(Localize?.PageNotFound);
+        }
+
+        return null;
     }
 
     public void CreateSeasonGroup(List<EpisodeModel> episodes)
@@ -115,6 +148,36 @@ public partial class MediaInfoViewModel : ViewModelBase
             .ToList();
     }
 
+    private async void ShowPlayer(VideoSourceModel? videoSource)
+    {
+        var options = new OverlayDialogOptions()
+        {
+            FullScreen = true,
+            Buttons = DialogButton.None,
+            Mode = DialogMode.None,
+            CanDragMove = false,
+            CanResize = false,
+        };
+
+        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(videoSource), null, options: options);
+
+        //  ShowPlayer(new VideoSourceModel() { Name = "Test", Url = "https://server15700.contentdm.oclc.org/dmwebservices/index.php?q=dmGetStreamingFile/p15700coll2/15.mp4/byte/json", Subtitles = new() { new() { Name = "Test", Url = "https://cdmdemo.contentdm.oclc.org/utils/getfile/collection/p15700coll2/id/18/filename/video2.vtt" } } });
+    }
+
+    private void ShowTesýPlayer()
+    {
+        ShowPlayer(new VideoSourceModel() { Name = "Test", Url = "https://server15700.contentdm.oclc.org/dmwebservices/index.php?q=dmGetStreamingFile/p15700coll2/15.mp4/byte/json", Subtitles = new() { new() { Name = "Test", Url = "https://cdmdemo.contentdm.oclc.org/utils/getfile/collection/p15700coll2/id/18/filename/video2.vtt" } } });
+    }
+
+    private bool IsValidUrlFormat(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return false;
+
+        // Geçerli bir URI formatý mý ve HTTP/HTTPS ile mi baþlýyor?
+        return Uri.TryCreate(url, UriKind.Absolute, out Uri? uriResult)
+               && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+    }
+
     private void ShowToast()
     {
         ToastManager?.Show(
@@ -125,10 +188,10 @@ public partial class MediaInfoViewModel : ViewModelBase
 
     }
 
-    private void ShowError()
+    private void ShowError(string message)
     {
         ToastManager?.Show(
-                new Toast(Localize?.PageNotFound),
+                new Toast(message),
                 type: NotificationType.Error,
                 showIcon: true,
                 classes: ["Light"]);

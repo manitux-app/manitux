@@ -17,4 +17,14 @@
 		<semi:SemiTheme Locale="en-US" />
 		<u-semi:SemiTheme Locale="en-US" />
     </Application.Styles>
+
+	<Application.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceInclude Source="avares://Manitux/Player/Themes/FontIcons.axaml"/>
+				<ResourceInclude Source="avares://Manitux/Player/Themes/ButtonThemes.axaml"/>
+				<ResourceInclude Source="avares://Manitux/Player/Themes/Generic.axaml"/>
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</Application.Resources>
 </Application>

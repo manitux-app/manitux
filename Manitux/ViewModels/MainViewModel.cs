@@ -21,6 +21,7 @@ using Manitux.Core.Models;
 using Manitux.Core.Plugins;
 using Manitux.Models;
 using Manitux.Pages;
+using Manitux.Player;
 using Manitux.Services.Notifications;
 using Manitux.Views;
 using Semi.Avalonia;
@@ -66,7 +67,7 @@ public partial class MainViewModel : ViewModelBase
         //OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
 
         InitFramework();
-        TestMessage();
+        //TestMessage();
         //TestPlugin();
     }
 
@@ -162,7 +163,7 @@ public partial class MainViewModel : ViewModelBase
         {
             var strings = CodeLogic.CodeLogic.GetApplicationContext()?.Localization.Get<AppStrings>("tr-TR");
             if (strings is not null) Localize = strings;
-            //Console.WriteLine($"AppStrings: {JsonSerializer.Serialize(Localize)}" + Environment.NewLine);
+            //Debug.WriteLine($"AppStrings: {JsonSerializer.Serialize(Localize)}" + Environment.NewLine);
 
             _pluginMenus = new List<PluginMenuModel>();
 
@@ -170,10 +171,10 @@ public partial class MainViewModel : ViewModelBase
 
             if (loadedPlugins is not null && loadedPlugins.Any())
             {
-                Console.WriteLine("\n  Loaded plugins:");
+                Debug.WriteLine("\n  Loaded plugins:");
                 foreach (var p in loadedPlugins)
                 {
-                    Console.WriteLine($"[{p.State,-12}] {p.Manifest.Name} v{p.Manifest.Version} — {p.Manifest.Description}");
+                    Debug.WriteLine($"[{p.State,-12}] {p.Manifest.Name} v{p.Manifest.Version} — {p.Manifest.Description}");
                     var plugin = _pluginManager?.GetPlugin<PluginBase>(p.Manifest.Id);
 
                     if (plugin is not null && plugin.State == PluginState.Started)
@@ -281,6 +282,20 @@ public partial class MainViewModel : ViewModelBase
         await OverlayDialog.ShowCustomModal<MediaInfo, MediaInfoViewModel, object>(new MediaInfoViewModel(CurrentPlugin, mediaInfo, Localize), null, options: options);
         //OverlayDialog.Show<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(), null, options: options);
         //await OverlayDialog.ShowModal<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(mediaInfo), null, options: options);
+    }
+
+    private async void ShowPlayer(VideoSourceModel videoSource)
+    {
+        var options = new OverlayDialogOptions()
+        {
+            FullScreen = true,
+            Buttons = DialogButton.None,
+            Mode = DialogMode.None,
+            CanDragMove = false,
+            CanResize = false,
+        };
+
+        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(videoSource), null, options: options);
     }
 
     private async void TestMessage()

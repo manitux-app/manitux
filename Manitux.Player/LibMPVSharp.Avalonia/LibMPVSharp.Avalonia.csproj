@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <Platforms>AnyCPU;x64</Platforms>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Version>0.0.1-beta</Version>
+    <Authors>vrjure</Authors>
+    <Description>mpv avalonia control</Description>
+    <Copyright>Copyright © 2025 vrjure</Copyright>
+    <PackageProjectUrl>https://github.com/vrjure/LibMPV.AutoGen</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/vrjure/LibMPV.AutoGen</RepositoryUrl>
+    <PackageTags>mpv</PackageTags>
+    <!--<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>-->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LibMPVSharp\LibMPVSharp.csproj" />
+  </ItemGroup>
+
+</Project>

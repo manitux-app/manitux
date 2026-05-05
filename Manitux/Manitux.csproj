@@ -13,6 +13,7 @@
   <ItemGroup>
     <PackageReference Include="AsyncImageLoader.Avalonia" />
     <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Labs.CommandManager" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <!-- <PackageReference Include="AvaloniaUI.DiagnosticsSupport">
@@ -28,5 +29,12 @@
 
   <ItemGroup>
     <ProjectReference Include="../Manitux.Core/Manitux.Core.csproj" />
+    <ProjectReference Include="..\Manitux.Player\LibMPVSharp.Avalonia\LibMPVSharp.Avalonia.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Player\PlayerView.axaml.cs">
+      <DependentUpon>PlayerView.axaml</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>

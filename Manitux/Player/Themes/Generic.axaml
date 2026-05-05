@@ -1,0 +1,157 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+					xmlns:local="using:Manitux.Player"
+					xmlns:converter="using:Manitux.Converters"
+					xmlns:mpv="using:LibMPVSharp.Avalonia">
+  <!-- Add Resources Here -->
+	<Design.PreviewWith>
+		<Border Padding="20">
+			<Border Background="Black">
+				<local:MediaPlayerView Width="800" Height="400"/>
+			</Border>
+		</Border>
+	</Design.PreviewWith>
+
+	<ControlTheme TargetType="local:MediaPlayerView" x:Key="{x:Type local:MediaPlayerView}">
+		<Setter Property="Foreground" Value="White"/>
+		<Setter Property="Template">
+			<ControlTemplate TargetType="local:MediaPlayerView">
+				<Grid RowDefinitions="auto,*,auto">
+					<Grid.Styles>
+						<Style Selector="FlyoutPresenter.bgTansparent">
+							<Setter Property="Background" Value="Transparent"/>
+							<Setter Property="HorizontalContentAlignment" Value="Center"/>
+							<Setter Property="BorderThickness" Value="0"/>
+						</Style>
+					</Grid.Styles>
+						
+					<mpv:VideoView Grid.RowSpan="3"
+					               MediaPlayer="{TemplateBinding MediaPlayer}"/>
+						
+					<Border Grid.Row="0" HorizontalAlignment="Left" Margin="0,10,0,0">
+							<Button Theme="{StaticResource IconButton}"
+							        Content="{StaticResource icon-ri-information-line}">
+								<Button.Flyout>
+									<Flyout Placement="BottomEdgeAlignedLeft"
+									        FlyoutPresenterClasses="bgTansparent"
+									        ShowMode="TransientWithDismissOnPointerMoveAway">
+										<Border CornerRadius="15"
+										        Width="297"
+										        Height="450"
+										        Padding="12">
+											<Border.Background>
+												<SolidColorBrush Color="Black" Opacity="0.28"></SolidColorBrush>
+											</Border.Background>
+											<TextBlock Text="{TemplateBinding VideoParams}"
+											           TextWrapping="Wrap"
+											           Foreground="White"/>
+										</Border>
+									</Flyout>
+								</Button.Flyout>
+							</Button>
+					</Border>
+
+					<Border Grid.Row="2">
+						<Border.Background>
+							<SolidColorBrush Color="White" Opacity="0.1"/>
+						</Border.Background>
+						<DockPanel Margin="0,8">
+							<Button Theme="{StaticResource IconButton}"
+									Content="{StaticResource icon-play}"
+									DockPanel.Dock="Left"
+									VerticalAlignment="Center"
+									Margin="8,0,4,0"
+									Command="{x:Static local:MediaPlayerView.PlayPauseCmd}"
+									x:Name="playpause_button"/>
+
+							<StackPanel Orientation="Horizontal"
+										DockPanel.Dock="Right"
+										Margin="4,0,8,0"
+										Spacing="8">
+								<TextBlock Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Time, StringFormat='{}{0:hh\\:mm\\:ss}'}"
+										   Foreground="{TemplateBinding Foreground}"
+										   VerticalAlignment="Center"/>
+								
+								<TextBlock Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Duration, StringFormat='/{0:hh\\:mm\\:ss}'}"
+										   Foreground="{TemplateBinding Foreground}"
+										   VerticalAlignment="Center"
+										   Margin="-8,0,0,0"/>
+
+								<StackPanel Orientation="Horizontal"
+											Spacing="8">
+									<Button Theme="{StaticResource IconButton}"
+											Content="{StaticResource icon-aspect-ratio}"
+											VerticalAlignment="Center"
+											Command="{x:Static local:MediaPlayerView.AspectRatioCmd}"/>
+									<TextBlock Text="{TemplateBinding AspectRatio}"
+											   VerticalAlignment="Center"
+											   Margin="-8,0,0,0"/>
+								</StackPanel>
+
+								<StackPanel Orientation="Horizontal"
+											Spacing="8">
+									<Button Theme="{StaticResource IconButton}"
+											Content="{StaticResource icon-speed}"
+											VerticalAlignment="Center"
+											Command="{x:Static local:MediaPlayerView.SpeedCmd}"/>
+									<TextBlock Foreground="{TemplateBinding Foreground}"
+											   Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Speed, StringFormat='X{0:N0}'}"
+											   VerticalAlignment="Center"
+											   Margin="-8,0,0,0"/>
+								</StackPanel>
+
+								<Button Theme="{StaticResource IconButton}"
+										Content="{StaticResource icon-volume}"
+										VerticalAlignment="Center">
+									<Button.Flyout>
+										<Flyout Placement="Top"
+											    ShowMode="TransientWithDismissOnPointerMoveAway"
+												FlyoutPresenterClasses="bgTansparent">
+											<Border CornerRadius="6"
+													Padding="0,6">
+												<Border.Background>
+													<SolidColorBrush Color="White" Opacity="0.8"/>
+												</Border.Background>
+												<StackPanel Orientation="Vertical"
+															Spacing="6">
+													<TextBlock Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Volume}"
+															   Foreground="Black"
+															   HorizontalAlignment="Center"
+															   FontWeight="Bold"/>
+													<Slider Orientation="Vertical"
+															HorizontalAlignment="Center"
+															Height="120"
+															Maximum="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=MaxVolume}"
+															Minimum="0"
+															Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Volume, Converter={x:Static converter:AutoValueConverters.Instance}, Mode=TwoWay}"/>
+												</StackPanel>
+											</Border>
+										</Flyout>
+									</Button.Flyout>
+								</Button>								
+								
+								<Button Theme="{StaticResource IconButton}"
+										Content="{StaticResource icon-file-video}"
+										Command="{x:Static local:MediaPlayerView.OpenFileCmd}"
+										VerticalAlignment="Center"
+										IsEnabled="True"/>
+							</StackPanel>
+
+							<Slider VerticalAlignment="Center"
+									Margin="4,0,4,0"
+									Maximum="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Duration, Converter={x:Static converter:AutoValueConverters.Instance}}"
+									Minimum="0"
+									Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Time, Converter={x:Static converter:AutoValueConverters.Instance}, Mode=TwoWay}"
+									x:Name="PART_TimeBar"/>
+						</DockPanel>
+					</Border>
+				</Grid>
+			</ControlTemplate>
+		</Setter>
+		<Style Selector="^[Playing=True]">
+			<Style Selector="^ /template/ Button#playpause_button">
+				<Setter Property="Content" Value="{DynamicResource icon-pause}"/>
+			</Style>
+		</Style>
+	</ControlTheme>
+</ResourceDictionary>
