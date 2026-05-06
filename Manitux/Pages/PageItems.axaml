@@ -61,9 +61,9 @@
                                 CornerRadius="8"
                                 ClipToBounds="True"
                                 Background="Black"
-                                BoxShadow="0 4 10 0 #40000000">
-							<Button Height="220"
-                                    Padding="0"
+                                BoxShadow="0 4 10 0 #40000000"
+								Height="220">
+							<Button Padding="0"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Stretch"
                                     VerticalContentAlignment="Stretch"
@@ -72,7 +72,6 @@
 								<Grid>
 									<!-- 1. Katman: Arka plandaki Resim -->
 									<Image async:ImageLoader.Source="{Binding Poster}"
-										   Height="220"
 										   Stretch="UniformToFill"
 										   HorizontalAlignment="Stretch"/>
 

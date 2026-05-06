@@ -26,5 +26,7 @@ sealed class Program
             .With(new Win32PlatformOptions())
             .WithInterFont()
             .LogToTrace()
-            .With(new X11PlatformOptions { EnableIme = false });
+            .With(new X11PlatformOptions { EnableIme = false, RenderingMode = new[] { X11RenderingMode.Software } });
+
+            //.With(new X11PlatformOptions { EnableIme = false });
 }
