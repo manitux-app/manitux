@@ -1,8 +1,14 @@
-﻿using System;
+﻿﻿using System;
+using System.Runtime.Versioning;
 using Avalonia;
+using Avalonia.Dialogs;
+using Avalonia.Media;
 
 namespace Manitux.Desktop;
 
+[SupportedOSPlatform("windows")]
+[SupportedOSPlatform("linux")]
+[SupportedOSPlatform("macos")]
 sealed class Program
 {
     // Initialization code. Don't use any Avalonia, third-party APIs or any
@@ -15,10 +21,10 @@ sealed class Program
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
+            .UseManagedSystemDialogs()
             .UsePlatformDetect()
-#if DEBUG
-            .WithDeveloperTools()
-#endif
+            .With(new Win32PlatformOptions())
             .WithInterFont()
-            .LogToTrace();
+            .LogToTrace()
+            .With(new X11PlatformOptions { EnableIme = false });
 }
