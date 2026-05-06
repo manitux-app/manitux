@@ -186,11 +186,11 @@ public sealed class Logger : ILogger
         {
             try
             {
-                Console.ForegroundColor = GetConsoleColor(level);
+                //Console.ForegroundColor = GetConsoleColor(level);
                 Console.WriteLine($"{prefix} {message}");
                 if (exception != null)
                     Console.WriteLine(exception);
-                Console.ResetColor();
+                //Console.ResetColor();
             }
             catch { /* console write failures are silently ignored */ }
         }

@@ -131,8 +131,8 @@ public class ManituxFramework
             new PluginOptions { PluginsDirectory = "data/plugins", EnableHotReload = false });
 
         // Load our demo plugins directly (no separate DLL needed for in-process plugins)
-        await LoadInProcessPluginAsync(pluginMgr, new HdFilmCehennemi());
-        await LoadInProcessPluginAsync(pluginMgr, new FilmMakinesi());
+        //await LoadInProcessPluginAsync(pluginMgr, new HdFilmCehennemi());
+        //await LoadInProcessPluginAsync(pluginMgr, new FilmMakinesi());
 
         //await pluginMgr.LoadAllAsync();
 

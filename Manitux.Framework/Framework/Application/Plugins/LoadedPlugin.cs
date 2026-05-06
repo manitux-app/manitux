@@ -1,3 +1,6 @@
+using System.Reflection;
+using System.Runtime.Loader;
+
 namespace CodeLogic.Framework.Application.Plugins;
 
 /// <summary>
@@ -12,7 +15,8 @@ public sealed class LoadedPlugin
     /// <summary>The file path of the plugin assembly.</summary>
     public required string AssemblyPath { get; init; }
     /// <summary>The isolated assembly load context for this plugin.</summary>
-    public required PluginLoadContext LoadContext { get; init; }
+    public required AssemblyLoadContext LoadContext { get; init; }
+    //public required PluginLoadContext LoadContext { get; init; }
     /// <summary>Weak reference to the load context for GC tracking after unload.</summary>
     public WeakReference? WeakReference { get; init; }
     /// <summary>UTC timestamp when the plugin was loaded.</summary>

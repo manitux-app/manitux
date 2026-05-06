@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.Loader;
 using CodeLogic.Core.Configuration;
 using CodeLogic.Core.Events;
 using CodeLogic.Core.Localization;
@@ -78,20 +79,28 @@ public sealed class PluginManager : IAsyncDisposable
         try
         {
             // test for android?
-            //Assembly? assembly;
+            bool isAndroid = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"));
+            Assembly assembly;
+            AssemblyLoadContext loadCtx;
 
-            //if (RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID")))
-            //{
-            //    var loadCtx = new PluginLoadContext(pluginPath);
-            //    assembly = loadCtx.LoadFromAssemblyPath(pluginPath);
-            //}
-            //else
-            //{
-            //    assembly = await LoadPluginForAndroid(pluginPath);
-            //}
+            if (isAndroid)
+            {
+                // Android
+                loadCtx = new PluginLoadContextForAndroid(pluginPath);
 
-            var loadCtx = new PluginLoadContext(pluginPath);
-            var assembly = loadCtx.LoadFromAssemblyPath(pluginPath);
+                byte[] assemblyData = await File.ReadAllBytesAsync(pluginPath);
+                using var stream = new MemoryStream(assemblyData);
+                assembly = loadCtx.LoadFromStream(stream);
+            }
+            else
+            {
+                // Desktop (Windows/Linux/MacOS)
+                loadCtx = new PluginLoadContext(pluginPath);
+                assembly = loadCtx.LoadFromAssemblyPath(pluginPath);
+            }
+
+            //var loadCtx = new PluginLoadContext(pluginPath);
+            //var assembly = loadCtx.LoadFromAssemblyPath(pluginPath);
 
             var pluginType = FindPluginType(assembly)
                     ?? throw new InvalidOperationException($"No IPlugin in {Path.GetFileName(pluginPath)}");
@@ -127,76 +136,19 @@ public sealed class PluginManager : IAsyncDisposable
             _eventBus.Publish(new PluginLoadedEvent(manifest.Id, manifest.Name));
             OnPluginLoaded?.Invoke(manifest.Id);
 
-            Console.ForegroundColor = ConsoleColor.Green;
+            //Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine($"  + Plugin loaded: {manifest.Name} v{manifest.Version}");
-            Console.ResetColor();
+            //Console.ResetColor();
         }
         catch (Exception ex)
         {
             _eventBus.Publish(new PluginFailedEvent(Path.GetFileName(pluginPath), pluginPath, ex));
             OnPluginError?.Invoke(pluginPath, ex);
-            Console.ForegroundColor = ConsoleColor.Red;
+            //Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"  x Plugin load failed {Path.GetFileName(pluginPath)}: {ex.Message}");
-            Console.ResetColor();
+            //Console.ResetColor();
             throw;
         }
-    }
-
-    public async Task<Assembly?> LoadPluginForAndroid(string dllPath)
-    {
-        try
-        {
-            if (!File.Exists(dllPath)) return null;
-
-            byte[] data = await File.ReadAllBytesAsync(dllPath);
-            var assembly = Assembly.Load(data);
-
-            return assembly;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Plugin Load Error: {ex.Message}");
-        }
-        return null;
-    }
-
-    public async Task<IPlugin?> LoadPluginForAndroid_Test(string dllPath)
-    {
-        try
-        {
-            // Loaded assembly: "/data/user/0/com.Manitux/files/plugins/test.dll
-
-            //    string baseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
-            //?   Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android /data/user/0/.../files/
-            //:   AppContext.BaseDirectory; // Windows, Linux and macOS standard directory
-
-            //    return Path.Combine(baseDir, "plugins");
-
-            // 1. DLL'in varlığını kontrol et
-            if (!File.Exists(dllPath)) return null;
-
-            // 2. Belleğe yükle (Android dosya kilitleme sorunlarını önler)
-            byte[] data = await File.ReadAllBytesAsync(dllPath);
-            var assembly = Assembly.Load(data);
-
-            // 3. IPlugin arayüzünü uygulayan tipi bul
-            var type = assembly.GetTypes().FirstOrDefault(t =>
-                typeof(IPlugin).IsAssignableFrom(t) &&
-                !t.IsInterface &&
-                !t.IsAbstract);
-
-            if (type != null)
-            {
-                // 4. Nesneyi oluştur
-                return Activator.CreateInstance(type) as IPlugin;
-            }
-        }
-        catch (Exception ex)
-        {
-            // Android Logcat'e hatayı yazdır
-            Console.WriteLine($"Plugin Load Error: {ex.Message}");
-        }
-        return null;
     }
 
     /// <summary>Discovers and loads all plugins from the plugins directory.</summary>
@@ -233,7 +185,8 @@ public sealed class PluginManager : IAsyncDisposable
         }
 
         // In-process plugins don't have an AssemblyLoadContext — use a no-op sentinel.
-        var noOpLoadCtx = new PluginLoadContext(typeof(PluginManager).Assembly.Location);
+        //var noOpLoadCtx = new PluginLoadContext(typeof(PluginManager).Assembly.Location);
+        var noOpLoadCtx = new AssemblyLoadContext(typeof(PluginManager).Assembly.Location);
 
         _plugins[manifest.Id] = new LoadedPlugin
         {
@@ -249,9 +202,9 @@ public sealed class PluginManager : IAsyncDisposable
         _eventBus.Publish(new PluginLoadedEvent(manifest.Id, manifest.Name));
         OnPluginLoaded?.Invoke(manifest.Id);
 
-        Console.ForegroundColor = ConsoleColor.Green;
+        //Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"  + Plugin registered (in-process): {manifest.Name} v{manifest.Version}");
-        Console.ResetColor();
+        //Console.ResetColor();
 
         return Task.CompletedTask;
     }
@@ -293,9 +246,9 @@ public sealed class PluginManager : IAsyncDisposable
             loaded.FailureException = ex;
             _eventBus.Publish(new PluginFailedEvent(pluginId, loaded.Manifest.Name, ex));
             OnPluginError?.Invoke(pluginId, ex);
-            Console.ForegroundColor = ConsoleColor.Red;
+            //Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"  x Plugin unload error '{pluginId}': {ex.Message}");
-            Console.ResetColor();
+            //Console.ResetColor();
         }
     }
 
@@ -393,9 +346,9 @@ public sealed class PluginManager : IAsyncDisposable
         try { await ReloadPluginAsync(plugin.Manifest.Id); }
         catch (Exception ex)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
+            //Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"  x Hot-reload failed: {ex.Message}");
-            Console.ResetColor();
+            //Console.ResetColor();
         }
     }
 

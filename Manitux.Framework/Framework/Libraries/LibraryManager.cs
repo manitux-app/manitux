@@ -126,9 +126,9 @@ public sealed class LibraryManager : IDisposable
                 }
                 catch (Exception ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
+                    //Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine($"  ✗ Failed to load {Path.GetFileName(path)}: {ex.Message}");
-                    Console.ResetColor();
+                    //Console.ResetColor();
                 }
             }
         }
@@ -198,9 +198,9 @@ public sealed class LibraryManager : IDisposable
                 {
                     loaded.State            = LibraryState.Failed;
                     loaded.FailureException = ex;
-                    Console.ForegroundColor = ConsoleColor.Red;
+                    //Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine($"  ✗ Failed to configure {loaded.Manifest.Name}: {ex.Message}");
-                    Console.ResetColor();
+                    //Console.ResetColor();
                     throw;
                 }
             }
@@ -234,9 +234,9 @@ public sealed class LibraryManager : IDisposable
                     loaded.State = LibraryState.Failed;
                     loaded.FailureException = ex;
                     _eventBus.Publish(new LibraryFailedEvent(loaded.Manifest.Id, loaded.Manifest.Name, ex));
-                    Console.ForegroundColor = ConsoleColor.Red;
+                    //Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine($"  ✗ Failed to initialize {loaded.Manifest.Name}: {ex.Message}");
-                    Console.ResetColor();
+                    //Console.ResetColor();
                     throw;
                 }
             }
@@ -271,9 +271,9 @@ public sealed class LibraryManager : IDisposable
                     loaded.State = LibraryState.Failed;
                     loaded.FailureException = ex;
                     _eventBus.Publish(new LibraryFailedEvent(loaded.Manifest.Id, loaded.Manifest.Name, ex));
-                    Console.ForegroundColor = ConsoleColor.Red;
+                    //Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine($"  ✗ Failed to start {loaded.Manifest.Name}: {ex.Message}");
-                    Console.ResetColor();
+                    //Console.ResetColor();
                     throw;
                 }
             }
@@ -301,9 +301,9 @@ public sealed class LibraryManager : IDisposable
                 }
                 catch (Exception ex)
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
+                    //Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine($"  ✗ Error stopping {loaded.Manifest.Name}: {ex.Message}");
-                    Console.ResetColor();
+                    //Console.ResetColor();
                     // Don't rethrow on stop — try to stop everything
                 }
             }

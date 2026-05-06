@@ -6,11 +6,13 @@ using Avalonia.Android;
 namespace Manitux.Android;
 
 [Activity(
-    Label = "Manitux.Android",
+    Label = "manitux",
     Theme = "@style/MyTheme.NoActionBar",
     Icon = "@drawable/icon",
     MainLauncher = true,
+    LaunchMode = LaunchMode.SingleTop,
     ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
-public class MainActivity : AvaloniaMainActivity
+public class MainActivity : AvaloniaMainActivity<App>
 {
+
 }
