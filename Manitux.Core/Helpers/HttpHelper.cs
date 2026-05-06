@@ -179,7 +179,7 @@ public class HttpHelper: HtmlHelper, IDisposable
                 _ when OperatingSystem.IsWindows() => "tls-client.dll",
                 _ when OperatingSystem.IsLinux() => "tls-client.so",
                 _ when OperatingSystem.IsMacOS() => "tls-client.dylib",
-                _ => "tls-client.dll"
+                _ => "tls-client.so" // android test?
             };
 
 

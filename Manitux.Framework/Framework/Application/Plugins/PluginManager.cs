@@ -78,7 +78,7 @@ public sealed class PluginManager : IAsyncDisposable
 
         try
         {
-            // test for android?
+            // cross-platform
             bool isAndroid = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"));
             Assembly assembly;
             AssemblyLoadContext loadCtx;

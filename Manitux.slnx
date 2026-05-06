@@ -1,7 +1,14 @@
 <Solution>
+  <Folder Name="/Manitux.Framework/">
+    <Project Path="Manitux.Framework/CodeLogic.csproj" />
+  </Folder>
   <Folder Name="/Manitux.Player/">
     <Project Path="Manitux.Player/LibMPVSharp.Avalonia/LibMPVSharp.Avalonia.csproj" />
     <Project Path="Manitux.Player/LibMPVSharp/LibMPVSharp.csproj" />
+  </Folder>
+  <Folder Name="/Misc/">
+    <Project Path="Misc/TlsClient.NET/TlsClient.Core/TlsClient.Core.csproj" />
+    <Project Path="Misc/TlsClient.NET/TlsClient.Native/TlsClient.Native.csproj" />
   </Folder>
   <Project Path="Manitux.Android/Manitux.Android.csproj">
     <Deploy />
@@ -10,7 +17,6 @@
   <Project Path="Manitux.Desktop/Manitux.Desktop.csproj">
     <Deploy />
   </Project>
-  <Project Path="Manitux.Framework/CodeLogic.csproj" />
   <Project Path="Manitux/Manitux.csproj" />
 </Solution>
 

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Title>{title}</Title>
+        <Authors>ErenKrt</Authors>
+        <PackageProjectUrl>https://github.com/ErenKrt/TlsClient.NET</PackageProjectUrl>
+        <Description>Native client of TLSClient for {os} {arch}</Description>
+    </PropertyGroup>
+
+
+    <ItemGroup>
+        <None Include="runtimes\tls-client\{os}\{arch}\tls-client.{ext}" Pack="true"
+            PackagePath="runtimes\tls-client\{os}\{arch}" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="buildTransitive\{title}.targets" Pack="true" PackagePath="buildTransitive\" />
+    </ItemGroup>
+
+</Project>

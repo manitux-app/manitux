@@ -8,13 +8,13 @@
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" />
-    <PackageReference Include="TlsClient.Native" />
     <PackageReference Include="TlsClient.Native.linux-ubuntu-amd64" />
     <PackageReference Include="TlsClient.Native.win-x64" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Manitux.Framework/CodeLogic.csproj" />
+    <ProjectReference Include="..\Misc\TlsClient.NET\TlsClient.Native\TlsClient.Native.csproj" />
   </ItemGroup>
 
 </Project>

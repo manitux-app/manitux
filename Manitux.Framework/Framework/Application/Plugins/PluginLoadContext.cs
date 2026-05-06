@@ -4,6 +4,7 @@ using System.Runtime.Loader;
 namespace CodeLogic.Framework.Application.Plugins;
 
 /// <summary>
+/// For Desktop ***
 /// Isolated AssemblyLoadContext for each plugin.
 /// Allows true hot-unload by releasing the assembly from memory.
 /// isCollectible=true enables GC collection after Unload().
@@ -44,40 +45,37 @@ public sealed class PluginLoadContext : AssemblyLoadContext
 
 
 /// <summary>
-/// For Android
+/// For Android ***
 /// Isolated AssemblyLoadContext for each plugin.
 /// Allows true hot-unload by releasing the assembly from memory.
 /// isCollectible=true enables GC collection after Unload().
 /// </summary>
 public sealed class PluginLoadContextForAndroid : AssemblyLoadContext
 {
-    /// <summary>
-    /// Android için özel yükleme baðlamý. 
-    /// Baðýmlýlýklarýn ana uygulamada olduðunu varsayar.
-    /// </summary>
+    /// <summary>Creates a new plugin load context for the assembly at the specified path.</summary>
     public PluginLoadContextForAndroid(string pluginPath)
         : base(name: Path.GetFileNameWithoutExtension(pluginPath), isCollectible: true)
     {
     }
 
+    /// <inheritdoc />
     protected override Assembly? Load(AssemblyName assemblyName)
     {
-        // Baðýmlýlýðý önce ana uygulama (Default) içerisinde ara.
-        // Senin "tüm baðýmlýlýklar ana uygulamada mevcut" kuralýný bu satýr iþletir.
+        // First, look for the dependency within the main application (Default).
         var sharedAssembly = Default.Assemblies.FirstOrDefault(a =>
             string.Equals(a.GetName().Name, assemblyName.Name, StringComparison.OrdinalIgnoreCase));
 
         if (sharedAssembly != null)
             return sharedAssembly;
 
-        // Eðer ana uygulamada yoksa, null dönerek runtime'ýn standart aramasýna býrakýyoruz.
         return null;
     }
 
+    /// <inheritdoc />
     protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
     {
-        // Android'de unmanaged kütüphaneler genellikle sistem tarafýndan veya 
-        // ana uygulama kütüphane klasöründen yüklenir.
+        // In Android, unmanaged libraries are usually loaded by the system or
+        // from the main application library folder.
         return IntPtr.Zero;
     }
 }
