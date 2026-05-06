@@ -6,18 +6,16 @@ namespace TlsClient.Native.NativeMethods
     public static class NativeAndroidMethods
     {
         /// <summary>
-        /// Belirtilen yolu kullanarak native kütüphaneyi yükler.
-        /// NativeLibrary.Load, dlopen (Linux/Android) veya LoadLibrary (Windows) çağrısını soyutlar.
+        /// Loads the native library using the specified path. 
+        /// NativeLibrary.Load abstracts the dlopen (Linux/Android) or LoadLibrary (Windows) call. 
         /// </summary>
-        /// <returns>Kütüphane handle'ı (IntPtr.Zero başarısızlık durumunda)</returns>
+        /// <returns>Library handle (in case of IntPtr.Zero failure)</returns>
         public static IntPtr LoadLibrary(string path)
         {
             if (string.IsNullOrEmpty(path)) return IntPtr.Zero;
 
             try
             {
-                // NativeLibrary.Load başarısız olursa exception fırlatır, 
-                // bu yüzden orijinal koda sadık kalarak hata durumunda Zero dönüyoruz.
                 return NativeLibrary.Load(path);
             }
             catch
@@ -27,9 +25,9 @@ namespace TlsClient.Native.NativeMethods
         }
 
         /// <summary>
-        /// Yüklenen kütüphaneyi serbest bırakır.
+        /// Releases the loaded library. 
         /// </summary>
-        /// <returns>Başarı durumunda 0, handle geçersizse -1 döndürür.</returns>
+        /// <returns>Returns 0 if successful, -1 if handle is invalid.</returns>
         public static int FreeLibrary(IntPtr hLibrary)
         {
             if (hLibrary == IntPtr.Zero) return -1;
@@ -37,7 +35,7 @@ namespace TlsClient.Native.NativeMethods
             try
             {
                 NativeLibrary.Free(hLibrary);
-                return 0; // dlclose() başarı durumunda 0 döner.
+                return 0; // `dlclose()` returns 0 on success.
             }
             catch
             {
@@ -46,9 +44,9 @@ namespace TlsClient.Native.NativeMethods
         }
 
         /// <summary>
-        /// Kütüphane içindeki fonksiyonun (sembol) adresini bulur.
+        /// Finds the address (symbol) of the function in the library. 
         /// </summary>
-        /// <returns>Fonksiyonun bellek adresi</returns>
+        /// <returns>Memory address of the function</returns>
         public static IntPtr GetProcAddress(IntPtr handle, string symbol)
         {
             if (handle == IntPtr.Zero || string.IsNullOrEmpty(symbol))
@@ -56,7 +54,6 @@ namespace TlsClient.Native.NativeMethods
 
             try
             {
-                // TryGetExport kullanarak exception maliyetinden kaçınabiliriz.
                 if (NativeLibrary.TryGetExport(handle, symbol, out IntPtr address))
                 {
                     return address;
@@ -64,13 +61,13 @@ namespace TlsClient.Native.NativeMethods
             }
             catch
             {
-                // Bazı platformlarda TryGetExport bile kritik hatalarda exception fırlatabilir.
+                
             }
 
             return IntPtr.Zero;
         }
 
-        // Not: NativeLibrary sınıfı flags (Lazy, Global vb.) parametrelerini doğrudan almaz. 
-        // .NET Runtime, her platform için en güvenli ve performanslı varsayılanları (genellikle RTLD_NOW | RTLD_GLOBAL) kullanır.
+        // Note: The NativeLibrary class does not directly accept flags (Lazy, Global, etc.) as parameters.
+        // The .NET Runtime uses the most secure and performant defaults (usually RTLD_NOW | RTLD_GLOBAL) for each platform.
     }
 }

@@ -104,7 +104,7 @@ namespace TlsClient.Native
             return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? NativeWindowsMethods.GetProcAddress(handle, name) :
                    RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? NativeLinuxMethods.GetProcAddress(handle, name) :
                    RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? NativeDarwinMethods.GetProcAddress(handle, name) :
-                   RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID")) ? NativeDarwinMethods.GetProcAddress(handle, name) :
+                   RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID")) ? NativeAndroidMethods.GetProcAddress(handle, name) :
                    throw new PlatformNotSupportedException("Unsupported OS platform");
         }
     }
