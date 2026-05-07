@@ -295,6 +295,8 @@ public partial class MainViewModel : ViewModelBase
     {
         var options = new OverlayDialogOptions()
         {
+            HorizontalAnchor = HorizontalPosition.Center,
+            VerticalAnchor = VerticalPosition.Center,
             FullScreen = true,
             Buttons = DialogButton.None,
             Mode = DialogMode.None,
@@ -302,7 +304,9 @@ public partial class MainViewModel : ViewModelBase
             CanResize = false,
         };
 
-        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(videoSource, Localize), null, options: options);
+        await OverlayDialog.ShowCustomModal<DialogPage, DialogPageViewModel, object>(new DialogPageViewModel(), null, options: options);
+       //await OverlayDialog.ShowCustomModal<EmptyPage, EmptyPageViewModel, object>(new EmptyPageViewModel(), null, options: options);
+       //await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(videoSource, Localize), null, options: options);
     }
 
     private void ShowTestPlayer()
@@ -316,12 +320,13 @@ public partial class MainViewModel : ViewModelBase
         var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
         while (await timer.WaitForNextTickAsync())
         {
+            //ShowTestPlayer();
             //ShowMessage("test", "test 123");
             //ShowNotify("test", "test 123", NotificationType.Success);
             //ShowMessage("test", "test 123", NotificationType.Warning);
             //ShowMessage("test", "test 123", NotificationType.Error);
 
-            ShowToast("test 123456", NotificationType.Information, "Light");
+            //ShowToast("test 123456", NotificationType.Information, "Light");
             //ShowToast("test 123456", NotificationType.Success, "Light");
             //ShowToast(_pluginManager, NotificationType.Warning, "Light");
             //ShowToast("test 123456", NotificationType.Error, "Light");

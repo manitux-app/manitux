@@ -77,12 +77,12 @@
                                 u:NavMenu.CanToggle="True"
                                 Background="Transparent"
                                 DockPanel.Dock="Left">
-                                <!-- <Image Source="avares://Manitux/Assets/logo.png" Width="50"/> -->
+                                <Image Source="avares://Manitux/Assets/logo_trans.png" Width="40"/>
                             </Panel>
                             <TextBlock
                                 VerticalAlignment="Center"
                                 Classes="H4"
-                                Margin="0 0 0 0"
+                                Margin="10 0 0 0"
                                 IsVisible="{Binding !#menu.IsHorizontalCollapsed}"
                                 Text="manitux"
                                 Theme="{DynamicResource TitleTextBlock}" />

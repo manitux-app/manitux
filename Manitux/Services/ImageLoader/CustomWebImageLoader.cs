@@ -18,16 +18,16 @@ public class CustomWebImageLoader : RamCachedWebImageLoader
         _httpClient.DefaultRequestHeaders.Referrer = new System.Uri("https://google.com/");
     }
 
-    protected override async Task<byte[]> LoadDataFromExternalAsync(string url)
+    protected override async Task<byte[]?> LoadDataFromExternalAsync(string url)
     {
         try
         {
-            return await _httpClient.GetByteArrayAsync(url);
+            return await _httpClient.GetByteArrayAsync(url).ConfigureAwait(false);
         }
-        catch (HttpRequestException ex)
+        catch (Exception ex)
         {
-            Debug.WriteLine($"CustomWebImageLoader Error: {ex.StatusCode} - {url}");
-            throw;
+            Debug.WriteLine($"CustomWebImageLoader Error: {url} - {ex.Message}");
+            return null;
         }
     }
 }

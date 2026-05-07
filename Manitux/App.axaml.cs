@@ -79,10 +79,10 @@ public partial class App : Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
         {
-            var mainView = new MainView();
-            singleViewPlatform.MainView = mainView;
+            //var mainView = new MainView();
+            singleViewPlatform.MainView = new SingleView();
 
-            var topLevel = TopLevel.GetTopLevel(mainView);
+            var topLevel = TopLevel.GetTopLevel(singleViewPlatform.MainView);
             if (topLevel is null)
             {
                 throw new InvalidOperationException("Main view top level could not be resolved.");
