@@ -14,7 +14,7 @@
     <Deploy />
   </Project>
   <Project Path="Manitux.Core/Manitux.Core.csproj" />
-  <Project Path="Manitux.Desktop/Manitux.Desktop.csproj">
+  <Project DefaultStartup="true" Path="Manitux.Desktop/Manitux.Desktop.csproj">
     <Deploy />
   </Project>
   <Project Path="Manitux/Manitux.csproj" />

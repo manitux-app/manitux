@@ -29,6 +29,9 @@
 						
 					<mpv:VideoView Grid.RowSpan="3"
 					               MediaPlayer="{TemplateBinding MediaPlayer}"/>
+
+					<Panel Grid.RowSpan="3"
+					       Background="Transparent"/>
 						
 					<Border Grid.Row="0" HorizontalAlignment="Left" Margin="0,10,0,0" IsVisible="False">
 							<Button Theme="{StaticResource IconButton}"

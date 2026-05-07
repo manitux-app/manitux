@@ -11,6 +11,7 @@ using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Labs.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
@@ -201,9 +202,12 @@ namespace Manitux.Player
         {
             _controlsIdleTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromSeconds(10)
+                Interval = TimeSpan.FromSeconds(5)
             };
             _controlsIdleTimer.Tick += (_, _) => HideTransientControls();
+
+            AddHandler(PointerMovedEvent, OnPointerActivity, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
+            AddHandler(PointerPressedEvent, OnPointerActivity, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
 
             var binds = new[]
             {
@@ -228,6 +232,11 @@ namespace Manitux.Player
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);
+            ShowTransientControls();
+        }
+
+        private void OnPointerActivity(object? sender, PointerEventArgs e)
+        {
             ShowTransientControls();
         }
 

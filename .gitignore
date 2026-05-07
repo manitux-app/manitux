@@ -255,6 +255,9 @@ paket-files/
 .dotnet/
 .localappdata/
 
+# Local agent memory bank
+/AGENTS.md
+
 # ABP Studio
 **/.abpstudio/
 
