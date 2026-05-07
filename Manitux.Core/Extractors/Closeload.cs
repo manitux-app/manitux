@@ -336,7 +336,7 @@ public class Closeload : ExtractorBase
 
 public class CloseloadTrack
 {
-    public string file { get; set; }
-    public string kind { get; set; }
-    public string label { get; set; }
+    public string file { get; set; } = string.Empty;
+    public string kind { get; set; } = string.Empty;
+    public string label { get; set; } = string.Empty;
 }

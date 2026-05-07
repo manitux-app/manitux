@@ -402,9 +402,9 @@ public class Rapidrame : ExtractorBase
 
 public class RapidrameTrack
 {
-    public string file { get; set; }
-    public string kind { get; set; }
-    public string label { get; set; }
+    public string file { get; set; } = string.Empty;
+    public string kind { get; set; } = string.Empty;
+    public string label { get; set; } = string.Empty;
 
     //public bool @default { get; set; } // 'default' C# içinde anahtar kelime olduğu için @ eklenir
 

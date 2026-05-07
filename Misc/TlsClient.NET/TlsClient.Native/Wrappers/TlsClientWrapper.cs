@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -39,6 +40,7 @@ namespace TlsClient.Native.Wrappers
             if (_isInitialized) return;
 
             libraryPath ??= NativeLoader.GetLibraryPath();
+            Debug.WriteLine(libraryPath);
 
             _module = NativeLoader.LoadNativeAssembly(libraryPath);
 

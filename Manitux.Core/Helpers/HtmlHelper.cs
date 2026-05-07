@@ -14,7 +14,7 @@ using TlsClient.Native.Extensions;
 
 namespace Manitux.Core.Helpers;
 
-public class HtmlHelper: IDisposable
+public class HtmlHelper : IDisposable
 {
     public virtual async Task<IHtmlDocument?> HtmlParse(string html)
     {
@@ -84,7 +84,7 @@ public class HtmlHelper: IDisposable
                && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
     }
 
-    public void Dispose()
+    public virtual void Dispose()
     {
         LogHelper.Html.Log(LogLevel.Debug, "HtmlHelper Disposed");
     }

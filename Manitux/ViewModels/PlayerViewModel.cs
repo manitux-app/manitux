@@ -35,6 +35,11 @@ namespace Manitux.ViewModels
         public event Action? OnRequestClose;
         public event Action<List<SubtitleModel>>? OnAddSubtitleRequested;
 
+        public void RequestClose()
+        {
+            OnRequestClose?.Invoke();
+        }
+
         public PlayerViewModel(VideoSourceModel? videoSource, AppStrings? localize)
         {
             if (videoSource is null || string.IsNullOrEmpty(videoSource?.Url) || !IsValidUrlFormat(videoSource?.Url ?? ""))
@@ -147,14 +152,33 @@ namespace Manitux.ViewModels
 
                     foreach (var track in source.Subtitles)
                     {
-                        MediaPlayer.ExecuteCommand(new[] { "sub-add", track.Url, "auto" });
+                        await MediaPlayer.ExecuteCommandAsync([
+                            MPVMediaPlayer.TrackManipulationCommands.SubAdd,
+                            track.Url,
+                            "auto",
+                            track.Name
+                        ]);
                     }
 
                     MediaPlayer.SetProperty( "sid", "no" );
 
-                    source.Subtitles.Insert(0, new() { Id = "no", Name = _localize?.Closed ?? "Closed", Url = "" });
-                    Debug.WriteLine($"Tracks: {JsonSerializer.Serialize(source.Subtitles)}" + Environment.NewLine);
-                    OnAddSubtitleRequested?.Invoke(source.Subtitles);
+                    var subtitles = source.Subtitles
+                        .Select((track, index) => new SubtitleModel
+                        {
+                            Id = (index + 1).ToString(),
+                            Name = track.Name,
+                            Url = track.Url
+                        })
+                        .Prepend(new SubtitleModel
+                        {
+                            Id = "no",
+                            Name = _localize?.Closed ?? "Closed",
+                            Url = string.Empty
+                        })
+                        .ToList();
+
+                    Debug.WriteLine($"Tracks: {JsonSerializer.Serialize(subtitles)}" + Environment.NewLine);
+                    OnAddSubtitleRequested?.Invoke(subtitles);
                 }
             }
             catch (Exception ex)

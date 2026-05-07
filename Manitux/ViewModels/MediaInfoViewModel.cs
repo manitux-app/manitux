@@ -74,7 +74,7 @@ public partial class MediaInfoViewModel : ViewModelBase
         //}
         //else
         //{
-        //    ShowError(Localize?.PageNotFound);
+        //    ShowError(Localize?.PageNotFound ?? "Page not found");
         //}
     }
 
@@ -103,12 +103,12 @@ public partial class MediaInfoViewModel : ViewModelBase
             }
             else
             {
-                ShowError(Localize?.PageNotFound);
+                ShowError(Localize?.PageNotFound ?? "Page not found");
             }
         }
         else
         {
-            ShowError(Localize?.PageNotFound);
+            ShowError(Localize?.PageNotFound ?? "Page not found");
         }
     }
 
@@ -124,12 +124,12 @@ public partial class MediaInfoViewModel : ViewModelBase
             }
             else
             {
-                ShowError(Localize?.PageNotFound);
+                ShowError(Localize?.PageNotFound ?? "Page not found");
             }
         }
         else
         {
-            ShowError(Localize?.PageNotFound);
+            ShowError(Localize?.PageNotFound ?? "Page not found");
         }
 
         return null;

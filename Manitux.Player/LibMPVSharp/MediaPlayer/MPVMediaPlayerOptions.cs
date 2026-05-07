@@ -20,6 +20,6 @@ namespace LibMPVSharp
         public Action<MPVMediaPlayer>? BeforeInitialize { get; set; }
         public bool IsWeakReference { get; }
         public MPVMediaPlayer? SharedPlayer { get; }
-        public string? SharePlayerName { get; }
+        public string SharePlayerName { get; } = "mpv-shared-player";
     }
 }

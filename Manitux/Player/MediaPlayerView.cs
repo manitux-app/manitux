@@ -10,12 +10,14 @@ using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Labs.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using LibMPVSharp;
 using LibMPVSharp.Extensions;
 using Manitux.Core.Models;
+using Manitux.ViewModels;
 
 namespace Manitux.Player
 {
@@ -70,6 +72,20 @@ namespace Manitux.Player
             set => SetValue(PlayingProperty, value);
         }
 
+        public static readonly StyledProperty<bool> IsFullScreenProperty = AvaloniaProperty.Register<MediaPlayerView, bool>(nameof(IsFullScreen), false);
+        public bool IsFullScreen
+        {
+            get => GetValue(IsFullScreenProperty);
+            set => SetValue(IsFullScreenProperty, value);
+        }
+
+        public static readonly StyledProperty<bool> AreControlsVisibleProperty = AvaloniaProperty.Register<MediaPlayerView, bool>(nameof(AreControlsVisible), true);
+        public bool AreControlsVisible
+        {
+            get => GetValue(AreControlsVisibleProperty);
+            set => SetValue(AreControlsVisibleProperty, value);
+        }
+
         public static readonly StyledProperty<string?> TitleProperty = AvaloniaProperty.Register<MediaPlayerView, string?>(nameof(Title), "");
         public string? Title
         {
@@ -92,7 +108,7 @@ namespace Manitux.Player
         }
 
         public static readonly StyledProperty<AvaloniaList<SubtitleModel>> SubTitlesProperty =
-            AvaloniaProperty.Register<MediaPlayerViewIssue, AvaloniaList<SubtitleModel>>(
+            AvaloniaProperty.Register<MediaPlayerView, AvaloniaList<SubtitleModel>>(
                 nameof(SubTitles),
                 defaultValue: new AvaloniaList<SubtitleModel>());
 
@@ -103,7 +119,7 @@ namespace Manitux.Player
         }
 
         public static readonly StyledProperty<SubtitleModel?> SelectedSubTitleProperty =
-            AvaloniaProperty.Register<MediaPlayerViewIssue, SubtitleModel?>(nameof(SelectedSubTitle));
+            AvaloniaProperty.Register<MediaPlayerView, SubtitleModel?>(nameof(SelectedSubTitle));
 
         public SubtitleModel? SelectedSubTitle
         {
@@ -111,13 +127,62 @@ namespace Manitux.Player
             set => SetValue(SelectedSubTitleProperty, value);
         }
 
+        public static readonly StyledProperty<bool> HasSubTitlesProperty =
+            AvaloniaProperty.Register<MediaPlayerView, bool>(nameof(HasSubTitles));
+
+        public bool HasSubTitles
+        {
+            get => GetValue(HasSubTitlesProperty);
+            set => SetValue(HasSubTitlesProperty, value);
+        }
+
+        public static readonly StyledProperty<AvaloniaList<AudioTrackModel>> AudioTracksProperty =
+            AvaloniaProperty.Register<MediaPlayerView, AvaloniaList<AudioTrackModel>>(
+                nameof(AudioTracks),
+                defaultValue: new AvaloniaList<AudioTrackModel>());
+
+        public AvaloniaList<AudioTrackModel> AudioTracks
+        {
+            get => GetValue(AudioTracksProperty);
+            set => SetValue(AudioTracksProperty, value);
+        }
+
+        public static readonly StyledProperty<AudioTrackModel?> SelectedAudioTrackProperty =
+            AvaloniaProperty.Register<MediaPlayerView, AudioTrackModel?>(nameof(SelectedAudioTrack));
+
+        public AudioTrackModel? SelectedAudioTrack
+        {
+            get => GetValue(SelectedAudioTrackProperty);
+            set => SetValue(SelectedAudioTrackProperty, value);
+        }
+
+        public static readonly StyledProperty<bool> HasAudioTracksProperty =
+            AvaloniaProperty.Register<MediaPlayerView, bool>(nameof(HasAudioTracks));
+
+        public bool HasAudioTracks
+        {
+            get => GetValue(HasAudioTracksProperty);
+            set => SetValue(HasAudioTracksProperty, value);
+        }
+
         public static readonly RoutedCommand PlayPauseCmd = new RoutedCommand(nameof(PlayPauseCmd));
         public static readonly RoutedCommand OpenFileCmd = new RoutedCommand(nameof(OpenFileCmd));
         public static readonly RoutedCommand SpeedCmd = new RoutedCommand(nameof(SpeedCmd));
         public static readonly RoutedCommand AspectRatioCmd = new RoutedCommand(nameof(AspectRatioCmd));
         public static readonly RoutedCommand SubTitleCmd = new RoutedCommand(nameof(SubTitleCmd));
+        public static readonly RoutedCommand AudioTrackCmd = new RoutedCommand(nameof(AudioTrackCmd));
+        public static readonly RoutedCommand FullScreenCmd = new RoutedCommand(nameof(FullScreenCmd));
+        public static readonly RoutedCommand StopCmd = new RoutedCommand(nameof(StopCmd));
 
         private static Queue<string> _aspectRatio = new Queue<string>();
+        private Slider? _timeSlider;
+        private DispatcherTimer? _seekDebounceTimer;
+        private TimeSpan _pendingSeekTime;
+        private bool _isScrubbing;
+        private bool _isUpdatingTimeFromPlayer;
+        private WindowState _restoreWindowState = WindowState.Normal;
+        private readonly DispatcherTimer _controlsIdleTimer;
+
         static MediaPlayerView()
         {
             MediaPlayerProperty.Changed.AddClassHandler<MediaPlayerView>((s, e) => s.OnPropertyChanged(e));
@@ -134,22 +199,62 @@ namespace Manitux.Player
 
         public MediaPlayerView()
         {
+            _controlsIdleTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(10)
+            };
+            _controlsIdleTimer.Tick += (_, _) => HideTransientControls();
+
             var binds = new[]
             {
                 new CommandBinding(PlayPauseCmd, (s,e) => TryPlayPause()),
                 new CommandBinding(OpenFileCmd, async (s,e) => await TryOpenFile()),
                 new CommandBinding(SpeedCmd, (s,e) => TrySwitchSpeed()),
                 new CommandBinding(AspectRatioCmd, (s, e) => TrySwitchAspectRatio()),
-                new CommandBinding(SubTitleCmd, (s, e) => TrySwitchSubTitle(e.Parameter))
+                new CommandBinding(SubTitleCmd, (s, e) => TrySwitchSubTitle(e.Parameter)),
+                new CommandBinding(AudioTrackCmd, (s, e) => TrySwitchAudioTrack(e.Parameter)),
+                new CommandBinding(FullScreenCmd, (s, e) => TryToggleFullScreen()),
+                new CommandBinding(StopCmd, (s, e) => TryStop())
             };
             CommandManager.SetCommandBindings(this, binds);
+        }
+
+        protected override void OnPointerMoved(PointerEventArgs e)
+        {
+            base.OnPointerMoved(e);
+            ShowTransientControls();
+        }
+
+        protected override void OnPointerPressed(PointerPressedEventArgs e)
+        {
+            base.OnPointerPressed(e);
+            ShowTransientControls();
+        }
+
+        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            _controlsIdleTimer.Stop();
+            Cursor = null;
+            base.OnDetachedFromVisualTree(e);
         }
 
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
         {
             base.OnApplyTemplate(e);
-            var slider = e.NameScope.Get<Slider>("PART_TimeBar");
-            slider.Focus();
+
+            if (_timeSlider is not null)
+            {
+                _timeSlider.PointerPressed -= TimeSliderPointerPressed;
+                _timeSlider.PointerReleased -= TimeSliderPointerReleased;
+                _timeSlider.PointerCaptureLost -= TimeSliderPointerCaptureLost;
+            }
+
+            _timeSlider = e.NameScope.Get<Slider>("PART_TimeBar");
+            _timeSlider.PointerPressed += TimeSliderPointerPressed;
+            _timeSlider.PointerReleased += TimeSliderPointerReleased;
+            _timeSlider.PointerCaptureLost += TimeSliderPointerCaptureLost;
+            _timeSlider.Focus();
+            ShowTransientControls();
         }
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -186,11 +291,11 @@ namespace Manitux.Player
             }
             else if (change.Property == TimeProperty)
             {
-                if (MediaPlayer == null) return;
+                if (MediaPlayer == null || _isUpdatingTimeFromPlayer) return;
                 var oldNew = change.GetOldAndNewValue<TimeSpan>();
-                if (Math.Abs(oldNew.newValue.TotalSeconds - oldNew.oldValue.TotalSeconds) > 1)
+                if (Math.Abs(oldNew.newValue.TotalSeconds - oldNew.oldValue.TotalSeconds) > 0.25)
                 {
-                    MediaPlayer.SetProperty(MPVMediaPlayer.Properties.TimePos, oldNew.newValue.TotalSeconds);
+                    RequestSeek(oldNew.newValue);
                 }
             }
             else if (change.Property == VolumeProperty)
@@ -266,7 +371,7 @@ namespace Manitux.Player
             }
             else if (property.name == "time-pos")
             {
-                DispatchSetCurrentValue(TimeProperty, TimeSpan.FromSeconds(property.ReadDoubleValue()));
+                DispatchSetTimeFromPlayer(TimeSpan.FromSeconds(property.ReadDoubleValue()));
             }
             else if (property.name == "pause")
             {
@@ -285,11 +390,115 @@ namespace Manitux.Player
         private void MpvFiledLoaded(object? sender)
         {
             Dispatcher.UIThread.InvokeAsync(TryGetVideoParams);
+            Dispatcher.UIThread.InvokeAsync(TryGetAudioTracks);
         }
 
         private void DispatchSetCurrentValue(AvaloniaProperty property, object value)
         {
             Dispatcher.UIThread.InvokeAsync(() => SetCurrentValue(property, value));
+        }
+
+        private void DispatchSetTimeFromPlayer(TimeSpan value)
+        {
+            Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (_isScrubbing)
+                {
+                    return;
+                }
+
+                _isUpdatingTimeFromPlayer = true;
+                try
+                {
+                    SetCurrentValue(TimeProperty, value);
+                }
+                finally
+                {
+                    _isUpdatingTimeFromPlayer = false;
+                }
+            });
+        }
+
+        private void TimeSliderPointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            _isScrubbing = true;
+        }
+
+        private void TimeSliderPointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            CompleteScrub();
+        }
+
+        private void TimeSliderPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+        {
+            CompleteScrub();
+        }
+
+        private void CompleteScrub()
+        {
+            if (!_isScrubbing)
+            {
+                return;
+            }
+
+            _isScrubbing = false;
+            RequestSeek(Time);
+        }
+
+        private void RequestSeek(TimeSpan time)
+        {
+            if (MediaPlayer == null)
+            {
+                return;
+            }
+
+            _pendingSeekTime = time;
+
+            if (_seekDebounceTimer is null)
+            {
+                _seekDebounceTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(120)
+                };
+
+                _seekDebounceTimer.Tick += (_, _) =>
+                {
+                    _seekDebounceTimer?.Stop();
+
+                    if (MediaPlayer == null)
+                    {
+                        return;
+                    }
+
+                    MediaPlayer.SetProperty(MPVMediaPlayer.Properties.TimePos, _pendingSeekTime.TotalSeconds);
+                };
+            }
+
+            _seekDebounceTimer.Stop();
+            _seekDebounceTimer.Start();
+        }
+
+        private void ShowTransientControls()
+        {
+            SetCurrentValue(AreControlsVisibleProperty, true);
+            Cursor = null;
+
+            _controlsIdleTimer.Stop();
+            _controlsIdleTimer.Start();
+        }
+
+        private void HideTransientControls()
+        {
+            _controlsIdleTimer.Stop();
+
+            if (_isScrubbing)
+            {
+                ShowTransientControls();
+                return;
+            }
+
+            SetCurrentValue(AreControlsVisibleProperty, false);
+            Cursor = new Cursor(StandardCursorType.None);
         }
 
         private async Task TryOpenFile()
@@ -368,6 +577,118 @@ namespace Manitux.Player
             DispatchSetCurrentValue(VideoParamsProperty, vp);
         }
 
+        private void TryGetAudioTracks()
+        {
+            if (MediaPlayer == null) return;
+
+            MpvNodeWrap? node = null;
+
+            try
+            {
+                node = MediaPlayer.GetPropertyNode(MPVMediaPlayer.Properties.TrackList);
+                var tracks = ReadTracks(node.Node, "audio")
+                    .Select((track, index) =>
+                    {
+                        var name = !string.IsNullOrWhiteSpace(track.Title)
+                            ? track.Title
+                            : !string.IsNullOrWhiteSpace(track.Language)
+                                ? track.Language
+                                : $"Audio {index + 1}";
+
+                        return new AudioTrackModel
+                        {
+                            Id = track.Id,
+                            Name = name,
+                            Language = track.Language
+                        };
+                    })
+                    .ToList();
+
+                var newList = new AvaloniaList<AudioTrackModel>(tracks);
+                SetCurrentValue(AudioTracksProperty, newList);
+                SetCurrentValue(HasAudioTracksProperty, newList.Count > 1);
+                SetCurrentValue(SelectedAudioTrackProperty, newList.FirstOrDefault());
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Audio track list could not be read: " + ex);
+            }
+            finally
+            {
+                if (node is not null)
+                {
+                    MediaPlayer.FreeNode(node);
+                }
+            }
+        }
+
+        private static List<MpvTrackInfo> ReadTracks(MpvNode root, string type)
+        {
+            var tracks = new List<MpvTrackInfo>();
+
+            if (root.format != MpvFormat.MPV_FORMAT_NODE_ARRAY)
+            {
+                return tracks;
+            }
+
+            foreach (var trackNode in root.ReadNodeArray())
+            {
+                if (trackNode.format != MpvFormat.MPV_FORMAT_NODE_MAP)
+                {
+                    continue;
+                }
+
+                var map = trackNode.ReadNodeMap();
+                if (!TryReadString(map, "type", out var trackType) || trackType != type)
+                {
+                    continue;
+                }
+
+                var id = TryReadLong(map, "id", out var trackId)
+                    ? trackId.ToString()
+                    : TryReadString(map, "id", out var idText)
+                        ? idText
+                        : null;
+
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    continue;
+                }
+
+                TryReadString(map, "title", out var title);
+                TryReadString(map, "lang", out var language);
+                tracks.Add(new MpvTrackInfo(id, title, language));
+            }
+
+            return tracks;
+        }
+
+        private static bool TryReadString(Dictionary<string, MpvNode> map, string key, out string? value)
+        {
+            value = null;
+
+            if (!map.TryGetValue(key, out var node) || node.format != MpvFormat.MPV_FORMAT_STRING)
+            {
+                return false;
+            }
+
+            value = node.ReadString();
+            return value is not null;
+        }
+
+        private static bool TryReadLong(Dictionary<string, MpvNode> map, string key, out long value)
+        {
+            value = 0;
+
+            if (!map.TryGetValue(key, out var node) || node.format != MpvFormat.MPV_FORMAT_INT64)
+            {
+                return false;
+            }
+
+            value = node.ReadInt64();
+            return true;
+        }
+
         private void TrySwitchSubTitle(object? parameter)
         {
             string? subTitleId = parameter as string;
@@ -385,6 +706,52 @@ namespace Manitux.Player
             }
         }
 
+        private void TrySwitchAudioTrack(object? parameter)
+        {
+            string? audioTrackId = parameter as string;
+            Debug.WriteLine("audioTrackId: " + audioTrackId);
+
+            if (string.IsNullOrEmpty(audioTrackId) || AudioTracks == null || MediaPlayer == null)
+                return;
+
+            var targetAudio = AudioTracks.FirstOrDefault(a => a.Id == audioTrackId);
+
+            if (targetAudio != null)
+            {
+                SetCurrentValue(SelectedAudioTrackProperty, targetAudio);
+                MediaPlayer.SetProperty("aid", targetAudio.Id);
+            }
+        }
+
+        private void TryToggleFullScreen()
+        {
+            if (TopLevel.GetTopLevel(this) is not Window window)
+            {
+                return;
+            }
+
+            if (window.WindowState == WindowState.FullScreen)
+            {
+                window.WindowState = _restoreWindowState == WindowState.FullScreen
+                    ? WindowState.Normal
+                    : _restoreWindowState;
+                SetCurrentValue(IsFullScreenProperty, false);
+                return;
+            }
+
+            _restoreWindowState = window.WindowState;
+            window.WindowState = WindowState.FullScreen;
+            SetCurrentValue(IsFullScreenProperty, true);
+        }
+
+        private void TryStop()
+        {
+            if (DataContext is PlayerViewModel viewModel)
+            {
+                viewModel.RequestClose();
+            }
+        }
+
         public void AddSubtitles(List<SubtitleModel> subtitles)
         {
             Dispatcher.UIThread.Post(() =>
@@ -394,9 +761,12 @@ namespace Manitux.Player
                 var newList = new AvaloniaList<SubtitleModel>(subtitles);
 
                 SetCurrentValue(SubTitlesProperty, newList);
+                SetCurrentValue(HasSubTitlesProperty, newList.Any(s => s.Id != "no"));
 
                 SetCurrentValue(SelectedSubTitleProperty, newList.FirstOrDefault());
             });
         }
+
+        private sealed record MpvTrackInfo(string Id, string? Title, string? Language);
     }
 }

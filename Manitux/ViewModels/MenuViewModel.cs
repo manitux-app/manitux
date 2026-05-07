@@ -14,7 +14,7 @@ namespace Manitux.ViewModels;
 
 public class MenuViewModel : ViewModelBase
 {
-    public ObservableCollection<MenuItemViewModel> MenuItems { get; set; }
+    public ObservableCollection<MenuItemViewModel> MenuItems { get; set; } = [];
     public string PluginName { get; set; } = "Plugin Name";
     public string Favicon { get; set; } = "https://www.google.com/s2/favicons?domain=hdfilmcehennemi.nl&sz=64";
 

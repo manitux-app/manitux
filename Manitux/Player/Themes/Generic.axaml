@@ -30,13 +30,13 @@
 					<mpv:VideoView Grid.RowSpan="3"
 					               MediaPlayer="{TemplateBinding MediaPlayer}"/>
 						
-					<Border Grid.Row="0" HorizontalAlignment="Left" Margin="0,10,0,0">
+					<Border Grid.Row="0" HorizontalAlignment="Left" Margin="0,10,0,0" IsVisible="False">
 							<Button Theme="{StaticResource IconButton}"
 							        Content="{StaticResource icon-ri-information-line}">
 								<Button.Flyout>
 									<Flyout Placement="BottomEdgeAlignedLeft"
 									        FlyoutPresenterClasses="bgTansparent"
-									        ShowMode="TransientWithDismissOnPointerMoveAway">
+											ShowMode="TransientWithDismissOnPointerMoveAway">
 										<Border CornerRadius="15"
 										        Width="297"
 										        Height="450"
@@ -53,12 +53,14 @@
 							</Button>
 					</Border>
 
-					<!-- play -->
-					<Border Grid.Row="2">
+					
+					<Border Grid.Row="2"
+							IsVisible="{TemplateBinding AreControlsVisible}">
 						<Border.Background>
-							<SolidColorBrush Color="White" Opacity="0.1"/>
+							<SolidColorBrush Color="Black" Opacity="0.5"/>
 						</Border.Background>
 						<DockPanel Margin="0,8">
+							<!-- play -->
 							<Button Theme="{StaticResource IconButton}"
 									Content="{StaticResource icon-play}"
 									DockPanel.Dock="Left"
@@ -66,6 +68,14 @@
 									Margin="8,0,4,0"
 									Command="{x:Static local:MediaPlayerView.PlayPauseCmd}"
 									x:Name="playpause_button"/>
+
+							<Button Theme="{StaticResource IconButton}"
+									Content="{StaticResource icon-stop}"
+									DockPanel.Dock="Left"
+									VerticalAlignment="Center"
+									Margin="0,0,8,0"
+									Foreground="#ff6b6b"
+									Command="{x:Static local:MediaPlayerView.StopCmd}"/>
 
 							<!-- time -->
 							<StackPanel Orientation="Horizontal"
@@ -140,7 +150,8 @@
 								<!-- subtitles -->
 								<Button Theme="{StaticResource IconButton}"
 										Content="{StaticResource icon-subtitles}"
-										VerticalAlignment="Center">
+										VerticalAlignment="Center"
+										IsVisible="{TemplateBinding HasSubTitles}">
 									<Button.Flyout>
 										<Flyout Placement="Top"
 										        ShowMode="TransientWithDismissOnPointerMoveAway"
@@ -170,6 +181,47 @@
 									</Button.Flyout>
 								</Button>
 
+								<!-- audio tracks -->
+								<Button Theme="{StaticResource IconButton}"
+										Content="{StaticResource icon-audio-track}"
+										VerticalAlignment="Center"
+										IsVisible="{TemplateBinding HasAudioTracks}">
+									<Button.Flyout>
+										<Flyout Placement="Top"
+										        ShowMode="TransientWithDismissOnPointerMoveAway"
+										        FlyoutPresenterClasses="bgTansparent">
+											<Border CornerRadius="6" Padding="6" Width="160">
+												<Border.Background>
+													<SolidColorBrush Color="Black" Opacity="0.85"/>
+												</Border.Background>
+												<ItemsControl ItemsSource="{TemplateBinding AudioTracks}">
+													<ItemsControl.ItemTemplate>
+														<DataTemplate x:DataType="models:AudioTrackModel">
+															<Button HorizontalAlignment="Stretch"
+																	HorizontalContentAlignment="Left"
+																	Background="Transparent"
+																	Foreground="White"
+																	Focusable="False"
+																	BorderThickness="0"
+																	Command="{x:Static local:MediaPlayerView.AudioTrackCmd}"
+																	CommandParameter="{Binding Id}">
+																<TextBlock Text="{Binding Name}" Foreground="White" FontSize="12"/>
+															</Button>
+														</DataTemplate>
+													</ItemsControl.ItemTemplate>
+												</ItemsControl>
+											</Border>
+										</Flyout>
+									</Button.Flyout>
+								</Button>
+
+								<!-- fullscreen -->
+								<Button Theme="{StaticResource IconButton}"
+										Content="{StaticResource icon-fullscreen}"
+										VerticalAlignment="Center"
+										Command="{x:Static local:MediaPlayerView.FullScreenCmd}"
+										x:Name="fullscreen_button"/>
+
 								<!-- file picker -->
 								<!--<Button Theme="{StaticResource IconButton}"
 										Content="{StaticResource icon-file-video}"
@@ -193,6 +245,11 @@
 		<Style Selector="^[Playing=True]">
 			<Style Selector="^ /template/ Button#playpause_button">
 				<Setter Property="Content" Value="{DynamicResource icon-pause}"/>
+			</Style>
+		</Style>
+		<Style Selector="^[IsFullScreen=True]">
+			<Style Selector="^ /template/ Button#fullscreen_button">
+				<Setter Property="Content" Value="{DynamicResource icon-fullscreen-exit}"/>
 			</Style>
 		</Style>
 	</ControlTheme>

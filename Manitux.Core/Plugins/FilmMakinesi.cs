@@ -56,11 +56,17 @@ public class FilmMakinesi : PluginBase
             new() { Title = "Savaş", Url = $"{mainUrl}/tur/savas-fm1/film/" },
             new() { Title = "Spor", Url = $"{mainUrl}/tur/spor/film/" },
             new() { Title = "Tarih", Url = $"{mainUrl}/tur/tarih/film/" },
-            new() { Title = "Western", Url = $"{mainUrl}/tur/western-fm1/film/" }
+            new() { Title = "Western", Url = $"{mainUrl}/tur/western-fm1/film/" },
+            new() { Title = "Netflix", Url = $"{mainUrl}/kanal/netflix-fm1/" },
+            new() { Title = "Disney", Url = $"{mainUrl}/kanal/disney-fm2/" },
+            new() { Title = "Amazon", Url = $"{mainUrl}/kanal/amazon/" },
+            new() { Title = "Apple", Url = $"{mainUrl}/kanal/apple/" },
+            new() { Title = "Hulu", Url = $"{mainUrl}/kanal/hulu/" },
+            new() { Title = "Paramount", Url = $"{mainUrl}/kanal/paramount/" },
+            new() { Title = "Hbo", Url = $"{mainUrl}/kanal/hbo/" },
+            new() { Title = "Peacock", Url = $"{mainUrl}/kanal/peacock/" },
         };
     }
-
-
 
     public override async Task<List<PageItemModel>?> GetPageItems(int pageNumber, CategoryModel category)
     {
@@ -101,6 +107,9 @@ public class FilmMakinesi : PluginBase
                 var poster = imgElement?.GetAttribute("data-src") ?? imgElement?.GetAttribute("src");
                 poster = poster?.Replace("liste", "detay");
 
+                var rating = item.QuerySelector("div.rating")?.TextContent?.Trim();
+                var year = item.QuerySelector("div.info span")?.TextContent?.Trim();
+
                 if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(href))
                 {
                     results.Add(new PageItemModel
@@ -108,7 +117,9 @@ public class FilmMakinesi : PluginBase
                         CategoryName = category.Title,
                         Title = title,
                         Url = FixUrl(href, Config.MainUrl),
-                        Poster = !string.IsNullOrEmpty(poster) ? FixUrl(poster, Config.MainUrl) : null
+                        Poster = !string.IsNullOrEmpty(poster) ? FixUrl(poster, Config.MainUrl) : null,
+                        Rating = rating,
+                        Year = year
                     });
                 }
             }
@@ -145,6 +156,10 @@ public class FilmMakinesi : PluginBase
 
             var title = document.QuerySelector("h1.title")?.TextContent?.Trim();
             var poster = document.QuerySelector("img.cover-img")?.GetAttribute("src");
+
+            var backdrop = document.QuerySelector("picture > source")?.GetAttribute("srcset") ??
+                          document.QuerySelector("picture > img")?.GetAttribute("src")?.Trim() ?? "";
+
             var description = document.QuerySelector("div.info-description")?.TextContent?.Trim();
             var rating = document.QuerySelector("div.info div.imdb b")?.TextContent?.Trim();
             var year = document.QuerySelector("span.date a")?.TextContent?.Trim();
@@ -152,7 +167,9 @@ public class FilmMakinesi : PluginBase
             var actors = string.Join(", ", document.QuerySelectorAll("div.cast-name").Select(x => x.TextContent.Trim()));
             var tags = string.Join(", ", document.QuerySelectorAll("div.type a[href*='/tur/']").Select(x => x.TextContent.Trim()));
 
-            var timeText = document.QuerySelector("div.time")?.TextContent?.Trim() ?? "";
+            var country = document.QuerySelector("div.country a")?.TextContent?.Trim();
+
+            var timeText = document.QuerySelector("div.time")?.TextContent?.Trim() ?? "0";
             var duration = Regex.Match(timeText, @"(\d+)").Value;
 
             var relatedVideos = new List<RelatedVideoModel>();
@@ -175,7 +192,7 @@ public class FilmMakinesi : PluginBase
 
             var videoSources = new List<VideoSourceModel>();
 
-            var trailer = document.QuerySelector("a.button trailer-button")?.GetAttribute("data-video_url") ?? "";
+            var trailer = document.QuerySelector("a.trailer-button")?.GetAttribute("data-video_url") ?? "";
             if (!string.IsNullOrEmpty(trailer))
             {
                 videoSources.Add(new() { Name = "Fragman", Url = trailer });
@@ -209,7 +226,7 @@ public class FilmMakinesi : PluginBase
                 if (iframe != null)
                 {
                     string videoUrl = iframe.GetAttribute("data-src") ?? "";
-                    if (!string.IsNullOrEmpty(videoUrl))
+                    if (!string.IsNullOrEmpty(videoUrl) && !videoUrl.Contains("youtube"))
                     {
                         videoSources.Add(new VideoSourceModel
                         {
@@ -257,17 +274,22 @@ public class FilmMakinesi : PluginBase
                 .ThenBy(x => x.EpisodeNumber)
                 .ToList();
 
+            poster = !string.IsNullOrEmpty(poster) ? FixUrl(poster, Config.MainUrl) : null;
+            backdrop = !string.IsNullOrEmpty(backdrop) ? FixUrl(backdrop, Config.MainUrl) : null;
+
             return new MediaInfoModel
             {
                 Title = CleanString(title ?? "") ?? pageItem.Title,
                 Url = pageItem.Url,
-                Poster = !string.IsNullOrEmpty(poster) ? FixUrl(poster, Config.MainUrl) : pageItem.Poster,
+                Poster = poster,
+                Backdrop = backdrop ?? poster,
                 Description = description,
                 Rating = rating,
                 Year = year,
                 Actors = actors,
                 Tags = tags,
-                Duration = duration,
+                Country = country,
+                Duration = !string.IsNullOrEmpty(duration) ? duration: "0",
                 Episodes = episodes.Any() ? episodes : null,
                 RelatedVideos = relatedVideos.Any() ? relatedVideos : null,
                 VideoSources = videoSources

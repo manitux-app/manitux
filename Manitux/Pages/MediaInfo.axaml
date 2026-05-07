@@ -7,6 +7,7 @@
 			 xmlns:vm="clr-namespace:Manitux.ViewModels"
 			 xmlns:local="clr-namespace:Manitux.Core.Models;assembly=Manitux.Core"
 			 xmlns:converters="clr-namespace:Manitux.Converters"
+			 xmlns:loaders="clr-namespace:Manitux.Services.ImageLoaders"
              mc:Ignorable="d" MinWidth="450"
 			 d:DesignWidth="800" d:DesignHeight="450"
 			 x:DataType="vm:MediaInfoViewModel"
@@ -59,12 +60,11 @@
 	</Control.Styles>
 
 	<Grid>
-		<Border IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-			<Border.Background>
-				<ImageBrush async:ImageBrushLoader.Source="{Binding MediaInfo.Backdrop}"
-                            Stretch="UniformToFill" />
-			</Border.Background>
-		</Border>
+		<Grid IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+			<async:AdvancedImage Source="{Binding MediaInfo.Backdrop}"
+								 Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
+								 Stretch="UniformToFill"/>
+		</Grid>
 
 		<Border Background="Black" Opacity="0.7" IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
 		
@@ -76,12 +76,16 @@
 				<TextBlock Text="{Binding MediaInfo.Title}" VerticalAlignment="Center" FontSize="16" Opacity="0.7"/>
 			</StackPanel>
 
+			<!-- poster-name-desc-tags-rating-year-country-duration -->
 			<ScrollViewer Name="MainScrollViewer" Grid.Row="1">
 				<StackPanel Margin="40,10,40,40" Spacing="40">
 
 					<Grid ColumnDefinitions="Auto, *">
 						<Border Grid.Column="0" CornerRadius="12" ClipToBounds="True" BoxShadow="0 10 30 0 #A0000000" Width="260">
-							<Image async:ImageLoader.Source="{Binding MediaInfo.Poster}" Stretch="Uniform"/>
+							<async:AdvancedImage Source="{Binding MediaInfo.Poster}"
+											     Loader="{x:Static loaders:CustomWebImageLoader.Instance}" 
+												 Stretch="Uniform"/>
+							<!--<Image async:ImageLoader.Source="{Binding MediaInfo.Poster}" Stretch="Uniform"/>-->
 						</Border>
 
 						<StackPanel Grid.Column="1" Margin="30,0,0,0" Spacing="15">
@@ -131,6 +135,7 @@
 						</StackPanel>
 					</Grid>
 
+					<!-- actors -->
 					<!--<StackPanel Spacing="15">
 					<TextBlock Text="Oyuncular" FontSize="20" FontWeight="SemiBold"/>
 					<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
@@ -159,6 +164,7 @@
 					</ScrollViewer>
 				</StackPanel>-->
 
+					<!-- seasons - episodes -->
 					<Grid>
 						<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
 							<ItemsControl ItemsSource="{Binding MediaInfo.VideoSources}">
@@ -220,7 +226,7 @@
 
 					</TabControl>
 
-
+					<!-- related-videos -->
 					<StackPanel Spacing="15">
 						<!--<TextBlock Text="Benzer İçerikler" FontSize="20" FontWeight="SemiBold"/>-->
 						<ItemsControl ItemsSource="{Binding MediaInfo.RelatedVideos}">
@@ -245,10 +251,14 @@
 													VerticalContentAlignment="Stretch"
 													Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).GetMediaInfo}"
 													CommandParameter="{Binding}">
-												<Image async:ImageLoader.Source="{Binding Poster}"
+												<async:AdvancedImage
+													  Source="{Binding Poster}"
+													  Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
+													  Stretch="Uniform"/>
+												<!--<Image async:ImageLoader.Source="{Binding Poster}"
 													   Height="220"
 													   Stretch="UniformToFill"
-													   HorizontalAlignment="Stretch"/>
+													   HorizontalAlignment="Stretch"/>-->
 											</Button>
 										</Border>
 

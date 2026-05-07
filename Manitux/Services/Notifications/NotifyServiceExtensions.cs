@@ -28,7 +28,7 @@ public static class NotifyServiceExtensions
         {
             if (WindowNotificationManager.TryGetNotificationManager(topLevel, out var manager))
             {
-                return manager;
+                return manager ?? new WindowNotificationManager(topLevel);
             }
             return new WindowNotificationManager(topLevel);
         });

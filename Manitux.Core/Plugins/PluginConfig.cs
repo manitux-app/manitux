@@ -7,9 +7,9 @@ namespace Manitux.Core.Plugins;
 public class PluginConfig: ConfigModelBase
 {
     //[Required]
-    public string MainUrl { get; set; }
-    public string Favicon { get; set; }
-    public string Language { get; set; }
-    public bool UseProxy {get; set;} = false;
-    public bool IsAdult {get; set;} = false;
+    public string MainUrl { get; set; } = string.Empty;
+    public string Favicon { get; set; } = string.Empty;
+    public string Language { get; set; } = string.Empty;
+    public bool UseProxy { get; set; }
+    public bool IsAdult { get; set; }
 }

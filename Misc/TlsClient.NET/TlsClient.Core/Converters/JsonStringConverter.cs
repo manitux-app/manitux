@@ -22,7 +22,12 @@ namespace TlsClient.Core.Converters
 
             var parseMethod = typeof(T).GetMethod("Parse", new[] { typeof(string) });
             if (parseMethod != null)
-                return (T)parseMethod.Invoke(null, new object[] { str });
+            {
+                var parsed = parseMethod.Invoke(null, new object[] { str });
+                return parsed is T value
+                    ? value
+                    : throw new JsonException($"Parse returned null for {typeof(T)}.");
+            }
 
             throw new JsonException($"JsonStringConverter cannot convert to {typeof(T)}.");
         }

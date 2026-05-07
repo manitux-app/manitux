@@ -2,9 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <NoWarn>$(NoWarn);CS8500</NoWarn>
     <Platforms>AnyCPU</Platforms>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Authors>vrjure</Authors>
     <Copyright>Copyright © 2025 vrjure</Copyright>
     <PackageProjectUrl>https://github.com/vrjure/LibMPV.AutoGen</PackageProjectUrl>

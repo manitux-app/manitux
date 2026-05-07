@@ -136,8 +136,9 @@ public abstract class PluginBase : HttpHelper, IPlugin
     public abstract Task<MediaInfoModel?> GetMediaInfo(PageItemModel pageItem);
     public abstract Task<VideoSourceModel?> GetVideoSources(VideoSourceModel videoSource);
 
-    public void Dispose()
+    public override void Dispose()
     {
+        base.Dispose();
         LogHelper.Plugin.Log(LogLevel.Debug, Manifest.Id, "Disposed");
     }
 }

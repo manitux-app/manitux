@@ -251,6 +251,10 @@ paket-files/
 **/.idea/
 *.sln.iml
 
+# Local CLI/cache directories
+.dotnet/
+.localappdata/
+
 # ABP Studio
 **/.abpstudio/
 

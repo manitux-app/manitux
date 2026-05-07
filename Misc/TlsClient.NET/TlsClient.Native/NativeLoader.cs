@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using TlsClient.Native.NativeMethods;
@@ -10,7 +11,7 @@ namespace TlsClient.Native
         private static readonly string Platform = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "win" :
                              RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "linux" :
                              RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "darwin" :
-                             RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID")) ? "android" :
+                             OperatingSystem.IsAndroid() ? "android" :
                              throw new PlatformNotSupportedException("Unsupported OS platform");
 
         private static readonly string Extension = Platform switch
@@ -55,14 +56,26 @@ namespace TlsClient.Native
                 }
             }
 
-            return Path.GetFullPath($"runtimes/tls-client/{platform}/{arch}/tls-client.{Extension}");
+            if (OperatingSystem.IsAndroid())
+            {
+                Debug.WriteLine("OSPlatform Android");
+                return "tlsclient.so";
+            }
+            else
+            {
+                return Path.GetFullPath($"runtimes/tls-client/{platform}/{arch}/tls-client.{Extension}");
+            }
         }
 
         public static IntPtr LoadNativeAssembly(string libraryPath)
         {
-            if (!File.Exists(libraryPath))
+           
+            if (!OperatingSystem.IsAndroid())
             {
-                throw new DllNotFoundException($"The native library '{libraryPath}' was not found.");
+                if (!File.Exists(libraryPath))
+                {
+                    throw new DllNotFoundException($"The native library '{libraryPath}' was not found.");
+                }
             }
 
             if (Platform == "win")

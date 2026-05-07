@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -52,9 +53,8 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var mainWindow = new MainWindow();
-            var topLevel = TopLevel.GetTopLevel(mainWindow);
 
-            services.AddNotificationServices(topLevel);
+            services.AddNotificationServices(mainWindow);
 
             //services.AddPluginManager();
             //await services.AddPluginManagerAsync();
@@ -83,6 +83,10 @@ public partial class App : Application
             singleViewPlatform.MainView = mainView;
 
             var topLevel = TopLevel.GetTopLevel(mainView);
+            if (topLevel is null)
+            {
+                throw new InvalidOperationException("Main view top level could not be resolved.");
+            }
 
             services.AddNotificationServices(topLevel);
 

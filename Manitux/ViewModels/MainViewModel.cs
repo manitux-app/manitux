@@ -113,6 +113,7 @@ public partial class MainViewModel : ViewModelBase
                 Content = new AboutUsViewModel();
                 break;
             case MenuKeys.MenuKeySettings:
+                ShowTestPlayer();
                 break;
             case MenuKeys.MenuKeyPageItems:
                 var items = await GetPageItems(message);
@@ -267,6 +268,12 @@ public partial class MainViewModel : ViewModelBase
     }
     private async void ShowMediaInfo(MediaInfoModel mediaInfo)
     {
+        if (CurrentPlugin is null)
+        {
+            ShowToast("Plugin not selected", NotificationType.Warning);
+            return;
+        }
+
         var options = new OverlayDialogOptions()
         {
             FullScreen = true,
@@ -284,7 +291,7 @@ public partial class MainViewModel : ViewModelBase
         //await OverlayDialog.ShowModal<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(mediaInfo), null, options: options);
     }
 
-    private async void ShowPlayer(VideoSourceModel videoSource)
+    private async void ShowPlayer(VideoSourceModel? videoSource)
     {
         var options = new OverlayDialogOptions()
         {
@@ -296,6 +303,12 @@ public partial class MainViewModel : ViewModelBase
         };
 
         await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(videoSource, Localize), null, options: options);
+    }
+
+    private void ShowTestPlayer()
+    {
+        ShowPlayer(null);
+        //ShowPlayer(new VideoSourceModel() { Name = "Test", Url = "https://server15700.contentdm.oclc.org/dmwebservices/index.php?q=dmGetStreamingFile/p15700coll2/15.mp4/byte/json", Subtitles = new() { new() { Id = "1", Name = "Test", Url = "https://cdmdemo.contentdm.oclc.org/utils/getfile/collection/p15700coll2/id/18/filename/video2.vtt" } } });
     }
 
     private async void TestMessage()

@@ -9,10 +9,9 @@ using Manitux.Core.Plugins;
 
 namespace Manitux.Models
 {
-     public class PluginMenuModel
+    public class PluginMenuModel
     {
-        public PluginBase Plugin { get; set; }
+        public required PluginBase Plugin { get; set; }
         public List<CategoryModel>? Categories { get; set; }
-        
     }
 }

@@ -203,6 +203,16 @@ namespace Manitux.Core.Models
     }
 
     /// <summary>
+    /// Audio track model.
+    /// </summary>
+    public class AudioTrackModel
+    {
+        public required string Id { get; set; }
+        public required string Name { get; set; }
+        public string? Language { get; set; }
+    }
+
+    /// <summary>
     /// Http header model
     /// </summary>
     public class HeaderModel

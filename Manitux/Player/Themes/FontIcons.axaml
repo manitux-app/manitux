@@ -11,6 +11,7 @@
 
 	<x:String x:Key="icon-pause">&#xEFD7;</x:String>
 	<x:String x:Key="icon-play">&#xF00A;</x:String>
+	<x:String x:Key="icon-stop">&#xF1A1;</x:String>
 	<x:String x:Key="icon-file-video">&#xF3C9;</x:String>
 	<x:String x:Key="icon-volume">&#xF29B;</x:String>
 	<x:String x:Key="icon-speed">&#xF176;</x:String>
@@ -18,7 +19,8 @@
 	<x:String x:Key="icon-fullscreen">&#xED9C;</x:String>
 	<x:String x:Key="icon-fullscreen-exit">&#xED9A;</x:String>
 	<x:String x:Key="icon-ri-information-line">&#xEE59;</x:String>
-	<x:String x:Key="icon-subtitles">&#x1F1E8;</x:String>
+	<x:String x:Key="icon-subtitles">&#x214D;</x:String>
+	<x:String x:Key="icon-audio-track">&#x1F3A7;</x:String>
 	
 	<!-- Subtitles / CC -->
 	<StreamGeometry x:Key="Icon.Subtitle">M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 11H5v-2h7v2zm7 0h-2v-2h2v2zm0-4H5v-2h14v2z</StreamGeometry>

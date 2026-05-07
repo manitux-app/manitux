@@ -1,6 +1,8 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using CodeLogic.Core.Events;
@@ -13,7 +15,7 @@ using TlsClient.Native.Extensions;
 
 namespace Manitux.Core.Helpers;
 
-public class HttpHelper: HtmlHelper, IDisposable
+public class HttpHelper : HtmlHelper
 {
     // private IEventBus _eventBus = CodeLogic.CodeLogic.GetEventBus();
 
@@ -179,15 +181,23 @@ public class HttpHelper: HtmlHelper, IDisposable
                 _ when OperatingSystem.IsWindows() => "tls-client.dll",
                 _ when OperatingSystem.IsLinux() => "tls-client.so",
                 _ when OperatingSystem.IsMacOS() => "tls-client.dylib",
-                _ => "tls-client.so" // android test?
+                _ => "tlsclient.so" // android test? - ok
             };
+
+            string filePath = fileName;
+
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID")))
+            {
+                filePath = Path.Combine(Environment.CurrentDirectory, fileName);
+            }
+           
 
 
             using var builder = new TlsClientBuilder()
              //.WithIdentifier(TlsClientIdentifier.Cloudscraper)
              .WithIdentifier(identifier ?? TlsClientIdentifier.Chrome144)
              .WithUserAgent(userAgent)
-             .WithNative(Path.Combine(Environment.CurrentDirectory, fileName))
+             .WithNative(filePath)
              .Build();
 
             var request = new Request()
@@ -231,8 +241,9 @@ public class HttpHelper: HtmlHelper, IDisposable
         return null;
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
+        base.Dispose();
         LogHelper.Http.Log(LogLevel.Debug, "HttpHelper Disposed");
     }
 }

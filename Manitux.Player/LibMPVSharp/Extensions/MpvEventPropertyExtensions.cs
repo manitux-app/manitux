@@ -8,7 +8,7 @@ namespace LibMPVSharp
         public static string ReadStringValue(this ref MpvEventProperty property)
         {
             CheckValueFormat(property.name, property.format, MpvFormat.MPV_FORMAT_STRING);
-            return Utf8StringMarshaller.ConvertToManaged((byte*)property.data);
+            return Utf8StringMarshaller.ConvertToManaged((byte*)property.data) ?? string.Empty;
         }
 
         public static long ReadLongValue(this ref MpvEventProperty property)
