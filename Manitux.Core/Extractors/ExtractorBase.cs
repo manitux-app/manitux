@@ -9,6 +9,9 @@ using CodeLogic.Core.Logging;
 
 namespace Manitux.Core.Extractors;
 
+// https://github.com/recloudstream/cloudstream/tree/master/library/src/commonMain/kotlin/com/lagradost/cloudstream3/extractors
+// https://github.com/recloudstream/extensions
+
 public abstract class ExtractorBase : HttpHelper, IAsyncDisposable
 {
     public virtual string Name { get; set; } = "Extractor";
