@@ -67,6 +67,10 @@ public class ManituxFramework
         // Load our demo plugins directly (no separate DLL needed for in-process plugins)
         await LoadInProcessPluginAsync(pluginMgr, new HdFilmCehennemi());
         await LoadInProcessPluginAsync(pluginMgr, new FilmMakinesi());
+        await LoadInProcessPluginAsync(pluginMgr, new TmdbPlugin());
+        await LoadInProcessPluginAsync(pluginMgr, new RareFilm());
+        await LoadInProcessPluginAsync(pluginMgr, new FilmEkseni());
+        await LoadInProcessPluginAsync(pluginMgr, new Dailymotion());
 
         //await pluginMgr.LoadAllAsync();
 

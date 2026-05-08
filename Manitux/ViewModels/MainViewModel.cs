@@ -14,6 +14,7 @@ using Avalonia.Data;
 using Avalonia.Styling;
 using CodeLogic.Framework.Application.Plugins;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Manitux.Core.Application;
 using Manitux.Core.Framework;
@@ -43,6 +44,8 @@ public partial class MainViewModel : ViewModelBase
     private AppConfig _config = new();
     [ObservableProperty] private AppStrings _localize = new();
     private ManituxFramework _framework = new ManituxFramework();
+    private MenuItemViewModel? _currentPageItemsNavigation;
+    private PageItemsViewModel? _currentPageItemsViewModel;
 
     [ObservableProperty] private PluginBase? _currentPlugin;
     private List<PluginMenuModel>? _pluginMenus;
@@ -51,6 +54,7 @@ public partial class MainViewModel : ViewModelBase
     public LocaleViewModel Locales { get; set; } = new LocaleViewModel();
 
     [ObservableProperty] private object? _content;
+    [ObservableProperty] private string? _searchText;
     [ObservableProperty] private bool _isReady = false;
     [ObservableProperty] private bool _isInitialized = false;
     [ObservableProperty] private bool _isPluginsLoaded = false;
@@ -63,12 +67,47 @@ public partial class MainViewModel : ViewModelBase
 
         WeakReferenceMessenger.Default.Register<MainViewModel, MenuItemChangedMessage>(this, OnNavigation);
         WeakReferenceMessenger.Default.Register<MainViewModel, PageItemChangedMessage>(this, OnNavigation);
+        WeakReferenceMessenger.Default.Register<MainViewModel, PageChangedMessage>(this, OnNavigation);
         //WeakReferenceMessenger.Default.Register<MainViewModel, string, string>(this, "JumpTo", OnNavigation);
         //OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
 
         InitFramework();
         //TestMessage();
         //TestPlugin();
+    }
+
+    [RelayCommand]
+    private async Task Search()
+    {
+        if (CurrentPlugin is null)
+        {
+            ShowToast("Plugin not selected", NotificationType.Warning);
+            return;
+        }
+
+        var query = SearchText?.Trim();
+        if (string.IsNullOrWhiteSpace(query)) return;
+
+        var results = await CurrentPlugin.GetSearchResults(query);
+        if (results is null || !results.Any())
+        {
+            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
+            return;
+        }
+
+        _currentPageItemsNavigation = null;
+
+        if (_currentPageItemsViewModel is null)
+        {
+            _currentPageItemsViewModel = new PageItemsViewModel(results, isPaginationVisible: false);
+            Content = _currentPageItemsViewModel;
+        }
+        else
+        {
+            _currentPageItemsViewModel.IsPaginationVisible = false;
+            _currentPageItemsViewModel.UpdatePageItems(results);
+            Content = _currentPageItemsViewModel;
+        }
     }
 
 
@@ -103,6 +142,11 @@ public partial class MainViewModel : ViewModelBase
         //};
 
         Content = null;
+        if (key != MenuKeys.MenuKeyPageItems)
+        {
+            _currentPageItemsNavigation = null;
+            _currentPageItemsViewModel = null;
+        }
 
         switch (key)
         {
@@ -116,8 +160,14 @@ public partial class MainViewModel : ViewModelBase
                 ShowTestPlayer();
                 break;
             case MenuKeys.MenuKeyPageItems:
+                message.Value.PageNumber = Math.Max(1, message.Value.PageNumber);
+                _currentPageItemsNavigation = message.Value;
                 var items = await GetPageItems(message);
-                if(items is not null) Content = new PageItemsViewModel(items);
+                if(items is not null)
+                {
+                    _currentPageItemsViewModel = new PageItemsViewModel(items, message.Value.PageNumber);
+                    Content = _currentPageItemsViewModel;
+                }
                 break;
         }
 
@@ -133,6 +183,27 @@ public partial class MainViewModel : ViewModelBase
         if (mediaInfo is not null)
         {
             ShowMediaInfo(mediaInfo);
+        }
+        else
+        {
+            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
+        }
+    }
+
+    private async void OnNavigation(MainViewModel vm, PageChangedMessage message)
+    {
+        if (_currentPageItemsNavigation is null || _currentPageItemsViewModel is null)
+        {
+            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
+            return;
+        }
+
+        _currentPageItemsNavigation.PageNumber = Math.Max(1, message.Value);
+        var items = await GetPageItems(new MenuItemChangedMessage(_currentPageItemsNavigation));
+
+        if (items is not null)
+        {
+            _currentPageItemsViewModel.UpdatePageItems(items);
         }
         else
         {
@@ -304,9 +375,12 @@ public partial class MainViewModel : ViewModelBase
             CanResize = false,
         };
 
-        await OverlayDialog.ShowCustomModal<DialogPage, DialogPageViewModel, object>(new DialogPageViewModel(), null, options: options);
-       //await OverlayDialog.ShowCustomModal<EmptyPage, EmptyPageViewModel, object>(new EmptyPageViewModel(), null, options: options);
-       //await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(videoSource, Localize), null, options: options);
+        var content = new PlayerView
+        {
+            DataContext = new PlayerViewModel(videoSource, Localize)
+        };
+
+        await OverlayDialog.ShowCustomModal<RootPage, RootPageViewModel, object>(new RootPageViewModel(content), null, options: options);
     }
 
     private void ShowTestPlayer()

@@ -126,10 +126,11 @@
                                 Name="txtSearch"
                                 Width="300"
                                 InnerLeftContent="{Binding Localize.Search}"
-                                Text="" />
+                                Text="{Binding SearchText, Mode=TwoWay}" />
 							<u:IconButton IsVisible="True"
 									HorizontalAlignment="Stretch"
 									Classes="Tertiary"
+									Command="{Binding SearchCommand}"
 									Icon="{StaticResource SemiIconSearch}"
 									RenderTransform="{x:Null}"
 									ToolTip.Tip="{Binding Localize.Search}"

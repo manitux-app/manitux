@@ -184,17 +184,21 @@ public sealed class PluginManager : IAsyncDisposable
             return Task.CompletedTask;
         }
 
-        // In-process plugins don't have an AssemblyLoadContext — use a no-op sentinel.
+        // In-process plugins live in the host context, so there is no collectible plugin
+        // context to unload. Keep the real context for diagnostics/state only.
+
         //var noOpLoadCtx = new PluginLoadContext(typeof(PluginManager).Assembly.Location);
-        var noOpLoadCtx = new AssemblyLoadContext(typeof(PluginManager).Assembly.Location);
+        //var noOpLoadCtx = new AssemblyLoadContext(typeof(PluginManager).Assembly.Location);
+        var loadCtx = AssemblyLoadContext.GetLoadContext(plugin.GetType().Assembly)
+            ?? AssemblyLoadContext.Default;
 
         _plugins[manifest.Id] = new LoadedPlugin
         {
             Instance      = plugin,
             Manifest      = manifest,
             AssemblyPath  = typeof(PluginManager).Assembly.Location,
-            LoadContext   = noOpLoadCtx,
-            WeakReference = new WeakReference(noOpLoadCtx),
+            LoadContext   = loadCtx,
+            WeakReference = loadCtx.IsCollectible ? new WeakReference(loadCtx) : null,
             Context       = context,
             State         = PluginState.Started
         };
@@ -224,12 +228,15 @@ public sealed class PluginManager : IAsyncDisposable
         {
             await loaded.Instance.OnUnloadAsync();
             loaded.Instance.Dispose();
-            loaded.LoadContext.Unload();
+
+            if (loaded.LoadContext.IsCollectible)
+                loaded.LoadContext.Unload();
+
             loaded.State = PluginState.Stopped;
             _plugins.Remove(pluginId);
 
             // Allow GC to collect the unloaded assembly
-            for (int i = 0; i < 10 && (loaded.WeakReference?.IsAlive ?? false); i++)
+            for (int i = 0; loaded.LoadContext.IsCollectible && i < 10 && (loaded.WeakReference?.IsAlive ?? false); i++)
             {
                 GC.Collect();
                 GC.WaitForPendingFinalizers();

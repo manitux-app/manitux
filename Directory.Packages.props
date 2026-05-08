@@ -26,5 +26,6 @@
     <PackageVersion Include="AngleSharp" Version="1.4.0" />
     <PackageVersion Include="TlsClient.Native" Version="0.4.6" />
     <PackageVersion Include="TlsClient.Native.linux-ubuntu-amd64" Version="1.11.2" />
+    <PackageVersion Include="TMDbLib" Version="3.0.0" />
   </ItemGroup>
 </Project>

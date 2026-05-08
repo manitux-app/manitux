@@ -8,6 +8,7 @@ public class PluginConfig: ConfigModelBase
 {
     //[Required]
     public string MainUrl { get; set; } = string.Empty;
+    public string ApiKey { get; set; } = string.Empty;
     public string Favicon { get; set; } = string.Empty;
     public string Language { get; set; } = string.Empty;
     public bool UseProxy { get; set; }

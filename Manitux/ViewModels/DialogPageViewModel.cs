@@ -20,9 +20,9 @@ public partial class DialogPageViewModel : ViewModelBase, IDialogContext
     {
         Debug.WriteLine("DialogPageViewModel loaded");
 
-        OKCommand = new RelayCommand(OK);
-        CancelCommand = new RelayCommand(Cancel);
-        DialogCommand = new AsyncRelayCommand(ShowDialog);
+        // OKCommand = new RelayCommand(OK);
+        // CancelCommand = new RelayCommand(Cancel);
+        // DialogCommand = new AsyncRelayCommand(ShowDialog);
 
         TestMessage();
     }

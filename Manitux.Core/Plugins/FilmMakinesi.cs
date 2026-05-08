@@ -74,7 +74,7 @@ public class FilmMakinesi : PluginBase
         {
             var results = new List<PageItemModel>();
 
-            string targetUrl = pageNumber == 1 ? category.Url : $"{category.Url.TrimEnd('/')}/page/{pageNumber}/";
+            string targetUrl = pageNumber == 1 ? category.Url : $"{category.Url.TrimEnd('/')}/sayfa/{pageNumber}/";
 
             var headers = new Dictionary<string, string>();
             headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36");

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Headers;
@@ -152,6 +153,7 @@ public class HttpHelper : HtmlHelper
 
                         string html = await content.ReadAsStringAsync();
                         //LogHelper.Http.Log(LogLevel.Debug, $"[HttpGet] Html: {html}");
+                        //Debug.WriteLine(html);
                         return html;
                     }
                 }
