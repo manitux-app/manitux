@@ -30,7 +30,9 @@ public class ExternalPlayerManager
             throw new ArgumentException("Video kaynağı veya URL'si geçersiz.");
         }
 
-        string mpvCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "mpv.exe" : "mpv";
+        string path = @"D:\PROJELER\Mpv\MpvPlayer\";
+
+        string mpvCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? path + "mpv.exe" : "mpv";
 
         // Argümanları güvenli bir listede toplayalım
         var args = new List<string>();

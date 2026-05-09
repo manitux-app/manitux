@@ -1,7 +1,6 @@
 ﻿using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -361,7 +360,8 @@ namespace Manitux.Player
                 case MpvEventId.MPV_EVENT_PLAYBACK_RESTART:
                     break;
                 case MpvEventId.MPV_EVENT_PROPERTY_CHANGE:
-                    MpvPropertyChanged(sender, mpvEvent.ReadData<MpvEventProperty>());
+                    var property = mpvEvent.ReadData<MpvEventProperty>();
+                    MpvPropertyChanged(sender, property);
                     break;
                 case MpvEventId.MPV_EVENT_QUEUE_OVERFLOW:
                     break;
@@ -374,25 +374,51 @@ namespace Manitux.Player
 
         private void MpvPropertyChanged(object? sender, MpvEventProperty property)
         {
-            if (property.name == MPVMediaPlayer.Properties.Duration)
+            try
             {
-                DispatchSetCurrentValue(DurationProperty, TimeSpan.FromSeconds(property.ReadDoubleValue()));
+                if (property.name == MPVMediaPlayer.Properties.Duration)
+                {
+                    if (property.format != MpvFormat.MPV_FORMAT_DOUBLE)
+                    {
+                        return;
+                    }
+                    DispatchSetCurrentValue(DurationProperty, TimeSpan.FromSeconds(property.ReadDoubleValue()));
+                }
+                else if (property.name == "time-pos")
+                {
+                    if (property.format != MpvFormat.MPV_FORMAT_DOUBLE)
+                    {
+                        return;
+                    }
+                    DispatchSetTimeFromPlayer(TimeSpan.FromSeconds(property.ReadDoubleValue()));
+                }
+                else if (property.name == "pause")
+                {
+                    if (property.format != MpvFormat.MPV_FORMAT_FLAG)
+                    {
+                        return;
+                    }
+                    DispatchSetCurrentValue(PlayingProperty, !property.ReadBoolValue());
+                }
+                else if (property.name == "volume")
+                {
+                    if (property.format != MpvFormat.MPV_FORMAT_INT64)
+                    {
+                        return;
+                    }
+                    DispatchSetCurrentValue(VolumeProperty, property.ReadLongValue());
+                }
+                else if (property.name == "speed")
+                {
+                    if (property.format != MpvFormat.MPV_FORMAT_DOUBLE)
+                    {
+                        return;
+                    }
+                    DispatchSetCurrentValue(SpeedProperty, property.ReadDoubleValue());
+                }
             }
-            else if (property.name == "time-pos")
+            catch (FormatException)
             {
-                DispatchSetTimeFromPlayer(TimeSpan.FromSeconds(property.ReadDoubleValue()));
-            }
-            else if (property.name == "pause")
-            {
-                DispatchSetCurrentValue(PlayingProperty, !property.ReadBoolValue());
-            }
-            else if (property.name == "volume")
-            {
-                DispatchSetCurrentValue(VolumeProperty, property.ReadLongValue());
-            }
-            else if (property.name == "speed")
-            {
-                DispatchSetCurrentValue(SpeedProperty, property.ReadDoubleValue());
             }
         }
 
@@ -582,7 +608,6 @@ namespace Manitux.Player
             writer.Flush();
             MediaPlayer.FreeNode(node);
             var vp = sw.ToString();
-            Debug.WriteLine(vp);
             DispatchSetCurrentValue(VideoParamsProperty, vp);
         }
 
@@ -618,9 +643,8 @@ namespace Manitux.Player
                 SetCurrentValue(HasAudioTracksProperty, newList.Count > 1);
                 SetCurrentValue(SelectedAudioTrackProperty, newList.FirstOrDefault());
             }
-            catch (Exception ex)
+            catch
             {
-                Debug.WriteLine("Audio track list could not be read: " + ex);
             }
             finally
             {
@@ -701,7 +725,6 @@ namespace Manitux.Player
         private void TrySwitchSubTitle(object? parameter)
         {
             string? subTitleId = parameter as string;
-            Debug.WriteLine("subTitleId: " + subTitleId);
 
             if (string.IsNullOrEmpty(subTitleId) || SubTitles == null || MediaPlayer == null)
                 return;
@@ -718,7 +741,6 @@ namespace Manitux.Player
         private void TrySwitchAudioTrack(object? parameter)
         {
             string? audioTrackId = parameter as string;
-            Debug.WriteLine("audioTrackId: " + audioTrackId);
 
             if (string.IsNullOrEmpty(audioTrackId) || AudioTracks == null || MediaPlayer == null)
                 return;

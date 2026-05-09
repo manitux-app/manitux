@@ -86,7 +86,7 @@ public class HttpHelper : HtmlHelper
         return null;
     }
 
-    public async Task<string?> HttpGet(string url, string? referer = null, string? proxyUrl = null, Dictionary<string, string>? headers = null, TlsClientIdentifier? identifier = null)
+    public async Task<string?> HttpGet(string url, string? referer = null, string? proxyUrl = null, Dictionary<string, string>? headers = null, TlsClientIdentifier? identifier = null, bool useCookie = false, bool followRedirects = true, Dictionary<string, string>? cookieOutput = null)
     {
         if (string.IsNullOrEmpty(url)) return null;
 
@@ -94,7 +94,7 @@ public class HttpHelper : HtmlHelper
 
         if (identifier != null)
         {
-            return await HttpGetWithTLS(url, referer, proxyUrl, headers, identifier);
+            return await HttpGetWithTLS(url, referer, proxyUrl, headers, identifier, useCookie, followRedirects, cookieOutput);
         }
 
         try
@@ -167,7 +167,7 @@ public class HttpHelper : HtmlHelper
         return null;
     }
 
-    private async Task<string?> HttpGetWithTLS(string url, string? referer = null, string? proxyUrl = null, Dictionary<string, string>? headers = null, TlsClientIdentifier? identifier = null)
+    private async Task<string?> HttpGetWithTLS(string url, string? referer = null, string? proxyUrl = null, Dictionary<string, string>? headers = null, TlsClientIdentifier? identifier = null, bool useCookie = false, bool followRedirects = true, Dictionary<string, string>? cookieOutput = null)
     {
         try
         {
@@ -188,19 +188,24 @@ public class HttpHelper : HtmlHelper
 
             string filePath = fileName;
 
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID")))
+            if (!OperatingSystem.IsAndroid())
             {
                 filePath = Path.Combine(Environment.CurrentDirectory, fileName);
             }
            
+            var clientBuilder = new TlsClientBuilder()
+                //.WithIdentifier(TlsClientIdentifier.Cloudscraper)
+                .WithIdentifier(identifier ?? TlsClientIdentifier.Chrome144)
+                .WithUserAgent(userAgent)
+                .WithFollowRedirects(followRedirects)
+                .WithNative(filePath);
 
+            if (useCookie)
+            {
+                clientBuilder.WithCustomCookieJar();
+            }
 
-            using var builder = new TlsClientBuilder()
-             //.WithIdentifier(TlsClientIdentifier.Cloudscraper)
-             .WithIdentifier(identifier ?? TlsClientIdentifier.Chrome144)
-             .WithUserAgent(userAgent)
-             .WithNative(filePath)
-             .Build();
+            using var builder = clientBuilder.Build();
 
             var request = new Request()
             {
@@ -224,6 +229,16 @@ public class HttpHelper : HtmlHelper
 
             var response = await builder.RequestAsync(request);
              LogHelper.Http.Log(LogLevel.Debug, $"[HttpGetWithTLS] Status: {response.Status}");
+
+            if (useCookie && cookieOutput is not null && response.Cookies is not null)
+            {
+                cookieOutput.Clear();
+
+                foreach (var cookie in response.Cookies)
+                {
+                    cookieOutput[cookie.Key] = cookie.Value;
+                }
+            }
 
             if (response.IsSuccessStatus)
             {

@@ -17,31 +17,50 @@ public class Closeload : ExtractorBase
 
     public string GetBase64FromHtml(string html)
     {
-        // Regex Açıklaması:
-        // var\s+\w+\s*=\s*\w+\s*\( : "var degisken = fonksiyon(" kısmını yakalar
-        // \[\s*(.*?)\s*\] : Köşeli parantez içindeki her şeyi yakalar
-        // \)\s*; : Fonksiyon kapanışı ve noktalı virgülü yakalar
-        var regex = new Regex(@"var\s+\w+\s*=\s*\w+\s*\(\s*\[\s*(.*?)\s*\]\s*\)\s*;", RegexOptions.Singleline);
+        var regex = new Regex(@"var\s+\w+\s*=\s*\w+\s*\(\s*(\[\s*.*?\s*\])\s*\)\s*;", RegexOptions.Singleline);
         var match = regex.Match(html);
 
         if (match.Success)
         {
-            // Sadece tırnaklar içindeki değerleri (base64 parçalarını) bul
-            var partRegex = new Regex(@"""([^""]+)""");
-            var parts = partRegex.Matches(match.Groups[1].Value);
-
-            // Parçaları temiz bir şekilde yan yana getir
-            string fullString = "";
-            foreach (Match p in parts)
+            var arrayText = match.Groups[1].Value;
+            try
             {
-                fullString += p.Groups[1].Value;
+                var parts = JsonSerializer.Deserialize<List<string>>(arrayText);
+                if (parts is not null)
+                {
+                    return string.Concat(parts).Replace("\\/", "/");
+                }
+            }
+            catch (JsonException ex)
+            {
+                Log(LogLevel.Warning, "encrypted array parse failed: " + ex.Message);
             }
 
-            fullString = fullString.Replace("\\/", "/");
-            return fullString;
+            var partRegex = new Regex(@"""([^""]+)""");
+            var fallbackParts = partRegex.Matches(arrayText).Select(x => x.Groups[1].Value);
+            return string.Concat(fallbackParts).Replace("\\/", "/");
         }
 
         return "";
+    }
+
+    private string? DecryptCloseload(string input)
+    {
+        try
+        {
+            var reversed = Reverse(input);
+            var firstPass = Base64DecodeJS(reversed);
+            var secondPass = Base64DecodeJS(firstPass);
+            var url = Unmix(secondPass);
+
+            Log(LogLevel.Debug, "unmix: " + url);
+            return GetUrl(url);
+        }
+        catch (Exception ex)
+        {
+            Log(LogLevel.Error, ex.ToString());
+            return null;
+        }
     }
 
     private string? Decrypt1(string input)
@@ -92,7 +111,7 @@ public class Closeload : ExtractorBase
 
             string url = unmix.ToString();
             Log(LogLevel.Debug, "unmix1: " + unmix);
-            if (url.StartsWith("http://") && url.StartsWith("https://")) return url;
+            return GetUrl(url);
         }
         catch (Exception ex)
         {
@@ -109,10 +128,7 @@ public class Closeload : ExtractorBase
             // 1. Join: Parçaları birleştir
             //string joined = string.Concat(valueParts);
 
-            // 2. Reverse: String'i ters çevir
-            char[] charArray = input.ToCharArray();
-            Array.Reverse(charArray);
-            string reversed = new string(charArray);
+            string reversed = Reverse(input);
 
             // 3. Double Base64 Decode: İki kez atob() işlemi
             // JS'deki atob'un tam karşılığı ISO-8859-1 encoding kullanmaktır.
@@ -136,7 +152,7 @@ public class Closeload : ExtractorBase
 
             string url = unmix.ToString();
             Log(LogLevel.Debug, "unmix2: " + unmix);
-            if (url.StartsWith("http://") && url.StartsWith("https://")) return url;
+            return GetUrl(url);
         }
         catch (Exception ex)
         {
@@ -153,9 +169,7 @@ public class Closeload : ExtractorBase
             string rot13Result = ApplyRot13(input);
 
             // 3. Reverse: String'i ters çevir
-            char[] charArray = rot13Result.ToCharArray();
-            Array.Reverse(charArray);
-            string reversed = new string(charArray);
+            string reversed = Reverse(rot13Result);
 
             // 4. Base64 Decode: (atob)
             string base64Decoded = Base64DecodeJS(reversed);
@@ -173,11 +187,7 @@ public class Closeload : ExtractorBase
                 unmix.Append((char)decodedChar);
             }
 
-            string finalResult = unmix.ToString();
-
-            // Eğer sonuç içinde hala "SarahsOil" gibi metadata varsa sadece URL'yi çekelim
-            var urlMatch = Regex.Match(finalResult, @"https?://[^\s""|]+");
-            return urlMatch.Success ? urlMatch.Value : finalResult;
+            return GetUrl(unmix.ToString());
         }
         catch (Exception ex)
         {
@@ -197,6 +207,35 @@ public class Closeload : ExtractorBase
                 return (char)((c - 'A' + 13) % 26 + 'A');
             return c;
         }));
+    }
+
+    private static string Reverse(string input)
+    {
+        char[] charArray = input.ToCharArray();
+        Array.Reverse(charArray);
+        return new string(charArray);
+    }
+
+    private static string Unmix(string input)
+    {
+        StringBuilder unmix = new();
+        const long salt = 399756995;
+
+        for (int i = 0; i < input.Length; i++)
+        {
+            int charCode = input[i];
+            int offset = (int)(salt % (i + 5));
+            int decodedCharCode = (charCode - offset + 256) % 256;
+            unmix.Append((char)decodedCharCode);
+        }
+
+        return unmix.ToString();
+    }
+
+    private static string? GetUrl(string input)
+    {
+        var urlMatch = Regex.Match(input, @"https?://[^\s""'|<>]+");
+        return urlMatch.Success ? urlMatch.Value : null;
     }
 
     private string Base64DecodeJS(string input)
@@ -294,9 +333,16 @@ public class Closeload : ExtractorBase
 
             string base64 = GetBase64FromHtml(html);
             Log(LogLevel.Debug, "base64: " + base64);
+            if (string.IsNullOrWhiteSpace(base64)) return null;
 
-            string? videoLink = Decrypt1(base64);
-            Log(LogLevel.Debug, "videoLink1 " + videoLink);
+            string? videoLink = DecryptCloseload(base64);
+            Log(LogLevel.Debug, "videoLink: " + videoLink);
+
+            if (videoLink is null)
+            {
+                videoLink = Decrypt1(base64);
+                Log(LogLevel.Debug, "videoLink1 " + videoLink);
+            }
 
             if (videoLink is null)
             {

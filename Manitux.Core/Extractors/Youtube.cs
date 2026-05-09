@@ -25,16 +25,16 @@ public class Youtube : ExtractorBase
     {
         try
         {
-            var videoId = GetVideoId(videoSource.Url);
-            if (string.IsNullOrWhiteSpace(videoId)) return null;
+            // var videoId = GetVideoId(videoSource.Url);
+            // if (string.IsNullOrWhiteSpace(videoId)) return null;
 
-            videoSource.Name = string.IsNullOrWhiteSpace(videoSource.Name) ? Name : videoSource.Name;
-            videoSource.Url = $"{InvidiousBaseUrl}/api/manifest/dash/id/{videoId}";
-            videoSource.Referer = referer;
-            videoSource.Headers = new()
-            {
-                new HeaderModel { Name = "User-Agent", Value = GetUserAgent() }
-            };
+            // videoSource.Name = string.IsNullOrWhiteSpace(videoSource.Name) ? Name : videoSource.Name;
+            // videoSource.Url = $"{InvidiousBaseUrl}/api/manifest/dash/id/{videoId}";
+            // videoSource.Referer = referer;
+            // videoSource.Headers = new()
+            // {
+            //     new HeaderModel { Name = "User-Agent", Value = GetUserAgent() }
+            // };
 
             return await Task.FromResult(videoSource);
         }

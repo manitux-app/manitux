@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using LibMPVSharp;
 using Manitux.Core.Models;
 using Manitux.ViewModels;
@@ -18,6 +18,7 @@ public partial class PlayerView : UserControl, IDisposable
 {
     private PlayerViewModel? _viewModel;
     private PlayerViewModel? _vm;
+    private bool _isAttachedToVisualTree;
     protected bool disposed = false;
 
     public PlayerView()
@@ -50,13 +51,24 @@ public partial class PlayerView : UserControl, IDisposable
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        _isAttachedToVisualTree = true;
         base.OnAttachedToVisualTree(e);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        _isAttachedToVisualTree = false;
         base.OnDetachedFromVisualTree(e);
-        Dispose();
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_isAttachedToVisualTree)
+            {
+                return;
+            }
+
+            Dispose();
+        }, DispatcherPriority.Background);
     }
 
     private void AddSubtitle(List<SubtitleModel> subtitles)
@@ -67,15 +79,16 @@ public partial class PlayerView : UserControl, IDisposable
 
     private void CloseView()
     {
-        if (this.FindLogicalAncestorOfType<DialogControlBase>() is { } dialog) dialog.Close();
+        if (this.FindLogicalAncestorOfType<DialogControlBase>() is { } dialog)
+        {
+            dialog.Close();
+        }
     }
 
     protected virtual void Dispose(bool disposing)
     {
         if (!this.disposed && disposing)
         {
-            Debug.WriteLine("PlayerView Disposing");
-
             DataContextChanged -= VM_DataContextChanged;
 
             if (_vm is not null)
@@ -84,7 +97,6 @@ public partial class PlayerView : UserControl, IDisposable
                 _vm.OnAddSubtitleRequested -= AddSubtitle;
                 _vm.Dispose();
                 _vm = null;
-                Debug.WriteLine("PlayerView Dispose");
             }
         }
 

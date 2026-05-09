@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.Primitives;
@@ -29,6 +25,7 @@ namespace Manitux.ViewModels
         public bool IsReady { get; set; } = false;
         public bool HasError { get; set; }
         public string? ErrorString { get; set; }
+        private bool _fileLoaded;
 
         private AppStrings? _localize;
 
@@ -58,20 +55,38 @@ namespace Manitux.ViewModels
                     switch (e.event_id)
                     {
                         case MpvEventId.MPV_EVENT_FILE_LOADED:
-                            Debug.WriteLine("MPV_EVENT_FILE_LOADED");
                             Dispatcher.UIThread.Post(() =>
                             {
+                                _fileLoaded = true;
                                 IsReady = true;
                                 OnPropertyChanged(nameof(IsReady));
                             });
                             break;
 
                         case MpvEventId.MPV_EVENT_END_FILE:
-                            Debug.WriteLine("MPV_EVENT_END_FILE");
+                            var endFile = e.ReadData<MpvEventEndFile>();
                             Dispatcher.UIThread.Post(() =>
                             {
                                 //IsReady = false;
                                 //OnPropertyChanged(nameof(IsReady));
+                                if (endFile.reason == MpvEndFileReason.MPV_END_FILE_REASON_ERROR)
+                                {
+                                    ErrorString = $"MPV playback failed. error={endFile.error}";
+                                    HasError = true;
+                                    OnPropertyChanged(nameof(ErrorString));
+                                    OnPropertyChanged(nameof(HasError));
+                                    return;
+                                }
+
+                                if (!_fileLoaded)
+                                {
+                                    ErrorString = $"MPV ended before file loaded. reason={endFile.reason} error={endFile.error}";
+                                    HasError = true;
+                                    OnPropertyChanged(nameof(ErrorString));
+                                    OnPropertyChanged(nameof(HasError));
+                                    return;
+                                }
+
                                 OnRequestClose?.Invoke();
                             });
                             break;
@@ -127,6 +142,14 @@ namespace Manitux.ViewModels
 
                 //MediaPlayer.EnsureRenderContextCreated();
 
+                if (IsHlsUrl(source.Url))
+                {
+                    MediaPlayer.SetProperty("ytdl", false);
+                    MediaPlayer.SetProperty("demuxer-lavf-format", "hls");
+                    MediaPlayer.SetProperty("vid", "auto");
+                    MediaPlayer.SetProperty("aid", "auto");
+                }
+
                 if (source.Referer != null)
                 {
                     MediaPlayer.SetProperty("referrer", source.Referer);
@@ -134,12 +157,28 @@ namespace Manitux.ViewModels
 
                 if (source.Headers != null && source.Headers.Any())
                 {
-                    var headerList = source.Headers.Select(h => $"{h.Name}: {h.Value}").ToList();
-                    string allHeaders = string.Join(",", headerList);
-                    MediaPlayer.SetProperty("http-header-fields", allHeaders);
-
                     var ua = source.Headers.FirstOrDefault(h => h.Name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase));
-                    if (ua != null) MediaPlayer.SetProperty("user-agent", ua.Value);
+                    if (ua != null)
+                    {
+                        MediaPlayer.SetProperty("user-agent", ua.Value);
+                    }
+
+                    var headerList = source.Headers
+                        .Where(h => !h.Name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase))
+                        .Select(h => $"{h.Name}: {h.Value}")
+                        .ToList();
+
+                    if (!string.IsNullOrWhiteSpace(source.Referer)
+                        && !source.Headers.Any(h => h.Name.Equals("Referer", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        headerList.Add($"Referer: {source.Referer}");
+                    }
+
+                    if (headerList.Count > 0)
+                    {
+                        string allHeaders = string.Join(",", headerList);
+                        MediaPlayer.SetProperty("http-header-fields", allHeaders);
+                    }
                 }
 
                 await MediaPlayer.ExecuteCommandAsync([MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, source.Url]);
@@ -152,12 +191,18 @@ namespace Manitux.ViewModels
 
                     foreach (var track in source.Subtitles)
                     {
-                        await MediaPlayer.ExecuteCommandAsync([
-                            MPVMediaPlayer.TrackManipulationCommands.SubAdd,
-                            track.Url,
-                            "auto",
-                            track.Name
-                        ]);
+                        try
+                        {
+                            await MediaPlayer.ExecuteCommandAsync([
+                                MPVMediaPlayer.TrackManipulationCommands.SubAdd,
+                                track.Url,
+                                "auto",
+                                track.Name
+                            ]);
+                        }
+                        catch
+                        {
+                        }
                     }
 
                     MediaPlayer.SetProperty( "sid", "no" );
@@ -177,7 +222,6 @@ namespace Manitux.ViewModels
                         })
                         .ToList();
 
-                    Debug.WriteLine($"Tracks: {JsonSerializer.Serialize(subtitles)}" + Environment.NewLine);
                     OnAddSubtitleRequested?.Invoke(subtitles);
                 }
             }
@@ -185,6 +229,8 @@ namespace Manitux.ViewModels
             {
                 ErrorString = ex.Message;
                 HasError = true;
+                OnPropertyChanged(nameof(ErrorString));
+                OnPropertyChanged(nameof(HasError));
             }
             finally
             {
@@ -204,6 +250,11 @@ namespace Manitux.ViewModels
                    && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
         }
 
+        private static bool IsHlsUrl(string url)
+        {
+            return url.Contains(".m3u8", StringComparison.OrdinalIgnoreCase);
+        }
+
         public void Dispose()
         {
             if (MediaPlayer is not null)
@@ -211,11 +262,7 @@ namespace Manitux.ViewModels
                 MediaPlayer.ExecuteCommand(new[] { "stop" });
                 MediaPlayer.Dispose();
                 MediaPlayer = null;
-
-                Debug.WriteLine("PlayerViewModel.MediaPlayer Disposed");
             }
-
-            Debug.WriteLine("PlayerViewModel Disposed");
         }
     }
 }

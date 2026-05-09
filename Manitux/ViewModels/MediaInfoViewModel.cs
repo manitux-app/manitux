@@ -85,9 +85,12 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         Debug.WriteLine(videoSource.Url);
     }
 
-    public void MpvPlay(VideoSourceModel videoSource)
+    public async void MpvPlay(VideoSourceModel videoSource)
     {
-        Debug.WriteLine(videoSource.Url);
+        var source = await GetVideoSources(videoSource);
+        var playerManager = new ExternalPlayerManager();
+        playerManager.MpvPlay(source);
+        Debug.WriteLine(source.Url);
     }
 
     public async void GetMediaInfo(RelatedVideoModel relatedVideo)
