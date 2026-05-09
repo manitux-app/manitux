@@ -75,9 +75,11 @@
 								<Grid>
 									<!-- image -->
 									<async:AdvancedImage
-													  Source="{Binding Poster}"
-													  Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
-													  Stretch="Uniform"/>
+													Width="150"
+													Height="220"
+													Source="{Binding Poster}"
+													Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
+													Stretch="Uniform"/>
 									<!--<Image async:ImageLoader.Source="{Binding Poster}"
 										   Stretch="UniformToFill"
 										   HorizontalAlignment="Stretch"
