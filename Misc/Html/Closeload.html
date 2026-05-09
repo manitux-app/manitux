@@ -1,25 +1,118 @@
-<script type="text/javascript">
-
-    function dc_eTu09OKH6PO(value_parts) {
-        // par�alar� birle�tir
-        let value = value_parts.join('');
-        let result = value;
-        result = result.split('').reverse().join('');
-        2
-        result = atob(result);
-        let unmix = '';
-        for (let i = 0; i < result.length; i++) {
-            let charCode = result.charCodeAt(i);
-            charCode = (charCode - (399756995 % (i + 5)) + 256) % 256;
-            unmix += String.fromCharCode(charCode);
-        }
-        return unmix;
-    }
-
-    function d1x() { return btoa('dummy1_' + Math.random()); }
-    function d2x() { return atob('ZHVtbXkyX2Z1bmN0aW9u'); }
-    function d3x() { return 'junk_' + Math.random().toString(36).substr(2); }
-
-    var s_s01LgrJMnuA = dc_eTu09OKH6PO(["==AUQtCeSd", "FcuZUaLFDS", "MFjciNDcaN", "GZyRnWsl0a", "qdkWPR3UJJ", "1QkRTVLdUM", "zVHcWFGR4l", "FUoR3MU50Q", "LVlMaVTaIF", "WWulDO0MGe", "GBnaDZ0aXp", "3bqN1N5kUZ", "ul3bulnWz0", "WQx92ap5kS", "utUaZVGO0l", "0UXF3MppXT", "wZ2L1gVTXR", "GRVJkUvp1N", "412Zwo1Mjp", "XOU9EMzNzY", "wAneM9yczM", "WMshUY"]);
-
-</script>
+$(document).ready(function(){function
+PlayerInit(){videojs.Vhs.GOAL_BUFFER_LENGTH=90;videojs.Vhs.MAX_GOAL_BUFFER_LENGTH=120;var
+options;options={playbackRates:[0.5,0.75,1,1.15,1.25,1.5],chromecast:{appId:'D926E874',metadata:{title:'CloseLoad
+Player',subtitle:"BEAST-2026-WEBDL.mp4 - filmakinesi"}}};myPlayer=videojs("videoplayer",options,function(){var
+player=this});function dc_SPkgFlc9B3T(value_parts){let value=value_parts.join('');let
+result=value;result=result.split('').reverse().join('');result=atob(result);result=atob(result);let unmix='';for(let
+i=0;i<result.length;i++){let
+    charCode=result.charCodeAt(i);charCode=(charCode-(399756995%(i+5))+256)%256;unmix+=String.fromCharCode(charCode)}return
+    unmix}function d1x(){return btoa('dummy1_'+Math.random())}function d2x(){return
+    atob('ZHVtbXkyX2Z1bmN0aW9u')}function d3x(){return'junk_'+Math.random().toString(36).substr(2)}var
+    s_gdhYzYQY31W=dc_SPkgFlc9B3T(["=0zYKN3LSR","jZOV3NqZDb","wV1KxEXaTh","WVtljRspFO","14GVyp0an5","EZGFWbCZlU","wNUNstmTIt","2UTBTW61kR","ZNEZwZWdKR","TZTZENqNnS","xY2RP5GZMh","HVUJkUvp1N","412Zwo1Mjp","XOU9EMzNzY","wAneM9yczM","WMshUY"]);myPlayer.src({src:s_gdhYzYQY31W,type:'application/x-mpegURL'});myPlayer.ready(function(){this.hotkeys({volumeStep:0.1,seekStep:10,enableModifiersForNumbers:false,alwaysCaptureHotkeys:true})});myPlayer.one("play",function(){$(".video-js
+    .vjs-big-play-button").css("z-index","999");$.ajax({type:"POST",url:"/video/embed/PKOJZ7V7RmW/ah/",async:true,data:{hash:"82df49e0507afeca8104118c927b7ae0"},success:function(result){}})});myPlayer.on("play",function(){window.parent.postMessage({event:"play"},"*")});myPlayer.on("pause",function(){window.parent.postMessage({event:"pause"},"*")});myPlayer.on("ended",function(){window.parent.postMessage({event:"ended"},"*")});function
+    initVisibilityChecker(player){let visible=true;const update=()=>
+    {visible=document.visibilityState==="visible"};document.addEventListener("visibilitychange",update);window.addEventListener("pagehide",()=>(visible=false));window.addEventListener("pageshow",()=>(visible=true));const
+    videoEl=player?.el()?.querySelector("video");if(videoEl){videoEl.addEventListener("webkitbeginfullscreen",()=>{videoEl._isIosFullscreen=true});videoEl.addEventListener("webkitendfullscreen",()=>{videoEl._isIosFullscreen=false})}update();const
+    isActuallyFullscreen=()=>{if(!player)return false;const
+    videoEl=player.el()?.querySelector("video");if(videoEl?.webkitDisplayingFullscreen||videoEl?._isIosFullscreen){return
+    true}return
+    player.isFullscreen?.()||!!document.fullscreenElement};return{isVisible:()=>visible&&isActuallyFullscreen(),}}const
+    visibilityChecker=initVisibilityChecker(myPlayer);myPlayer.on("loadedmetadata",function(){var
+    cookieData=getCookieVideoDevam("videoresume_97874");if(cookieData){var
+    resumeAt=cookieData.split(":")[0],videoDur=cookieData.split(":")[1];if(parseInt(resumeAt)
+    <parseInt(videoDur)){this.currentTime(resumeAt)}else
+        if(cookieData&&!(parseInt(resumeAt)<parseInt(videoDur))){}}else{}});var default_altyazi_durum="0" ;var
+        forced_altyazi_durum="0" ;var watchingtime_closerapid;var onceki_currenttime;var onceki_currenttime2;var
+        tooltip_durum="0" ;var default_ses_durum="0" ;var altyaziuploadbutton_durum="0" ;var
+        player_dual_buttons_durum="0" ;var wbc=""
+        ;myPlayer.on("timeupdate",function(){if(Math.floor(this.currentTime())>
+        =60){setCookieVideoDevam("videoresume_97874",Math.floor(this.currentTime())+":"+Math.floor(this.duration()),144*60*60*1000)}if(visibilityChecker.isVisible()&&wbc==""){if(Math.floor(this.currentTime())>onceki_currenttime){var
+        watchingtime=getCookieVideoDevam("watchingtime");var
+        wts=getCookieVideoDevam("wts");if(watchingtime==""||isNaN(watchingtime)||watchingtime
+        <1){watchingtime=1}else{watchingtime=parseInt(watchingtime)+1}if(typeof watchingtime_rapid==="undefined"
+            ||watchingtime_rapid==""
+            ||isNaN(watchingtime_rapid)||watchingtime_rapid<1){watchingtime_rapid=0}watchingtime_closerapid=parseInt(watchingtime)+parseInt(watchingtime_rapid);if(watchingtime<=604800&&!wts){setCookieVideoDevam("watchingtime",watchingtime,1*24*60*60*1000)}window.parent.postMessage({event:"closeplayertimeupdate"},"*")}onceki_currenttime=Math.floor(this.currentTime());if(watchingtime_closerapid>
+            =3600){setCookieVideoDevam("wts",1,180*24*60*60*1000);setCookieVideoDevam("watchingtime",1,0)}if(watchingtime_closerapid>=900){setCookieVideoDevam("wts2",1,180*24*60*60*1000)}if(Math.floor(this.currentTime())>onceki_currenttime2){var
+            watchingtimetotal=getCookieVideoDevam("watchingtimetotal");if(typeof
+            watchingtimetotal_mak!=="undefined"&&!isNaN(watchingtimetotal_mak)&&parseInt(watchingtimetotal_mak)>0&&parseInt(watchingtimetotal_mak)>parseInt(watchingtimetotal)){watchingtimetotal=watchingtimetotal_mak}if(watchingtimetotal==""||isNaN(watchingtimetotal)||watchingtimetotal
+            <1){watchingtimetotal=1}else{watchingtimetotal=parseInt(watchingtimetotal)+1}setCookieVideoDevam("watchingtimetotal",watchingtimetotal,21*24*60*60*1000)}onceki_currenttime2=Math.floor(this.currentTime())}if(wbc!=""){setCookieVideoDevam("watchingtime",1,0);setCookieVideoDevam("watchingtime_rapid",1,0);setCookieVideoDevam("wts",1,0);setCookieVideoDevam("wts2",1,0)}var
+                audioTrackList=myPlayer.audioTracks();if(audioTrackList.length>
+                1){if(Math.floor(this.currentTime())>0&&forced_altyazi_durum=="0"){let
+                tracks=myPlayer.textTracks();for(let i=0;i<tracks.length;i++){let
+                    track=tracks[i];if(track.kind==="captions" &&track.language.indexOf("forced")>
+                    -1){track.mode="showing"}else{track.mode="hidden"}}forced_altyazi_durum="1"}}if(Math.floor(this.currentTime())>0&&default_altyazi_durum=="0"&&forced_altyazi_durum=="0"){let
+                    tracks=myPlayer.textTracks();for(let i=0;i<tracks.length;i++){let
+                        track=tracks[i];if(track.kind==="captions" &&track.default==true){track.mode="showing"
+                        }}default_altyazi_durum="1"
+                        }if(!getCookieVideoDevam("guide_tooltip_closeloadxx")&&tooltip_durum=="0" ){var
+                        dual_kontrol_edilecekmi="1" ;let
+                        audioTrackList=myPlayer.audioTracks();if(Math.floor(this.currentTime())>
+                        1&&audioTrackList.length>1){$("div.vjs-control-bar").append("<div
+                            class='tooltip-info dual-info'><span class='fl'>Buradan Dublaj veya Orijinal Ses
+                                5T�5U.</span> <i>x</i></div>
+                        ");if($(".vjs-chromecast-button").hasClass("vjs-hidden")==false){$(".tooltip-info.dual-info").css("right","45px")}tooltip_durum="1"}let
+                        subtracks=myPlayer.textTracks();if(Math.floor(this.currentTime())>1&&subtracks.length>1){$("div.vjs-control-bar").append("
+                        <div class='tooltip-info sub-info'><span class='fl'>Buradan 28� 5W�i�5V, Kendi 28� 5N�z�
+                                Y�5H.</span> <i>x</i></div>
+                        ");if($(".vjs-chromecast-button").hasClass("vjs-hidden")==false){$(".tooltip-info.sub-info").css("right","80px")}if(audioTrackList.length<2&&dual_kontrol_edilecekmi=="0"){if($(".vjs-chromecast-button").hasClass("vjs-hidden")==true){$(".tooltip-info.sub-info").css("right","5px")}$(".tooltip-info.sub-info").css("display","block")}tooltip_durum="1"}if(Math.floor(this.currentTime())>1&&$(".vjs-chromecast-button").hasClass("vjs-hidden")==false){$("div.vjs-control-bar").append("
+                            <div class='tooltip-info chromecast-info'><span class='fl'>Buradan Videoyu TV'niz ile
+                                    izleyebilirsiniz.</span> <i>x</i></div>
+                            ");if(subtracks.length<2&&dual_kontrol_edilecekmi=="0"){$(".tooltip-info.chromecast-info").css("display","block")}tooltip_durum="1"}}else{tooltip_durum="1"}var
+                                audioTrackList=myPlayer.audioTracks();if(audioTrackList.length>1){if(Math.floor(this.currentTime())>0&&player_dual_buttons_durum=="0"){$(".video-js").prepend('
+                                <div class="dual-buttons"><a href="javascript:;" data-lang="Turkish">T�5L�e Dublaj</a><a
+                                        href="javascript:;" data-lang="Original Audio">28�l�</a></div>
+                                ');player_dual_buttons_durum="1"}}if(altyaziuploadbutton_durum=="0"){let
+                                subtracks=myPlayer.textTracks();if(Math.floor(this.currentTime())>0&&subtracks.length>1){$("div.vjs-control-bar
+                                div.vjs-subs-caps-button .vjs-menu .vjs-menu-content").prepend('<li
+                                    class="vjs-menu-item vjs-texttrack-upload" tabindex="-1" role="menuitem"
+                                    aria-live="polite" aria-disabled="false"><span class="vjs-menu-item-text">altyazi
+                                        y�67</span><span class="vjs-control-text">, upload subtitle</span></li>
+                                ');$("div.vjs-control-bar div.vjs-subs-caps-button .vjs-menu
+                                .vjs-menu-content").on("click",".vjs-texttrack-upload",function(){$(".user-subtitle-input").trigger("click")});$(".user-subtitle-form").on("change",".user-subtitle-input",function(){let
+                                formData=new
+                                FormData();formData.append("user-subtitle-input",$(".user-subtitle-input")[0].files[0]);$.ajax({url:"/ajax/usersubtitleupload/",type:"POST",data:formData,success:function(data){if(data.result_code=="1"){const
+                                trackEl=myPlayer.addRemoteTextTrack({kind:"captions",src:data.url,label:"Uploaded
+                                File",language:"custom"},false);trackEl.addEventListener("load",function(){for(let i=0;i
+                                <subtracks.length;i++){let subtrack=subtracks[i];if(subtrack.kind==="captions"
+                                    &&subtrack.language=="custom" ){subtrack.mode="showing" }else{subtrack.mode="hidden"
+                                    }}alert(data.result_message)})}else{alert(data.result_message)}},cache:false,contentType:false,processData:false})});altyaziuploadbutton_durum="1"
+                                    }}else{altyaziuploadbutton_durum="1" }});var
+                                    Button=videojs.getComponent("Button");var
+                                    PrevButton=videojs.extend(Button,{constructor:function(){Button.apply(this,arguments);this.addClass("btn-backward");this.controlText("15
+                                    Seconds
+                                    Backward")},handleClick:function(){myPlayer.currentTime(myPlayer.currentTime()-15)}});var
+                                    NextButton=videojs.extend(Button,{constructor:function(){Button.apply(this,arguments);this.addClass("btn-forward");this.controlText("15
+                                    Seconds
+                                    Forward")},handleClick:function(){myPlayer.currentTime(myPlayer.currentTime()+15)}});videojs.registerComponent("NextButton",NextButton);videojs.registerComponent("PrevButton",PrevButton);myPlayer.getChild("controlBar").addChild("PrevButton",{},5);myPlayer.getChild("controlBar").addChild("NextButton",{},6);var
+                                    audioTrackList=myPlayer.audioTracks();audioTrackList.addEventListener("change",function(){for(var
+                                    i=0;i<audioTrackList.length;i++){var
+                                    track=audioTrackList[i];if(track.enabled==true&&track.label!="Turkish" ){let
+                                    subtracks=myPlayer.textTracks();for(let i=0;i<subtracks.length;i++){let
+                                    subtrack=subtracks[i];if(subtrack.kind==="captions" &&subtrack.language=="tr"
+                                    ){subtrack.mode="showing" }else{subtrack.mode="hidden" }}break}else
+                                    if(track.enabled==true&&track.label=="Turkish" ){let
+                                    subtracks=myPlayer.textTracks();for(let i=0;i<subtracks.length;i++){let
+                                    subtrack=subtracks[i];if(subtrack.kind==="captions"
+                                    &&subtrack.language.indexOf("forced")>
+                                    -1){subtrack.mode="showing"}else{subtrack.mode="hidden"}}}}});$(".vjs-playback-rate
+                                    .vjs-playback-rate-value").text("1x")}PlayerInit();$(document).ready(function(){$(".player").on("touchend","div.vjs-menu-button",function(){$("div.vjs-menu-button").not(this).find(".vjs-menu").removeClass("vjs-lock-showing")});$(".player").on("touchend","div.vjs-playback-rate",function(){$("div.vjs-playback-rate").find(".vjs-menu").toggleClass("vjs-lock-showing")});$(".player").on("mouseover","div.vjs-playback-rate",function(){$("div.vjs-playback-rate").find(".vjs-menu").addClass("vjs-lock-showing")});$(".player").on("mouseout","div.vjs-playback-rate",function(){$("div.vjs-playback-rate").find(".vjs-menu").removeClass("vjs-lock-showing")});myPlayer.on("error",function(){let
+                                    errors=this.error();let
+                                    current_time=this.currentTime();if(errors&&errors.message){let
+                                    error_message=errors.code+" - "+errors.message+" - duration:
+                                    "+current_time;$.ajax({type:"POST",url:"https://playmix.uno/ajax/urlcheck/",async:true,dataType:"json",data:{"referer":document.referrer,"embed_url":window.location.href,"error_message":error_message,"type":"playerhata"},error:function(){},success:function(veri){}})}})});$(".vjs-track-setting.vjs-bg-color
+                                    .vjs-bg-opacity select
+                                    option[value=0]").attr("selected","selected");$("div.vjs-control-bar").on("click",".tooltip-info",function(){let
+                                    tooltip_cookie_yaz_durum="0";$(this).remove();if($(".tooltip-info.sub-info").length){$(".tooltip-info.sub-info").css("display","block")}else{if($(".tooltip-info.chromecast-info").length){$(".tooltip-info.chromecast-info").css("display","block")}else{tooltip_cookie_yaz_durum="1"}}if(tooltip_cookie_yaz_durum=="1"){setCookieVideoDevam("guide_tooltip_closeloadxx",1,30*24*60*60*1000)}});$(".video-js").on("click",".dual-buttons
+                                    a",function(e){e.preventDefault();let
+                                    data_lang=$(this).data("lang");console.log("lang:"+data_lang);var
+                                    audioTrackList=myPlayer.audioTracks();if(audioTrackList.length>1){if(Math.floor(myPlayer.currentTime())>0){for(var
+                                    i=0;i<audioTrackList.length;i++){var
+                                        track=audioTrackList[i];if(track.enabled!=true&&track.label==data_lang){track.enabled=true}else{track.enabled=false}}}}});$(".video-js").prepend('<div
+                                        class="video-title">BEAST-2026-WEBDL</div>')});function
+                                        setCookieVideoDevam(name,value,time){var expires=new
+                                        Date();expires.setTime(expires.getTime()+time);document.cookie=name+"="+value+";
+                                        expires="+expires.toGMTString()+"; path=/; SameSite=None; Secure"}function
+                                        getCookieVideoDevam(name){var cookies=document.cookie.toString().split("; ");var
+                                        cookie,c_name,c_value;for(var n=0;n
+                                        <cookies.length;n++){cookie=cookies[n].split("=");c_name=cookie[0];c_value=cookie[1];if(c_name==name){return
+                                            c_value}}return null}

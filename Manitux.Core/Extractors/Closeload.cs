@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using CodeLogic.Core.Logging;
+using Manitux.Core.Extractors.Utils;
 using Manitux.Core.Models;
 
 namespace Manitux.Core.Extractors;
@@ -331,7 +332,11 @@ public class Closeload : ExtractorBase
             //Log(LogLevel.Debug, "[Closeload] html: " + html);
             if (html is null) return null;
 
-            string base64 = GetBase64FromHtml(html);
+            var unpacked = JsUnpacker.Unpack(html);
+            //Log(LogLevel.Debug, "[Closeload] unpacked: " + unpacked);
+            if (unpacked is null) return null;
+
+            string base64 = GetBase64FromHtml(unpacked);
             Log(LogLevel.Debug, "base64: " + base64);
             if (string.IsNullOrWhiteSpace(base64)) return null;
 

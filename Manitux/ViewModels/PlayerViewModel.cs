@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -172,6 +173,10 @@ namespace Manitux.ViewModels
                         && !source.Headers.Any(h => h.Name.Equals("Referer", StringComparison.OrdinalIgnoreCase)))
                     {
                         headerList.Add($"Referer: {source.Referer}");
+
+                        var uri = new Uri(source.Referer);
+                        Debug.WriteLine(uri.Host);
+                        headerList.Add($"Host: {uri.Host.Replace("www.", "")}");
                     }
 
                     if (headerList.Count > 0)
@@ -181,14 +186,11 @@ namespace Manitux.ViewModels
                     }
                 }
 
+                _fileLoaded = false;
                 await MediaPlayer.ExecuteCommandAsync([MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, source.Url]);
 
                 if (source.Subtitles != null && source.Subtitles.Any())
                 {
-                    // System.FormatException
-                    //MediaPlayer.ExecuteCommand(new[] { "sub-add", "no" });
-                    //MediaPlayer.SetProperty("sub-add", "no");
-
                     foreach (var track in source.Subtitles)
                     {
                         try
