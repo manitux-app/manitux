@@ -101,8 +101,8 @@ public class ExternalPlayerManager
             UseShellExecute = false,
             CreateNoWindow = true,
             // Hata ayıklama gerekirse çıktıları yönlendirebilirsiniz
-            RedirectStandardError = false,
-            RedirectStandardOutput = false
+            RedirectStandardError = true,
+            RedirectStandardOutput = true
         };
 
         try

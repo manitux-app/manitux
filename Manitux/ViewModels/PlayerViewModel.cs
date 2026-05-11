@@ -145,7 +145,7 @@ namespace Manitux.ViewModels
 
                 if (IsHlsUrl(source.Url))
                 {
-                    MediaPlayer.SetProperty("ytdl", false);
+                    //MediaPlayer.SetProperty("ytdl", false);
                     MediaPlayer.SetProperty("demuxer-lavf-format", "hls");
                     MediaPlayer.SetProperty("vid", "auto");
                     MediaPlayer.SetProperty("aid", "auto");
@@ -161,29 +161,36 @@ namespace Manitux.ViewModels
                     var ua = source.Headers.FirstOrDefault(h => h.Name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase));
                     if (ua != null)
                     {
+                        MediaPlayer.SetProperty("http-header-fields", $"{ua.Name}: {ua.Value}");
                         MediaPlayer.SetProperty("user-agent", ua.Value);
                     }
 
-                    var headerList = source.Headers
-                        .Where(h => !h.Name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase))
-                        .Select(h => $"{h.Name}: {h.Value}")
-                        .ToList();
-
-                    if (!string.IsNullOrWhiteSpace(source.Referer)
+                     if (!string.IsNullOrWhiteSpace(source.Referer)
                         && !source.Headers.Any(h => h.Name.Equals("Referer", StringComparison.OrdinalIgnoreCase)))
                     {
-                        headerList.Add($"Referer: {source.Referer}");
-
-                        var uri = new Uri(source.Referer);
-                        Debug.WriteLine(uri.Host);
-                        headerList.Add($"Host: {uri.Host.Replace("www.", "")}");
+                        MediaPlayer.SetProperty("referrer", source.Referer);
                     }
 
-                    if (headerList.Count > 0)
-                    {
-                        string allHeaders = string.Join(",", headerList);
-                        MediaPlayer.SetProperty("http-header-fields", allHeaders);
-                    }
+                    // var headerList = source.Headers
+                    //     //.Where(h => !h.Name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase))
+                    //     .Select(h => $"{h.Name}: {h.Value}")
+                    //     .ToList();
+
+                    // if (!string.IsNullOrWhiteSpace(source.Referer)
+                    //     && !source.Headers.Any(h => h.Name.Equals("Referer", StringComparison.OrdinalIgnoreCase)))
+                    // {
+                    //     headerList.Add($"Referer: {source.Referer}");
+
+                    //     //var uri = new Uri(source.Referer);
+                    //     //Debug.WriteLine(uri.Host);
+                    //     //headerList.Add($"Host: {uri.Host.Replace("www.", "")}");
+                    // }
+
+                    // if (headerList.Count > 0)
+                    // {
+                    //     string allHeaders = string.Join(",", headerList);
+                    //     MediaPlayer.SetProperty("http-header-fields", allHeaders);
+                    // }
                 }
 
                 _fileLoaded = false;
@@ -195,6 +202,8 @@ namespace Manitux.ViewModels
                     {
                         try
                         {
+                            //MediaPlayer.SetProperty("sub-file", track.Url);
+                            //await MediaPlayer.ExecuteCommandAsync(["sub-file", track.Url, "auto"]);
                             await MediaPlayer.ExecuteCommandAsync([
                                 MPVMediaPlayer.TrackManipulationCommands.SubAdd,
                                 track.Url,
@@ -202,8 +211,9 @@ namespace Manitux.ViewModels
                                 track.Name
                             ]);
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            Debug.WriteLine(ex.ToString());
                         }
                     }
 

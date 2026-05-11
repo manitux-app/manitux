@@ -16,35 +16,6 @@ public class Closeload : ExtractorBase
 
     // https://hdfilmcehennemi.mobi/video/embed/H55a7Etv9cv/?rapidrame_id=iln9u9ark7oe
 
-    public string GetBase64FromHtml(string html)
-    {
-        var regex = new Regex(@"var\s+\w+\s*=\s*\w+\s*\(\s*(\[\s*.*?\s*\])\s*\)\s*;", RegexOptions.Singleline);
-        var match = regex.Match(html);
-
-        if (match.Success)
-        {
-            var arrayText = match.Groups[1].Value;
-            try
-            {
-                var parts = JsonSerializer.Deserialize<List<string>>(arrayText);
-                if (parts is not null)
-                {
-                    return string.Concat(parts).Replace("\\/", "/");
-                }
-            }
-            catch (JsonException ex)
-            {
-                Log(LogLevel.Warning, "encrypted array parse failed: " + ex.Message);
-            }
-
-            var partRegex = new Regex(@"""([^""]+)""");
-            var fallbackParts = partRegex.Matches(arrayText).Select(x => x.Groups[1].Value);
-            return string.Concat(fallbackParts).Replace("\\/", "/");
-        }
-
-        return "";
-    }
-
     private string? DecryptCloseload(string input)
     {
         try
@@ -54,8 +25,66 @@ public class Closeload : ExtractorBase
             var secondPass = Base64DecodeJS(firstPass);
             var url = Unmix(secondPass);
 
-            Log(LogLevel.Debug, "unmix: " + url);
-            return GetUrl(url);
+            var videoLink = GetUrl(url);
+            if (videoLink is not null)
+            {
+                Log(LogLevel.Debug, "unmix: " + videoLink);
+            }
+
+            return videoLink;
+        }
+        catch (Exception ex)
+        {
+            Log(LogLevel.Error, ex.ToString());
+            return null;
+        }
+    }
+
+    private string? TryDecrypt(string input)
+    {
+        string? videoLink = DecryptRot13Base64ReverseUnmix(input);
+        if (videoLink is not null) return videoLink;
+
+        if (CanDecodeReversedBase64(input))
+        {
+            videoLink = DecryptCloseload(input);
+            if (videoLink is not null) return videoLink;
+
+            videoLink = Decrypt2(input);
+            if (videoLink is not null) return videoLink;
+        }
+
+        if (LooksLikeTextBase64(input))
+        {
+            videoLink = Decrypt1(input);
+            if (videoLink is not null) return videoLink;
+        }
+
+        if (LooksLikeRot13ReversedBase64(input))
+        {
+            return Decrypt3(input);
+        }
+
+        return null;
+    }
+
+    private string? DecryptRot13Base64ReverseUnmix(string input)
+    {
+        try
+        {
+            var rot13Result = ApplyRot13(input);
+            var base64Decoded = Base64DecodeJS(rot13Result);
+            if (string.IsNullOrEmpty(base64Decoded)) return null;
+
+            var reversed = Reverse(base64Decoded);
+            var url = Unmix(reversed);
+            var videoLink = GetUrl(url);
+            if (videoLink is not null)
+            {
+                Log(LogLevel.Debug, "rot13-atob-reverse-unmix: " + videoLink);
+            }
+
+            return videoLink;
         }
         catch (Exception ex)
         {
@@ -111,8 +140,13 @@ public class Closeload : ExtractorBase
             }
 
             string url = unmix.ToString();
-            Log(LogLevel.Debug, "unmix1: " + unmix);
-            return GetUrl(url);
+            var videoLink = GetUrl(url);
+            if (videoLink is not null)
+            {
+                Log(LogLevel.Debug, "unmix1: " + videoLink);
+            }
+
+            return videoLink;
         }
         catch (Exception ex)
         {
@@ -152,8 +186,13 @@ public class Closeload : ExtractorBase
             }
 
             string url = unmix.ToString();
-            Log(LogLevel.Debug, "unmix2: " + unmix);
-            return GetUrl(url);
+            var videoLink = GetUrl(url);
+            if (videoLink is not null)
+            {
+                Log(LogLevel.Debug, "unmix2: " + videoLink);
+            }
+
+            return videoLink;
         }
         catch (Exception ex)
         {
@@ -188,7 +227,13 @@ public class Closeload : ExtractorBase
                 unmix.Append((char)decodedChar);
             }
 
-            return GetUrl(unmix.ToString());
+            var videoLink = GetUrl(unmix.ToString());
+            if (videoLink is not null)
+            {
+                Log(LogLevel.Debug, "unmix3: " + videoLink);
+            }
+
+            return videoLink;
         }
         catch (Exception ex)
         {
@@ -235,8 +280,185 @@ public class Closeload : ExtractorBase
 
     private static string? GetUrl(string input)
     {
+        input = input.Replace("\\/", "/", StringComparison.Ordinal);
         var urlMatch = Regex.Match(input, @"https?://[^\s""'|<>]+");
         return urlMatch.Success ? urlMatch.Value : null;
+    }
+
+    private bool CanDecodeReversedBase64(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return false;
+
+        var reversed = Reverse(input);
+        var firstPass = Base64DecodeJS(reversed);
+        if (string.IsNullOrEmpty(firstPass)) return false;
+
+        var secondPass = Base64DecodeJS(firstPass);
+        return !string.IsNullOrEmpty(secondPass);
+    }
+
+    private bool LooksLikeTextBase64(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return false;
+
+        var decoded = Base64DecodeJS(input);
+        return decoded.Length > 0 && GetPrintableRatio(decoded) > 0.75;
+    }
+
+    private bool LooksLikeRot13ReversedBase64(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return false;
+
+        var reversed = Reverse(ApplyRot13(input));
+        var decoded = Base64DecodeJS(reversed);
+        return decoded.Length > 0 && GetPrintableRatio(decoded) > 0.75;
+    }
+
+    private static double GetPrintableRatio(string input)
+    {
+        if (input.Length == 0) return 0;
+
+        var printable = input.Count(c => c is >= ' ' and <= '~' or '\r' or '\n' or '\t');
+        return (double)printable / input.Length;
+    }
+
+    private string? GetDirectVideoLink(string html)
+    {
+        var unpacked = JsUnpacker.Unpack(html);
+        return GetDirectVideoLinkFromSource(unpacked) ?? GetDirectVideoLinkFromSource(html);
+    }
+
+    private static string? GetDirectVideoLinkFromSource(string? source)
+    {
+        if (string.IsNullOrWhiteSpace(source)) return null;
+
+        var m3u8Match = Regex.Match(source, @"https?:\\?/\\?/[^""'\s<>]+?\.m3u8[^""'\s<>]*", RegexOptions.IgnoreCase);
+        if (!m3u8Match.Success) return null;
+
+        return m3u8Match.Value.Replace("\\/", "/", StringComparison.Ordinal);
+    }
+
+    public string GetBase64FromHtml(string html)
+    {
+        return GetBase64CandidatesFromHtml(html).FirstOrDefault() ?? "";
+    }
+
+    private List<string> GetBase64CandidatesFromHtml(string html)
+    {
+        var candidates = new List<string>();
+
+        AddDirectArrayValues(html, candidates);
+
+        var unpacked = JsUnpacker.Unpack(html);
+        if (!string.IsNullOrWhiteSpace(unpacked))
+        {
+            AddDirectArrayValues(unpacked, candidates);
+        }
+
+        var evalMatches = Regex.Matches(html, @"eval\(function\(p,a,c,k,e,d\).*?\.split\('\|'\),\d+,\{\}\)\)", RegexOptions.Singleline);
+        foreach (Match evalMatch in evalMatches)
+        {
+            AddPackedArrayValues(evalMatch.Value, candidates);
+        }
+
+        return candidates
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private void AddPackedArrayValues(string evalBody, List<string> candidates)
+    {
+        var dictionaryMatch = Regex.Match(evalBody, @"'([^']*)'\.split", RegexOptions.Singleline);
+        if (!dictionaryMatch.Success) dictionaryMatch = Regex.Match(evalBody, @"""([^""]*)""\.split", RegexOptions.Singleline);
+
+        if (!dictionaryMatch.Success) return;
+
+        string[] dictionary = dictionaryMatch.Groups[1].Value.Split('|');
+        string base62Lookup = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        foreach (Match arrayMatch in Regex.Matches(evalBody, @"\[\s*([""'].*?[""']\s*,?\s*)+\s*\]", RegexOptions.Singleline))
+        {
+            var matches = Regex.Matches(arrayMatch.Value, @"[""'](?<val>.*?)[""']");
+            StringBuilder fullBase64 = new StringBuilder();
+
+            foreach (Match m in matches)
+            {
+                string code = m.Groups["val"].Value;
+
+                string decodedPart = Regex.Replace(code, @"\w+", match =>
+                {
+                    int index = ConvertBase62ToIndex(match.Value, base62Lookup);
+                    return (index < dictionary.Length && !string.IsNullOrEmpty(dictionary[index]))
+                        ? dictionary[index]
+                        : match.Value;
+                });
+
+                fullBase64.Append(decodedPart);
+            }
+
+            string fullString = fullBase64.ToString();
+            fullString = fullString.Replace("\\/", "/");
+            candidates.Add(fullString);
+        }
+    }
+
+    private void AddDirectArrayValues(string html, List<string> candidates)
+    {
+        var regex = new Regex(@"\b\w+\s*\(\s*(\[\s*(?:""[^""]*""|'[^']*')\s*(?:,\s*(?:""[^""]*""|'[^']*')\s*)*\])\s*\)", RegexOptions.Singleline);
+
+        foreach (Match match in regex.Matches(html))
+        {
+            var arrayText = match.Groups[1].Value;
+            var parsed = TryParseStringArray(arrayText);
+            if (!string.IsNullOrWhiteSpace(parsed))
+            {
+                candidates.Add(parsed);
+                continue;
+            }
+
+            var partRegex = new Regex(@"[""']([^""']+)[""']");
+            var fallbackParts = partRegex.Matches(arrayText).Select(x => x.Groups[1].Value);
+            candidates.Add(string.Concat(fallbackParts).Replace("\\/", "/"));
+        }
+    }
+
+    private string? TryParseStringArray(string arrayText)
+    {
+        try
+        {
+            var normalizedArrayText = Regex.Replace(arrayText, @"'([^'\\]*(?:\\.[^'\\]*)*)'", match =>
+            {
+                return JsonSerializer.Serialize(match.Groups[1].Value);
+            });
+
+            var parts = JsonSerializer.Deserialize<List<string>>(normalizedArrayText);
+            if (parts is not null)
+            {
+                return string.Concat(parts).Replace("\\/", "/");
+            }
+        }
+        catch (JsonException ex)
+        {
+            Log(LogLevel.Warning, "encrypted array parse failed: " + ex.Message);
+        }
+
+        return null;
+    }
+
+    private int ConvertBase62ToIndex(string value, string lookup)
+    {
+        int result = 0;
+        int p = 1;
+        for (int i = value.Length - 1; i >= 0; i--)
+        {
+            int charIndex = lookup.IndexOf(value[i]);
+            if (charIndex == -1) return 0;
+            result += charIndex * p;
+            p *= 62;
+        }
+
+        return result;
     }
 
     private string Base64DecodeJS(string input)
@@ -332,33 +554,26 @@ public class Closeload : ExtractorBase
             //Log(LogLevel.Debug, "[Closeload] html: " + html);
             if (html is null) return null;
 
-            var unpacked = JsUnpacker.Unpack(html);
+            //var unpacked = JsUnpacker.Unpack(html);
             //Log(LogLevel.Debug, "[Closeload] unpacked: " + unpacked);
-            if (unpacked is null) return null;
+            //if (unpacked is null) return null;
 
-            string base64 = GetBase64FromHtml(unpacked);
-            Log(LogLevel.Debug, "base64: " + base64);
-            if (string.IsNullOrWhiteSpace(base64)) return null;
-
-            string? videoLink = DecryptCloseload(base64);
-            Log(LogLevel.Debug, "videoLink: " + videoLink);
+            string? videoLink = GetDirectVideoLink(html);
+            Log(LogLevel.Debug, "direct videoLink: " + videoLink);
 
             if (videoLink is null)
             {
-                videoLink = Decrypt1(base64);
-                Log(LogLevel.Debug, "videoLink1 " + videoLink);
-            }
+                foreach (var base64 in GetBase64CandidatesFromHtml(html))
+                {
+                    Log(LogLevel.Debug, "base64: " + base64);
+                    videoLink = TryDecrypt(base64);
+                    Log(LogLevel.Debug, "videoLink: " + videoLink);
 
-            if (videoLink is null)
-            {
-                videoLink = Decrypt2(base64);
-                Log(LogLevel.Debug, "videoLink2: " + videoLink);
-            }
-
-            if (videoLink is null)
-            {
-                videoLink = Decrypt3(base64);
-                Log(LogLevel.Debug, "videoLink3: " + videoLink);
+                    if (videoLink is not null)
+                    {
+                        break;
+                    }
+                }
             }
 
             if (videoLink is not null)
