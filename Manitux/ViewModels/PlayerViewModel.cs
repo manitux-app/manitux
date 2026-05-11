@@ -11,6 +11,7 @@ using LibMPVSharp;
 using LibMPVSharp.Avalonia;
 using LibMPVSharp.Extensions;
 using Manitux.Core.Application;
+using Manitux.Core.Helpers;
 using Manitux.Core.Models;
 
 namespace Manitux.ViewModels
@@ -29,6 +30,7 @@ namespace Manitux.ViewModels
         private bool _fileLoaded;
 
         private AppStrings? _localize;
+        private readonly SubtitleManager _subtitleManager = new();
 
         public event Action? OnRequestClose;
         public event Action<List<SubtitleModel>>? OnAddSubtitleRequested;
@@ -132,12 +134,16 @@ namespace Manitux.ViewModels
 
             try
             {
-                MediaPlayer.SetProperty("terminal", "no");
+                MediaPlayer.SetProperty("terminal", "yes");
+                MediaPlayer.SetProperty("msg-level", "all=v,sub=debug,lavf=debug");
+
                 MediaPlayer.SetProperty("idle", "yes");
                 MediaPlayer.SetProperty("vo", "libmpv");
                 MediaPlayer.SetProperty("hwdec", "auto-safe");
                 MediaPlayer.SetProperty("osd-level", "0");
                 MediaPlayer.SetProperty("keep-open", "no");
+                MediaPlayer.SetProperty("sub-auto", "all");
+                MediaPlayer.SetProperty("sub-file-paths", ".");
 
                 MediaPlayer.SetProperty("volume", 50.0);
 
@@ -145,8 +151,7 @@ namespace Manitux.ViewModels
 
                 if (IsHlsUrl(source.Url))
                 {
-                    //MediaPlayer.SetProperty("ytdl", false);
-                    MediaPlayer.SetProperty("demuxer-lavf-format", "hls");
+                    MediaPlayer.SetProperty("ytdl", "no");
                     MediaPlayer.SetProperty("vid", "auto");
                     MediaPlayer.SetProperty("aid", "auto");
                 }
@@ -161,15 +166,15 @@ namespace Manitux.ViewModels
                     var ua = source.Headers.FirstOrDefault(h => h.Name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase));
                     if (ua != null)
                     {
-                        MediaPlayer.SetProperty("http-header-fields", $"{ua.Name}: {ua.Value}");
+                        MediaPlayer.SetProperty("http-header-fields", $"{ua.Name}: {ua.Value},referer: {source.Referer}");
                         MediaPlayer.SetProperty("user-agent", ua.Value);
                     }
 
-                     if (!string.IsNullOrWhiteSpace(source.Referer)
-                        && !source.Headers.Any(h => h.Name.Equals("Referer", StringComparison.OrdinalIgnoreCase)))
-                    {
-                        MediaPlayer.SetProperty("referrer", source.Referer);
-                    }
+                    // if (!string.IsNullOrWhiteSpace(source.Referer)
+                    //     && !source.Headers.Any(h => h.Name.Equals("Referer", StringComparison.OrdinalIgnoreCase)))
+                    // {
+                    //     MediaPlayer.SetProperty("referrer", source.Referer);
+                    // }
 
                     // var headerList = source.Headers
                     //     //.Where(h => !h.Name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase))
@@ -194,32 +199,27 @@ namespace Manitux.ViewModels
                 }
 
                 _fileLoaded = false;
-                await MediaPlayer.ExecuteCommandAsync([MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, source.Url]);
-
-                if (source.Subtitles != null && source.Subtitles.Any())
+                var resolvedSubtitles = await ResolveSubtitlesAsync(source.Subtitles);
+                var loadFileCommand = CreateLoadFileCommand(source.Url, resolvedSubtitles);
+                Debug.WriteLine($"[PlayerViewModel] loadfile args: {string.Join(" | ", loadFileCommand)}");
+                try
                 {
-                    foreach (var track in source.Subtitles)
-                    {
-                        try
-                        {
-                            //MediaPlayer.SetProperty("sub-file", track.Url);
-                            //await MediaPlayer.ExecuteCommandAsync(["sub-file", track.Url, "auto"]);
-                            await MediaPlayer.ExecuteCommandAsync([
-                                MPVMediaPlayer.TrackManipulationCommands.SubAdd,
-                                track.Url,
-                                "auto",
-                                track.Name
-                            ]);
-                        }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine(ex.ToString());
-                        }
-                    }
+                    await Task.Delay(1000);
+                    await MediaPlayer.ExecuteCommandAsync(loadFileCommand);
+                }
+                catch (Exception ex) when (resolvedSubtitles.Any())
+                {
+                    Debug.WriteLine($"[PlayerViewModel] loadfile with subtitles failed, retrying without subtitles. Args: {string.Join(" | ", loadFileCommand)} Error: {ex}");
+                    await MediaPlayer.ExecuteCommandAsync([MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, source.Url]);
+                }
+
+                if (resolvedSubtitles.Any())
+                {
+                    await WaitForFileLoadedAsync();
 
                     MediaPlayer.SetProperty( "sid", "no" );
 
-                    var subtitles = source.Subtitles
+                    var subtitles = resolvedSubtitles
                         .Select((track, index) => new SubtitleModel
                         {
                             Id = (index + 1).ToString(),
@@ -265,6 +265,113 @@ namespace Manitux.ViewModels
         private static bool IsHlsUrl(string url)
         {
             return url.Contains(".m3u8", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeSubtitlePathForMpv(string subtitleUrl)
+        {
+            if (string.IsNullOrWhiteSpace(subtitleUrl)
+                || Uri.TryCreate(subtitleUrl, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+            {
+                return subtitleUrl;
+            }
+
+            var path = Uri.TryCreate(subtitleUrl, UriKind.Absolute, out uri) && uri.IsFile
+                ? uri.LocalPath
+                : subtitleUrl;
+
+            try
+            {
+                path = System.IO.Path.GetFullPath(path);
+            }
+            catch
+            {
+            }
+
+            return path.Replace('\\', '/');
+
+            //return OperatingSystem.IsWindows()
+                //? "file:///" + path.Replace('/', '\\') // C:\\Users\\metek\\AppData\\Local\\Temp\\Manitux\\Subtitles\\252bac07b2978e98db6942f7.vtt
+                //: path.Replace('\\', '/'); // /home/metek/temp/Manitux/Subtitles/252bac07b2978e98db6942f7.vtt
+        }
+
+        private async Task<List<SubtitleModel>> ResolveSubtitlesAsync(List<SubtitleModel>? subtitles)
+        {
+            var resolvedSubtitles = new List<SubtitleModel>();
+
+            if (subtitles is null || subtitles.Count == 0)
+            {
+                return resolvedSubtitles;
+            }
+
+            foreach (var track in subtitles)
+            {
+                try
+                {
+                    var subtitleUrl = await _subtitleManager.ResolveAsync(track.Url);
+                    var subtitlePath = NormalizeSubtitlePathForMpv(subtitleUrl);
+
+                    resolvedSubtitles.Add(new SubtitleModel
+                    {
+                        Id = track.Id,
+                        Name = track.Name,
+                        Url = subtitlePath
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[PlayerViewModel] Subtitle resolve failed. Url: {track.Url} Error: {ex}");
+                }
+            }
+
+            return resolvedSubtitles;
+        }
+
+        private static string[] CreateLoadFileCommand(string url, List<SubtitleModel> subtitles)
+        {
+            if (subtitles.Count == 0)
+            {
+                return [MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, url];
+            }
+
+            var separator = OperatingSystem.IsWindows() ? ";" : ":";
+            var subtitleFiles = string.Join(separator, subtitles
+                .Where(subtitle => !string.IsNullOrWhiteSpace(subtitle.Url))
+                .Select(subtitle => NormalizeSubtitlePathForMpv(subtitle.Url)));
+                //.Select(subtitle => $"'{NormalizeSubtitlePathForMpv(subtitle.Url)}'"));
+
+            var options = string.IsNullOrWhiteSpace(subtitleFiles)
+                ? string.Empty
+                : $"sub-files={subtitleFiles}";
+
+            return string.IsNullOrWhiteSpace(options)
+                ? [MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, url]
+                : [MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, url, "replace", "-1", options];
+        }
+
+        private static string EscapeLoadFileOptionValue(string value)
+        {
+            //string url = $"\"file:///{subtitle?.Url.Replace('\\', '/')}\"";
+            return OperatingSystem.IsWindows()
+                ? value.Replace('\\', '/') //.Replace('/', '\\') // C:\\Users\\metek\\AppData\\Local\\Temp\\Manitux\\Subtitles\\252bac07b2978e98db6942f7.vtt
+                : value.Replace('\\', '/'); // /home/metek/temp/Manitux/Subtitles/252bac07b2978e98db6942f7.vtt
+        }
+
+        private async Task WaitForFileLoadedAsync()
+        {
+            const int maxAttempts = 100;
+
+            for (var attempt = 0; attempt < maxAttempts; attempt++)
+            {
+                if (_fileLoaded || HasError)
+                {
+                    return;
+                }
+
+                await Task.Delay(100);
+            }
+
+            Debug.WriteLine("[PlayerViewModel] Timed out waiting for MPV file-loaded before adding subtitles.");
         }
 
         public void Dispose()

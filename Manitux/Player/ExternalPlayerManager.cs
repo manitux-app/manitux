@@ -99,10 +99,10 @@ public class ExternalPlayerManager
             FileName = mpvCmd,
             Arguments = string.Join(" ", args),
             UseShellExecute = false,
-            CreateNoWindow = true,
+            CreateNoWindow = false,
             // Hata ayıklama gerekirse çıktıları yönlendirebilirsiniz
-            RedirectStandardError = true,
-            RedirectStandardOutput = true
+            RedirectStandardError = false,
+            RedirectStandardOutput = false
         };
 
         try
@@ -124,9 +124,11 @@ public class ExternalPlayerManager
             throw new ArgumentException("Video kaynağı veya URL'si geçersiz.");
         }
 
+        string path = @"D:\PROGRAMLAR\vlc-3.0.21\";
+
         // 2. Platforma göre VLC komutunu belirle
         // Not: Windows'ta VLC genelde PATH'te olmaz. Eğer çalışmazsa tam yol gerekebilir.
-        string vlcCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "vlc.exe" : "vlc";
+        string vlcCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? path + "vlc.exe" : "vlc";
 
         var args = new List<string>();
 
@@ -178,7 +180,7 @@ public class ExternalPlayerManager
             FileName = vlcCmd,
             Arguments = string.Join(" ", args), // Argümanları birleştir
             UseShellExecute = false,
-            CreateNoWindow = true,
+            CreateNoWindow = false,
             WorkingDirectory = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "C:\\" : "/"
         };
 

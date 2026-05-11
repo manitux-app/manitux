@@ -79,9 +79,11 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         }
     }
 
-    public void VlcPlay(VideoSourceModel videoSource)
+    public async void VlcPlay(VideoSourceModel videoSource)
     {
-        ShowTestPlayer();
+        var source = await GetVideoSources(videoSource);
+        var playerManager = new ExternalPlayerManager();
+        playerManager.VlcPlay(source);
         Debug.WriteLine(videoSource.Url);
     }
 

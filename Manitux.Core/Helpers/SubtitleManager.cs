@@ -99,43 +99,51 @@ public class SubtitleManager
     {
         var filePath = CreateTempFilePath(uri);
 
-        try
+        foreach (var identifier in new[] { TlsClientIdentifier.Cloudscraper, TlsClientIdentifier.Chrome144 })
         {
-            var clientBuilder = new TlsClientBuilder()
-                .WithIdentifier(TlsClientIdentifier.Chrome144)
-                .WithUserAgent(UserAgent)
-                .WithFollowRedirects(true)
-                .WithNative(GetNativeTlsPath());
-
-            using var client = clientBuilder.Build();
-
-            var request = new Request
+            try
             {
-                RequestUrl = uri.ToString(),
-                RequestMethod = HttpMethod.Get,
-                StreamOutputPath = filePath,
-                TimeoutSeconds = 30,
-                Headers = new Dictionary<string, string>
+                var clientBuilder = new TlsClientBuilder()
+                    .WithIdentifier(identifier)
+                    .WithUserAgent(UserAgent)
+                    .WithTimeout(TimeSpan.FromSeconds(30))
+                    .WithFollowRedirects(true)
+                    .WithInsecureSkipVerify()
+                    .WithDisableHttp3()
+                    .WithNative(GetNativeTlsPath());
+
+                using var client = clientBuilder.Build();
+
+                var request = new Request
                 {
-                    ["User-Agent"] = UserAgent,
-                    ["Accept"] = "text/vtt,application/x-subrip,text/plain,*/*"
+                    RequestUrl = uri.ToString(),
+                    RequestMethod = HttpMethod.Get,
+                    StreamOutputPath = filePath,
+                    //RequestHostOverride = uri.Host,
+                    Headers = new Dictionary<string, string>
+                    {
+                        ["User-Agent"] = UserAgent,
+                        //["Host"] = uri.Host,
+                        ["Referer"] = GetDomainReferer(uri),
+                        ["Accept"] = "text/vtt,application/x-subrip,text/plain,*/*"
+                    }
+                };
+
+                var response = await client.RequestAsync(request, cancellationToken);
+                if (response.Status == HttpStatusCode.OK && File.Exists(filePath) && new FileInfo(filePath).Length > 0)
+                {
+                    LogHelper.Http.Log(LogLevel.Debug, $"[SubtitleManager] Subtitle downloaded with TLS. Identifier: {identifier} Url: {uri} Path: {filePath}");
+                    return filePath;
                 }
-            };
 
-            var response = await client.RequestAsync(request, cancellationToken);
-            if (response.Status == HttpStatusCode.OK && File.Exists(filePath) && new FileInfo(filePath).Length > 0)
-            {
-                LogHelper.Http.Log(LogLevel.Debug, $"[SubtitleManager] Subtitle downloaded with TLS. Url: {uri} Path: {filePath}");
-                return filePath;
+                TryDelete(filePath);
+                LogHelper.Http.Log(LogLevel.Debug, $"[SubtitleManager] TLS subtitle download failed. Identifier: {identifier} Url: {uri} Status: {response.Status} Target: {response.Target} Body: {TrimForLog(response.Body)}");
             }
-
-            TryDelete(filePath);
-            LogHelper.Http.Log(LogLevel.Debug, $"[SubtitleManager] TLS subtitle download failed. Url: {uri} Status: {response.Status}");
-        }
-        catch (Exception ex)
-        {
-            TryDelete(filePath);
-            LogHelper.Http.Log(LogLevel.Error, $"[SubtitleManager] TLS subtitle download error. Url: {uri} Error: {ex}");
+            catch (Exception ex)
+            {
+                TryDelete(filePath);
+                LogHelper.Http.Log(LogLevel.Error, $"[SubtitleManager] TLS subtitle download error. Identifier: {identifier} Url: {uri} Error: {ex}");
+            }
         }
 
         return null;
@@ -169,6 +177,19 @@ public class SubtitleManager
         return OperatingSystem.IsAndroid()
             ? fileName
             : Path.Combine(Environment.CurrentDirectory, fileName);
+    }
+
+    private static string GetDomainReferer(Uri uri)
+        => $"{uri.Scheme}://{uri.Authority}/";
+
+    private static string TrimForLog(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return value.Length <= 300 ? value : value[..300];
     }
 
     private static void TryDelete(string filePath)
