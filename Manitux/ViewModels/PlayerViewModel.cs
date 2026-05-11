@@ -156,6 +156,7 @@ namespace Manitux.ViewModels
                     MediaPlayer.SetProperty("aid", "auto");
                 }
 
+
                 if (source.Referer != null)
                 {
                     MediaPlayer.SetProperty("referrer", source.Referer);

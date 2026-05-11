@@ -167,7 +167,7 @@ public class HttpHelper : HtmlHelper
         return null;
     }
 
-    private async Task<string?> HttpGetWithTLS(string url, string? referer = null, string? proxyUrl = null, Dictionary<string, string>? headers = null, TlsClientIdentifier? identifier = null, bool useCookie = false, bool followRedirects = true, Dictionary<string, string>? cookieOutput = null)
+    private async Task<string?> HttpGetWithTLS(string url, string? referer = null, string? proxyUrl = null, Dictionary<string, string>? headers = null, TlsClientIdentifier? identifier = null, bool useCookie = false, bool followRedirects = false, Dictionary<string, string>? cookieOutput = null)
     {
         try
         {
