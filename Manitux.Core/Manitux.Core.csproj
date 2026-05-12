@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="../Manitux.Framework/CodeLogic.csproj" />
     <ProjectReference Include="..\Misc\TlsClient.NET\TlsClient.Native\TlsClient.Native.csproj" />
+    <ProjectReference Include="..\Misc\TlsClient.NET\TlsClient.Api\TlsClient.Api.csproj" />
   </ItemGroup>
 
 </Project>

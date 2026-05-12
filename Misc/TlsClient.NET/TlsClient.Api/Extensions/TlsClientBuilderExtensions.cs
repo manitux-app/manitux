@@ -40,7 +40,7 @@ namespace TlsClient.Api.Extensions
 
             return builder;
         }
-        public static ApiTlsClient Build(this TlsClientBuilder builder)
+        public static ApiTlsClient ApiBuild(this TlsClientBuilder builder)
         {
             var options = builder._options as ApiTlsClientOptions;
             if (options == null)
