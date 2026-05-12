@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using AngleSharp.Dom;
 using CodeLogic.Core.Logging;
 using CodeLogic.Framework.Application.Plugins;
+using Manitux.Core.Extractors;
 using Manitux.Core.Models;
 
 namespace Manitux.Core.Plugins;
@@ -127,7 +128,7 @@ public class RareFilm : PluginBase
                 Year = ExtractYear(title) ?? pageItem.Year,
                 Comments = comments.Count > 0 ? comments : null,
                 RelatedVideos = related.Count > 0 ? related : null,
-                VideoSources = null
+                VideoSources = ParseVideoSources(content, pageItem.Url)
             };
         }
         catch (Exception ex)
@@ -162,7 +163,17 @@ public class RareFilm : PluginBase
 
     public override async Task<VideoSourceModel?> GetVideoSources(VideoSourceModel videoSource)
     {
-        return await Task.FromResult<VideoSourceModel?>(null);
+        try
+        {
+            return ExtractorManager.GetExtractorByUrl(videoSource.Url) is null
+                ? videoSource
+                : await ExtractAsync(videoSource, videoSource.Referer ?? Config.MainUrl);
+        }
+        catch (Exception ex)
+        {
+            Log(LogLevel.Error, ex.ToString());
+            return null;
+        }
     }
 
     private List<PageItemModel> ParsePostItems(IDocument document, string categoryName)
@@ -210,9 +221,14 @@ public class RareFilm : PluginBase
     {
         return new Dictionary<string, string>
         {
-            ["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+            ["User-Agent"] = GetUserAgent(),
             ["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
         };
+    }
+
+    private static string GetUserAgent()
+    {
+        return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
     }
 
     private string BuildPageUrl(string url, int pageNumber)
@@ -226,7 +242,7 @@ public class RareFilm : PluginBase
     {
         var paragraphs = article
             .QuerySelectorAll("p")
-            .Where(x => x.QuerySelector(".more-link, a[href*='gofile.io'], a[href*='1fichier.com']") is null)
+            .Where(x => x.QuerySelector(".more-link, iframe, a[href*='gofile.io'], a[href*='1fichier.com']") is null)
             .Select(x => CleanString(x.TextContent))
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Where(x => !x.StartsWith("WATCH HERE", StringComparison.OrdinalIgnoreCase))
@@ -236,6 +252,66 @@ public class RareFilm : PluginBase
             .ToList();
 
         return paragraphs.Count > 0 ? string.Join(Environment.NewLine, paragraphs) : null;
+    }
+
+    private List<VideoSourceModel>? ParseVideoSources(IElement content, string pageUrl)
+    {
+        var sources = content
+            .QuerySelectorAll("iframe[src], iframe[data-src]")
+            .Select((iframe, index) => ToIframeSource(iframe, pageUrl, index + 1))
+            .Where(x => x is not null)
+            .Select(x => x!)
+            .ToList();
+
+        return sources.Count == 0
+            ? null
+            : sources
+                .GroupBy(x => x.Url, StringComparer.OrdinalIgnoreCase)
+                .Select(x => x.First())
+                .ToList();
+    }
+
+    private VideoSourceModel? ToIframeSource(IElement iframe, string pageUrl, int index)
+    {
+        var src = iframe.GetAttribute("src") ?? iframe.GetAttribute("data-src");
+        if (string.IsNullOrWhiteSpace(src)) return null;
+
+        var url = FixUrl(src, Config.MainUrl);
+        var name = GetIframeSourceName(url, index);
+        return new VideoSourceModel
+        {
+            Name = name,
+            Url = url,
+            Referer = pageUrl,
+            Headers = ToHeaderModels(GetHeaders())
+        };
+    }
+
+    private static string GetIframeSourceName(string url, int index)
+    {
+        var host = GetHost(url);
+        if (host.Contains("ok.ru", StringComparison.OrdinalIgnoreCase)
+            || host.Contains("odnoklassniki", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Okru";
+        }
+
+        if (!string.IsNullOrWhiteSpace(host))
+        {
+            return host;
+        }
+
+        return $"Source {index}";
+    }
+
+    private static string GetHost(string url)
+    {
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri.Host : string.Empty;
+    }
+
+    private static List<HeaderModel> ToHeaderModels(Dictionary<string, string> headers)
+    {
+        return headers.Select(x => new HeaderModel { Name = x.Key, Value = x.Value }).ToList();
     }
 
     private string? GetPoster(IElement article)
@@ -330,4 +406,5 @@ public class RareFilm : PluginBase
         var match = Regex.Match(title, @"\((\d{4})\)");
         return match.Success ? match.Groups[1].Value : null;
     }
+
 }

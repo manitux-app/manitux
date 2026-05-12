@@ -38,20 +38,22 @@ public class HdFilmCehennemi : PluginBase
 
         return new List<CategoryModel>
         {
-            new() { Title = "Yeni Eklenen Filmler", Url = $"{mainUrl}" },
-            new() { Title = "Yeni Eklenen Diziler", Url = $"{mainUrl}/yabancidiziizle-5" },
-            new() { Title = "Türkçe Dublaj Filmler", Url = $"{mainUrl}/dil/turkce-dublajli-film-izleyin-5" },
-            new() { Title = "Türkçe Altyazılı Filmler", Url = $"{mainUrl}/dil/turkce-altyazili-filmleri-izleme-sitesi-3" },
-            new() { Title = "Tavsiye Filmler", Url = $"{mainUrl}/category/tavsiye-filmler-izle3" },
-            new() { Title = "IMDB 7+ Filmler", Url = $"{mainUrl}/imdb-7-puan-uzeri-filmler-2" },
-            new() { Title = "En Çok Yorumlananlar", Url = $"{mainUrl}/en-cok-yorumlananlar-2" },
-            new() { Title = "En Çok Beğenilenler", Url = $"{mainUrl}/en-cok-begenilen-filmleri-izle-4" },
-            new() { Title = "Nette İlk Filmler", Url = $"{mainUrl}/category/nette-ilk-filmler" },
-            new() { Title = "1080p Filmler", Url = $"{mainUrl}/category/1080p-hd-film-izle-5" },
-            new() { Title = "Amazon Yapımları", Url = $"{mainUrl}/category/amazon-yapimlarini-izle" },
-            new() { Title = "Netflix Yapımları", Url = $"{mainUrl}/category/netflix-yapimlari-izle" },
-            new() { Title = "Marvel Filmleri", Url = $"{mainUrl}/category/marvel-yapimlarini-izle-5" },
-            new() { Title = "DC Filmleri", Url = $"{mainUrl}/category/dc-yapimlarini-izle-1" },
+            new() { Title = "Yeni Eklenen Filmler", Url = $"{mainUrl}/load/page/[pageNumber]/home/" },
+            new() { Title = "Yeni Eklenen Diziler", Url = $"{mainUrl}/load/page/[pageNumber]/home-series/" },
+            new() { Title = "Türkçe Dublaj Filmler", Url = $"{mainUrl}/load/page/[pageNumber]/languages/turkce-dublajli-film-izleyin-5/" },
+            new() { Title = "Türkçe Altyazılı Filmler", Url = $"{mainUrl}/load/page/[pageNumber]/languages/turkce-altyazili-filmleri-izleme-sitesi-3/" },
+            
+            // new() { Title = "Tavsiye Filmler", Url = $"{mainUrl}/category/tavsiye-filmler-izle3" },
+            // new() { Title = "IMDB 7+ Filmler", Url = $"{mainUrl}/imdb-7-puan-uzeri-filmler-2" },
+            // new() { Title = "En Çok Yorumlananlar", Url = $"{mainUrl}/en-cok-yorumlananlar-2" },
+            // new() { Title = "En Çok Beğenilenler", Url = $"{mainUrl}/en-cok-begenilen-filmleri-izle-4" },
+            // new() { Title = "Nette İlk Filmler", Url = $"{mainUrl}/category/nette-ilk-filmler" },
+            // new() { Title = "1080p Filmler", Url = $"{mainUrl}/category/1080p-hd-film-izle-5" },
+            // new() { Title = "Amazon Yapımları", Url = $"{mainUrl}/category/amazon-yapimlarini-izle" },
+            // new() { Title = "Netflix Yapımları", Url = $"{mainUrl}/category/netflix-yapimlari-izle" },
+            // new() { Title = "Marvel Filmleri", Url = $"{mainUrl}/category/marvel-yapimlarini-izle-5" },
+            // new() { Title = "DC Filmleri", Url = $"{mainUrl}/category/dc-yapimlarini-izle-1" },
+
             new() { Title = "Aile Filmleri", Url = $"{mainUrl}/tur/aile-filmleri-izleyin-7" },
             new() { Title = "Aksiyon Filmleri", Url = $"{mainUrl}/tur/aksiyon-filmleri-izleyin-6" },
             new() { Title = "Animasyon Filmleri", Url = $"{mainUrl}/tur/animasyon-filmlerini-izleyin-5" },
@@ -218,7 +220,7 @@ public class HdFilmCehennemi : PluginBase
             {
                 if (trailerMatch.Groups[1].Value != "0")
                 {
-                    videoSources.Add(new() { Name = "Fragman", Url = $"https://www.youtube.com/embed/{trailerMatch.Groups[1].Value}" });
+                    videoSources.Add(new() { Name = "Fragman", Url = $"https://www.youtube.com/embed/{trailerMatch.Groups[1].Value}", IsTrailer = true });
                 }
             }
 
@@ -302,26 +304,36 @@ public class HdFilmCehennemi : PluginBase
     {
         try
         {
-            // https://www.hdfilmcehennemi.nl/load/page/3/genres/aile-filmleri-izleyin-7/
-            //string? html = await HttpGet($"{category.Url}/{pageNumber}");
+            // https://www.hdfilmcehennemi.nl/tur/aile-filmleri-izleyin-7/
+            // https://www.hdfilmcehennemi.nl/load/page/2/genres/aile-filmleri-izleyin-7/
 
             string apiUrl = category.Url;
 
-            if(!category.Url.EndsWith("/")) category.Url += "/"; // önemli!
-
-            apiUrl += "/?router=1";
+            if (category.Url.Contains("/tur/"))
+            {
+                apiUrl = category.Url.Replace("tur", "load/page/[pageNumber]/genres");
+            }
+            
+            apiUrl = apiUrl.Replace("[pageNumber]", pageNumber.ToString());
+            
+            //string? html = await HttpGet($"{category.Url}/{pageNumber}");
+            //string apiUrl = category.Url;
+            //if(!category.Url.EndsWith("/")) category.Url += "/"; // önemli!
+            //apiUrl += "/?router=1";
 
             var headers = new Dictionary<string, string>();
             headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36");
             headers.Add("Upgrade-Insecure-Requests", "1");
             headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-            headers.Add("Referer", $"{category.Url}");
+            headers.Add("Referer", $"{category.Url}/");
+            headers.Add("x-requested-with", "fetch");
 
             //string referer = "https://hdfilmcehennemi.nl/";
 
             //string? html = await HttpGet(apiUrl, headers: headers, identifier: TlsClientIdentifier.Cloudscraper);
 
             string? json = await HttpGet(apiUrl, headers: headers, identifier: TlsClientIdentifier.Cloudscraper);
+            //Debug.WriteLine(json);
 
             if (json is null) return null;
 
@@ -337,17 +349,18 @@ public class HdFilmCehennemi : PluginBase
             }
 
             //string? html = await HttpGet($"{category.Url}");
-
+            //Debug.WriteLine(html);
             if (html is null) return null;
 
             using var document = await HtmlParse(html);
-
+           
             if (document is null) return null;
 
             var results = new List<PageItemModel>();
 
             // 3. "div.section-content a.poster" seçicisi ile elemanları buluyoruz
-            var items = document.QuerySelectorAll("div.section-content a.poster");
+            //var items = document.QuerySelectorAll("div.section-content a.poster");
+            var items = document.QuerySelectorAll("a.poster");
 
             foreach (var item in items)
             {
@@ -378,6 +391,8 @@ public class HdFilmCehennemi : PluginBase
                     });
                 }
             }
+
+            document.Dispose();
 
             if (results.Any()) return results;
         }

@@ -75,24 +75,34 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         }
         else
         {
-           ShowError(Localize?.PageNotFound ?? "Page not found");
+           ShowError(Localize?.VideoNotInitialized ?? "Error");
         }
     }
 
     public async void VlcPlay(VideoSourceModel videoSource)
     {
         var source = await GetVideoSources(videoSource);
+        if(source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized ?? "Error"); 
+            return;
+        } 
         var playerManager = new ExternalPlayerManager();
         playerManager.VlcPlay(source);
-        Debug.WriteLine(videoSource.Url);
+        //Debug.WriteLine(source.Url);
     }
 
     public async void MpvPlay(VideoSourceModel videoSource)
     {
         var source = await GetVideoSources(videoSource);
+        if(source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized ?? "Error"); 
+            return;
+        } 
         var playerManager = new ExternalPlayerManager();
         playerManager.MpvPlay(source);
-        Debug.WriteLine(source.Url);
+        //Debug.WriteLine(source.Url);
     }
 
     public async void GetMediaInfo(RelatedVideoModel relatedVideo)
@@ -179,12 +189,11 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
     {
         if (string.IsNullOrWhiteSpace(url)) return false;
 
-        // Ge�erli bir URI format� m� ve HTTP/HTTPS ile mi ba�l�yor?
         return Uri.TryCreate(url, UriKind.Absolute, out Uri? uriResult)
                && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
     }
 
-    private void ShowToast()
+    public void ShowToast()
     {
         ToastManager?.Show(
                 new Toast(Localize?.Welcome),

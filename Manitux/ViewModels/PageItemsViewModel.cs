@@ -31,6 +31,8 @@ public partial class PageItemsViewModel :  ViewModelBase
     [ObservableProperty]
     private bool _isPaginationVisible = true;
 
+    public event Action? OnDataRefreshed;
+
     public PageItemsViewModel(List<PageItemModel>? pageItems, int currentPage = 1, bool isPaginationVisible = true)
     {
         //pluginManager = CodeLogic.CodeLogic.GetPluginManager();
@@ -95,6 +97,9 @@ public partial class PageItemsViewModel :  ViewModelBase
         PageItems = pageItems is null
             ? null
             : new ObservableCollection<PageItemModel>(pageItems);
+
+        OnPropertyChanged(nameof(PageItems));
+        OnDataRefreshed?.Invoke();
     }
 
 

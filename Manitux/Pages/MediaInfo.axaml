@@ -47,7 +47,7 @@
 		</Style>
 	</UserControl.Styles>
 
-	<Control.Styles>
+	<!-- <Control.Styles>
 		<Style Selector="u|IconDropDownButton, u|IconSplitButton, u|IconToggleSplitButton">
 			<Setter Property="Button.Flyout">
 				<MenuFlyout Placement="BottomEdgeAlignedRight">
@@ -57,7 +57,7 @@
 				</MenuFlyout>
 			</Setter>
 		</Style>
-	</Control.Styles>
+	</Control.Styles> -->
 
 	<Grid>
 		<Grid IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
@@ -164,7 +164,7 @@
 					</ScrollViewer>
 				</StackPanel>-->
 
-					<!-- seasons - episodes -->
+					<!-- video sources -->
 					<Grid>
 						<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
 							<ItemsControl ItemsSource="{Binding MediaInfo.VideoSources}">
@@ -175,18 +175,35 @@
 								</ItemsControl.ItemsPanel>
 								<ItemsControl.ItemTemplate>
 									<DataTemplate>
-										<!--<Button Content="{Binding Name}"/>-->
 										<u:IconDropDownButton
 											Icon="{StaticResource SemiIconCamera}"
 											Content="{Binding Name}"
-											Classes="Tertiary"
-											Theme="{DynamicResource SolidIconDropDownButton}" />
+											Classes.Secondary="{Binding IsTrailer}"
+											Classes.Tertiary="{Binding !IsTrailer}"
+											Theme="{DynamicResource SolidIconDropDownButton}">
+													<Button.Flyout>
+														<MenuFlyout Placement="BottomEdgeAlignedRight">
+															<MenuItem Header="Manitux Player" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).Play}" 
+																	CommandParameter="{Binding}"/>
+															
+															<MenuItem Header="VLC Player" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).VlcPlay}" 
+																	CommandParameter="{Binding}"/>
+															
+															<MenuItem Header="MPV Player" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).MpvPlay}" 
+																	CommandParameter="{Binding}"/>
+														</MenuFlyout>
+													</Button.Flyout>
+												</u:IconDropDownButton>
 									</DataTemplate>
 								</ItemsControl.ItemTemplate>
 							</ItemsControl>
 						</ScrollViewer>
 					</Grid>
 
+                    <!-- seasons / episodes -->
 					<TabControl ItemsSource="{Binding Seasons}" Margin="10">
 
 						<TabControl.ItemTemplate>
@@ -215,7 +232,23 @@
 													Icon="{StaticResource SemiIconCamera}"
 													Content="{Binding Title}"
 													Classes="Tertiary"
-													Theme="{DynamicResource SolidIconDropDownButton}"/>
+													Theme="{DynamicResource SolidIconDropDownButton}">
+													<Button.Flyout>
+														<MenuFlyout Placement="BottomEdgeAlignedRight">
+															<MenuItem Header="Manitux Player" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).ShowToast}" 
+																	CommandParameter="{Binding}"/>
+															
+															<MenuItem Header="VLC Player" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).VlcPlay}" 
+																	CommandParameter="{Binding}"/>
+															
+															<MenuItem Header="MPV Player" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).MpvPlay}" 
+																	CommandParameter="{Binding}"/>
+														</MenuFlyout>
+													</Button.Flyout>
+												</u:IconDropDownButton>
 											</DataTemplate>
 										</ItemsControl.ItemTemplate>
 
