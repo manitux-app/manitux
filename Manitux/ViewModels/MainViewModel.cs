@@ -303,11 +303,11 @@ public partial class MainViewModel : ViewModelBase
 
                 Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(plugin.Manifest)}" + Environment.NewLine);
                 var cat = message.Value.Category;
-                Debug.WriteLine($"Category: {JsonSerializer.Serialize(cat)}" + Environment.NewLine);
+                //Debug.WriteLine($"Category: {JsonSerializer.Serialize(cat)}" + Environment.NewLine);
                 if (cat is null) return null;
                 var pageItems = await plugin.GetPageItems(pageNumber, cat);
                 if (pageItems is null) return null;
-                Debug.WriteLine($"PageItems: {JsonSerializer.Serialize(pageItems)}" + Environment.NewLine);
+                //Debug.WriteLine($"PageItems: {JsonSerializer.Serialize(pageItems)}" + Environment.NewLine);
                 return pageItems;
             }
         }
@@ -330,9 +330,9 @@ public partial class MainViewModel : ViewModelBase
 
         if (CurrentPlugin is not null)
         {
-            Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(CurrentPlugin.Manifest)}" + Environment.NewLine);
+            //Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(CurrentPlugin.Manifest)}" + Environment.NewLine);
             mediaInfo = await CurrentPlugin.GetMediaInfo(pageItem);
-            Debug.WriteLine($"MediaInfo: {JsonSerializer.Serialize(mediaInfo)}" + Environment.NewLine);
+            //Debug.WriteLine($"MediaInfo: {JsonSerializer.Serialize(mediaInfo)}" + Environment.NewLine);
         }
 
         return mediaInfo;

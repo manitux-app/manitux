@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using Avalonia.Controls;
 using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using Avalonia.Threading;
@@ -85,7 +86,7 @@ namespace LibMPVSharp.Avalonia
         {
             if (MediaPlayer == null) return;
 
-            var scale = VisualRoot?.RenderScaling ?? 1d;
+            var scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1d;
             var width = Bounds.Width * scale;
             var height = Bounds.Height * scale;
             MediaPlayer.OpenGLRender((int)width, (int)height, fb, flipY: 1);
