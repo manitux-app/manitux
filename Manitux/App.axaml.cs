@@ -10,6 +10,7 @@ using Manitux.Services.Notifications;
 using Avalonia.Controls.Notifications;
 using System.Diagnostics;
 using Manitux.Services.Applications;
+using Avalonia.Threading;
 
 namespace Manitux;
 
@@ -59,7 +60,7 @@ public partial class App : Application
             //services.AddPluginManager();
             //await services.AddPluginManagerAsync();
             //services.AddPluginManagerAsync().ConfigureAwait(true);
-            
+
             //services.AddSingleton<LocalizationService>();
             services.AddTransient<MainViewModel>();
 
@@ -71,11 +72,11 @@ public partial class App : Application
             desktop.MainWindow = mainWindow;
             vm.ShowToast("Manitux Desktop App", NotificationType.Information);
 
-             desktop.ShutdownRequested += async (sender, e) =>
-                {
-                    Debug.WriteLine("ShutdownRequested");
-                    await CodeLogic.CodeLogic.StopAsync();
-                };
+            desktop.ShutdownRequested += async (sender, e) =>
+               {
+                   Debug.WriteLine("ShutdownRequested");
+                   await CodeLogic.CodeLogic.StopAsync();
+               };
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
         {
@@ -100,6 +101,18 @@ public partial class App : Application
             singleViewPlatform.MainView.DataContext = vm;
             vm.ShowToast("Manitux Mobile App", NotificationType.Information);
         }
+
+        Dispatcher.UIThread.UnhandledException += (sender, e) =>
+        {
+            e.Handled = true;
+            Debug.WriteLine($"UnhandledException: {e.Exception.Message}");
+        };
+
+        TaskScheduler.UnobservedTaskException += (s, e) =>
+        {
+            e.SetObserved();
+            Debug.WriteLine($"UnobservedTaskException: {e.Exception.Message}");
+        };
 
         base.OnFrameworkInitializationCompleted();
     }

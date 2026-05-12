@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using AngleSharp.Dom.Events;
 using Avalonia;
 using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Irihi.Avalonia.Shared.Contracts;
 using LibMPVSharp;
 using LibMPVSharp.Avalonia;
 using LibMPVSharp.Extensions;
@@ -33,6 +35,7 @@ namespace Manitux.ViewModels
         private readonly SubtitleManager _subtitleManager = new();
 
         public event Action? OnRequestClose;
+        public event Action<string>? OnErrorClose;
         public event Action<List<SubtitleModel>>? OnAddSubtitleRequested;
 
         public void RequestClose()
@@ -68,26 +71,30 @@ namespace Manitux.ViewModels
 
                         case MpvEventId.MPV_EVENT_END_FILE:
                             var endFile = e.ReadData<MpvEventEndFile>();
-                            Dispatcher.UIThread.Post(() =>
+                            Dispatcher.UIThread.Post(async () =>
                             {
                                 //IsReady = false;
                                 //OnPropertyChanged(nameof(IsReady));
                                 if (endFile.reason == MpvEndFileReason.MPV_END_FILE_REASON_ERROR)
                                 {
-                                    ErrorString = $"MPV playback failed. error={endFile.error}";
+                                    ErrorString = $"Player Error: {endFile.error}";
                                     HasError = true;
                                     OnPropertyChanged(nameof(ErrorString));
                                     OnPropertyChanged(nameof(HasError));
-                                    return;
+                                    await Task.Delay(500);
+                                    OnErrorClose?.Invoke(ErrorString);
+                                    //return;
                                 }
 
                                 if (!_fileLoaded)
                                 {
-                                    ErrorString = $"MPV ended before file loaded. reason={endFile.reason} error={endFile.error}";
+                                    ErrorString = $"Player Error: reason={endFile.reason} error={endFile.error}";
                                     HasError = true;
                                     OnPropertyChanged(nameof(ErrorString));
                                     OnPropertyChanged(nameof(HasError));
-                                    return;
+                                    await Task.Delay(500);
+                                    OnErrorClose?.Invoke(ErrorString);
+                                    //return;
                                 }
 
                                 OnRequestClose?.Invoke();
@@ -134,8 +141,8 @@ namespace Manitux.ViewModels
 
             try
             {
-                MediaPlayer.SetProperty("terminal", "yes");
-                MediaPlayer.SetProperty("msg-level", "all=v,sub=debug,lavf=debug");
+                MediaPlayer.SetProperty("terminal", "no");
+                //MediaPlayer.SetProperty("msg-level", "all=v,sub=debug,lavf=debug");
 
                 MediaPlayer.SetProperty("idle", "yes");
                 MediaPlayer.SetProperty("vo", "libmpv");

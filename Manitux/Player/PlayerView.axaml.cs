@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia;
@@ -10,6 +11,7 @@ using Avalonia.Threading;
 using LibMPVSharp;
 using Manitux.Core.Models;
 using Manitux.ViewModels;
+using Microsoft.VisualBasic;
 using Ursa.Controls;
 
 namespace Manitux.Player;
@@ -41,6 +43,9 @@ public partial class PlayerView : UserControl, IDisposable
         {
             _viewModel.OnRequestClose -= CloseView;
             _viewModel.OnRequestClose += CloseView;
+
+             _viewModel.OnErrorClose -= ErrorView;
+            _viewModel.OnErrorClose += ErrorView;
 
             _viewModel.OnAddSubtitleRequested -= AddSubtitle;
             _viewModel.OnAddSubtitleRequested += AddSubtitle;
@@ -85,6 +90,15 @@ public partial class PlayerView : UserControl, IDisposable
         }
     }
 
+    private void ErrorView(string message)
+    {
+        Debug.WriteLine(message);
+        if (this.FindLogicalAncestorOfType<DialogControlBase>() is { } dialog)
+        {
+            dialog.Close();
+        }
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (!this.disposed && disposing)
@@ -94,6 +108,7 @@ public partial class PlayerView : UserControl, IDisposable
             if (_vm is not null)
             {
                 _vm.OnRequestClose -= CloseView;
+                _vm.OnErrorClose -= ErrorView;
                 _vm.OnAddSubtitleRequested -= AddSubtitle;
                 _vm.Dispose();
                 _vm = null;

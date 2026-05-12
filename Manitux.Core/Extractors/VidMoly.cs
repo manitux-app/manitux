@@ -80,8 +80,8 @@ public class VidMoly : ExtractorBase
 
                 videoSource.Name = string.IsNullOrWhiteSpace(videoSource.Name) ? source.Name : videoSource.Name;
                 videoSource.Url = resolvedUrl ?? source.Url;
-                videoSource.Referer = pageUrl.EndsWith("/")? pageUrl: pageUrl+"/";
-                videoSource.Headers = ToHeaderModels(playbackHeaders);
+                videoSource.Referer = null; //pageUrl.EndsWith("/")? pageUrl: pageUrl+"/";
+                videoSource.Headers = null; //ToHeaderModels(playbackHeaders);
                 videoSource.Subtitles = jwPlayerResult.Subtitles.Count > 0 ? jwPlayerResult.Subtitles : null;
 
                 document.Dispose();

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using AngleSharp.Dom;
@@ -31,7 +32,7 @@ public class FilmModu : PluginBase
 
     public override async Task<List<CategoryModel>?> GetCategories()
     {
-        string mainUrl = "https://www.filmmodu.one";
+        string mainUrl = Config.MainUrl;
         return new List<CategoryModel>
     {
         new() { Title = "4K", Url = $"{mainUrl}/hd-film-kategori/4k-film-izle?page=[pageNumber]" },
@@ -69,7 +70,7 @@ public class FilmModu : PluginBase
             string altLink = FixUrl(alt.GetAttribute("href") ?? "", Config.MainUrl);
             string altName = alt.TextContent.Trim();
 
-            if (altName == "Fragman" || string.IsNullOrEmpty(altLink)) continue;
+            if (string.IsNullOrEmpty(altLink)) continue;
 
             // 2. Her alternatifin sayfasına git ve video ID'lerini Regex ile yakala
             var altHtml = await HttpGet(altLink);
@@ -105,18 +106,21 @@ public class FilmModu : PluginBase
                         Referer = Config.MainUrl,
                         Subtitles = new List<SubtitleModel>
                         {
-                            new() { Name = label, Url = subtitle ?? ""}
+                            new() { Name = altName, Url = subtitle ?? ""}
                         }
                     });
                 }
             }
         }
 
+        string backdrop = document.QuerySelector("div.embed-responsive div")?.GetAttribute("poster")?.ToString() ?? "";
+
         return new MediaInfoModel
         {
             Title = pageItem.Title,
             Url = pageItem.Url,
             Poster = FixUrl(document.QuerySelector("img.img-responsive")?.GetAttribute("src") ?? "", Config.MainUrl),
+            Backdrop = FixUrl(backdrop, Config.MainUrl),
             Description = document.QuerySelector("p[itemprop='description']")?.TextContent?.Trim(),
             Rating = document.QuerySelector("span[itemprop='ratingValue']")?.TextContent?.Trim(),
             Year = Regex.Match(document.QuerySelector("span[itemprop='dateCreated']")?.TextContent ?? "", @"\d{4}").Value,
@@ -132,6 +136,7 @@ public class FilmModu : PluginBase
         {
             var results = new List<PageItemModel>();
             string targetUrl = category.Url.Replace("[pageNumber]", pageNumber.ToString());
+            Debug.WriteLine(targetUrl);
 
              var headers = new Dictionary<string, string>();
             headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36");
@@ -139,7 +144,7 @@ public class FilmModu : PluginBase
             headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
             headers.Add("Referer", $"{category.Url}/");
 
-            var html = await HttpGet(targetUrl, headers: headers, identifier: TlsClientIdentifier.Chrome144);
+            var html = await HttpGet(targetUrl, headers: headers, identifier: TlsClientIdentifier.Cloudscraper, followRedirects: true);
             if (html is null) return null;
 
             var document = await HtmlParse(html);
