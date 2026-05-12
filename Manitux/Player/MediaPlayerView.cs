@@ -758,7 +758,7 @@ namespace Manitux.Player
 
             if (targetSub != null)
             {
-                Debug.WriteLine($"[MediaPlayerView] selected subtitle: {JsonSerializer.Serialize(targetSub)}");
+                //Debug.WriteLine($"[MediaPlayerView] selected subtitle: {JsonSerializer.Serialize(targetSub)}");
                 SetCurrentValue(SelectedSubTitleProperty, targetSub);
 
                 if (targetSub.Id == "no")
@@ -776,7 +776,7 @@ namespace Manitux.Player
                     Debug.WriteLine($"[MediaPlayerView] subtitle sid selection failed. Id: {targetSub.Id} Name: {targetSub.Name} Url: {targetSub.Url} Error: {ex}");
                 }
 
-                Debug.WriteLine($"[MediaPlayerView] selected sid: {MediaPlayer.GetPropertyString("sid")}");
+                //Debug.WriteLine($"[MediaPlayerView] selected sid: {MediaPlayer.GetPropertyString("sid")}");
             }
         }
 
@@ -873,7 +873,7 @@ namespace Manitux.Player
                                 ? mpvSubtitles.Skip(mpvSubtitles.Count - visibleSubtitles.Count).ElementAtOrDefault(index)
                                 : mpvSubtitles.ElementAtOrDefault(index));
 
-                        System.Diagnostics.Debug.WriteLine($"[MediaPlayerView] subtitle map. Name: {subtitle.Name} Url: {subtitle.Url} TrackId: {subtitle?.Id} TrackFile: {track?.ExternalFilename}");
+                        //Debug.WriteLine($"[MediaPlayerView] subtitle map. Name: {subtitle.Name} Url: {subtitle.Url} TrackId: {subtitle?.Id} TrackFile: {track?.ExternalFilename}");
                         
                         var sub = new SubtitleModel
                         {
@@ -882,7 +882,7 @@ namespace Manitux.Player
                             Url = subtitle?.Url ?? ""
                         };
 
-                        System.Diagnostics.Debug.WriteLine($"[MediaPlayerView] subtitle sub: {JsonSerializer.Serialize(sub)}");
+                        //Debug.WriteLine($"[MediaPlayerView] subtitle sub: {JsonSerializer.Serialize(sub)}");
 
                         return sub;
                     })
@@ -892,7 +892,7 @@ namespace Manitux.Player
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[MediaPlayerView] subtitle track-list mapping failed. Error: {ex}");
+                Debug.WriteLine($"[MediaPlayerView] subtitle track-list mapping failed. Error: {ex}");
                 return subtitles;
             }
             finally

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -13,10 +14,8 @@ public class Odnoklassniki : ExtractorBase
     public override List<string> SupportedDomains => new()
     {
         "odnoklassniki.ru",
-        "www.odnoklassniki.ru",
-        "ok.ru",
-        "www.ok.ru",
-        "m.ok.ru"
+        //"ok.ru",
+        //"m.ok.ru"
     };
 
     public override async Task<VideoSourceModel?> ExtractAsync(VideoSourceModel videoSource, string? referer = null)
@@ -33,6 +32,7 @@ public class Odnoklassniki : ExtractorBase
             RegexOptions.IgnoreCase | RegexOptions.Singleline).Groups["videos"].Value;
 
         if (string.IsNullOrWhiteSpace(videosJson)) return null;
+        //Debug.WriteLine(videosJson);
 
         var videos = JsonSerializer.Deserialize<List<OkRuVideo>>(videosJson);
         var selectedVideo = videos?

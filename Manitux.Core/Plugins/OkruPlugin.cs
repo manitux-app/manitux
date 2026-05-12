@@ -10,7 +10,7 @@ using TlsClient.Core.Models.Entities;
 
 namespace Manitux.Core.Plugins;
 
-public class OKRU : PluginBase
+public class OkruPlugin : PluginBase
 {
     private string MainUrl => string.IsNullOrWhiteSpace(Config.MainUrl)
         ? "https://ok.ru"
@@ -172,7 +172,10 @@ public class OKRU : PluginBase
 
     public override async Task<VideoSourceModel?> GetVideoSources(VideoSourceModel videoSource)
     {
-        return await ExtractAsync(videoSource, videoSource.Referer ?? MainUrl);
+        var extractor = Manitux.Core.Extractors.ExtractorManager.GetExtractorByName("Okru");
+        return extractor is null
+            ? await ExtractAsync(videoSource, videoSource.Referer ?? MainUrl)
+            : await extractor.ExtractAsync(videoSource, videoSource.Referer ?? MainUrl);
     }
 
     private async Task<string?> GetPagedCategoryHtml(string categoryUrl, int pageNumber)
@@ -315,7 +318,7 @@ public class OKRU : PluginBase
     {
         return new VideoSourceModel
         {
-            Name = "Odnoklassniki",
+            Name = "Okru",
             Url = url,
             Referer = MainUrl
         };

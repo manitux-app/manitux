@@ -73,7 +73,7 @@ public class ManituxFramework
         // await LoadInProcessPluginAsync(pluginMgr, new RareFilm());
         // await LoadInProcessPluginAsync(pluginMgr, new Dailymotion());
         // await LoadInProcessPluginAsync(pluginMgr, new Invidious());
-        // await LoadInProcessPluginAsync(pluginMgr, new OKRU());
+        await LoadInProcessPluginAsync(pluginMgr, new OkruPlugin());
 
         //await pluginMgr.LoadAllAsync();
 

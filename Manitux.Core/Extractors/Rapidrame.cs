@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using CodeLogic.Core.Logging;
+using Manitux.Core.Extractors.Helpers;
 using Manitux.Core.Extractors.Utils;
 using Manitux.Core.Models;
 
@@ -599,21 +600,17 @@ public class Rapidrame : ExtractorBase
             //Log(LogLevel.Debug, "[Closeload] unpacked: " + unpacked);
             //if (unpacked is null) return null;
 
-            string? videoLink = GetDirectVideoLink(html);
-            Log(LogLevel.Debug, "direct videoLink: " + videoLink);
+            string? videoLink = null;
 
-            if (videoLink is null)
+            foreach (var base64 in ObfuscatedVideoLinkHelper.GetBase64CandidatesFromHtml(html))
             {
-                foreach (var base64 in GetBase64CandidatesFromHtml(html))
-                {
-                    Log(LogLevel.Debug, "base64: " + base64);
-                    videoLink = TryDecrypt(base64);
-                    Log(LogLevel.Debug, "videoLink: " + videoLink);
+                Log(LogLevel.Debug, "base64: " + base64);
+                videoLink = ObfuscatedVideoLinkHelper.TryDecrypt(base64) ?? TryDecrypt(base64);
+                Log(LogLevel.Debug, "videoLink: " + videoLink);
 
-                    if (videoLink is not null)
-                    {
-                        break;
-                    }
+                if (videoLink is not null)
+                {
+                    break;
                 }
             }
 
