@@ -28,4 +28,67 @@
   <ItemGroup>
     <ProjectReference Include="..\Manitux\Manitux.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="helpers\win-x64\" />
+    <Folder Include="runtimes\linux-x64\native\" />
+	<Folder Include="runtimes\linux-arm64\native\" />
+    <Folder Include="runtimes\osx-x64\native\" />
+	<Folder Include="runtimes\osx-arm64\native\" />
+    <Folder Include="runtimes\win-x64\native\" />
+  </ItemGroup>
+
+<ItemGroup>
+  <!-- Windows x64 -->
+  <Content Include="runtimes\win-x64\native\tlsclient.dll">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <PublishState>Included</PublishState>
+  </Content>
+
+  <!-- Linux x64 -->
+  <Content Include="runtimes\linux-x64\native\libtlsclient.so">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <PublishState>Included</PublishState>
+  </Content>
+	
+  <!-- Linux arm64 -->
+  <Content Include="runtimes\linux-arm64\native\libtlsclient.so">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <PublishState>Included</PublishState>
+  </Content>
+
+  <!-- macOS x64  -->
+  <Content Include="runtimes\osx-x64\native\libtlsclient.dylib">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <PublishState>Included</PublishState>
+  </Content>
+
+  <!-- macOS arm64  -->
+  <Content Include="runtimes\osx-arm64\native\libtlsclient.dylib">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <PublishState>Included</PublishState>
+  </Content>
+</ItemGroup>
+
+<!-- Linux x64 -->
+<ItemGroup>
+   <None Include="helpers\linux-x64\tlsclientapi" Condition="$(RuntimeIdentifier.StartsWith('linux')) or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))))">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <Link>helpers\linux-x64\tlsclientapi</Link>
+  </None>
+</ItemGroup>
+	
+<!-- Windows x64 - for test  -->
+<ItemGroup>
+   <None Include="helpers\win-x64\tlsclientapi.exe" Condition="$(RuntimeIdentifier.StartsWith('win')) or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows))))">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <Link>helpers\win-x64\tlsclientapi.exe</Link>
+  </None>
+</ItemGroup>
+
+<Target Name="MakeHelperExecutable" AfterTargets="Publish">
+  <Exec Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))" Command="chmod +x $(PublishDir)helpers\linux-x64\tlsclientapi" />
+  <!--<Exec Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))" 
+        Command="chmod +x $(PublishDir)tlsclientapi" />-->
+</Target>
 </Project>

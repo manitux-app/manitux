@@ -9,12 +9,13 @@ using AngleSharp.Html.Parser;
 using CodeLogic.Core.Events;
 using CodeLogic.Core.Logging;
 using Manitux.Core.Application;
+using TlsClient.Api;
+using TlsClient.Api.Extensions;
 using TlsClient.Core.Builders;
 using TlsClient.Core.Models.Entities;
 using TlsClient.Core.Models.Requests;
+using TlsClient.Native;
 using TlsClient.Native.Extensions;
-using TlsClient.Api;
-using TlsClient.Api.Extensions;
 
 namespace Manitux.Core.Helpers;
 
@@ -26,6 +27,12 @@ public class HttpHelper : HtmlHelper
     // {
     //     await _eventBus.PublishAsync(new LogEvent(level, "HttpHelper", message));
     // }
+
+    public HttpHelper()
+    {
+        if (!OperatingSystem.IsLinux()) // use api on linux
+            NativeTlsClient.Initialize(null);
+    }
     
     public async Task<string?> HttpPost(string url, Dictionary<string, string> body, string? referer = null, Dictionary<string, string>? headers = null)
     {
@@ -187,27 +194,27 @@ public class HttpHelper : HtmlHelper
 
             string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36";
 
-            string fileName = true switch
-            {
-                _ when OperatingSystem.IsWindows() => "tls-client.dll",
-                _ when OperatingSystem.IsLinux() => "tls-client.so",
-                _ when OperatingSystem.IsMacOS() => "tls-client.dylib",
-                _ => "tlsclient.so" // android test? - ok
-            };
+            //string fileName = true switch
+            //{
+            //    _ when OperatingSystem.IsWindows() => "tls-client.dll",
+            //    _ when OperatingSystem.IsLinux() => "tls-client.so",
+            //    _ when OperatingSystem.IsMacOS() => "tls-client.dylib",
+            //    _ => "tlsclient.so" // android test? - ok
+            //};
 
-            string filePath = fileName;
+            //string filePath = fileName;
 
-            if (!OperatingSystem.IsAndroid())
-            {
-                filePath = Path.Combine(Environment.CurrentDirectory, fileName);
-            }
-           
+            //if (!OperatingSystem.IsAndroid())
+            //{
+            //    filePath = Path.Combine(Environment.CurrentDirectory, fileName);
+            //}
+
             var clientBuilder = new TlsClientBuilder()
                 //.WithIdentifier(TlsClientIdentifier.Cloudscraper)
                 .WithIdentifier(identifier ?? TlsClientIdentifier.Chrome144)
                 .WithUserAgent(userAgent)
-                .WithFollowRedirects(followRedirects)
-                .WithNative(filePath);
+                .WithFollowRedirects(followRedirects);
+                //.WithNative(filePath);
 
             if (useCookie)
             {

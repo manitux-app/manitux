@@ -16,10 +16,10 @@ namespace TlsClient.Native
 
         private static readonly string Extension = Platform switch
         {
-            "win" => "dll",
-            "linux" => "so",
-            "darwin" => "dylib",
-            "android" => "so",
+            "win" => ".dll",
+            "linux" => ".so",
+            "darwin" => ".dylib",
+            "android" => ".so",
             _ => throw new PlatformNotSupportedException("Unsupported OS platform")
         };
 
@@ -58,12 +58,12 @@ namespace TlsClient.Native
 
             if (OperatingSystem.IsAndroid())
             {
-                Debug.WriteLine("OSPlatform Android");
-                return "tlsclient.so";
+                return "tlsclient";
             }
             else
             {
-                return Path.GetFullPath($"runtimes/tls-client/{platform}/{arch}/tls-client.{Extension}");
+                return Path.GetFullPath($"runtimes/{platform}-{arch}/native/tlsclient{Extension}");
+                //return Path.GetFullPath($"runtimes/tls-client/{platform}/{arch}/tls-client.{Extension}");
             }
         }
 
