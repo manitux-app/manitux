@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TlsClient.Api.Models.Entities;
+using TlsClient.Api.Wrappers;
 using TlsClient.Core;
 using TlsClient.Core.Helpers;
 using TlsClient.Core.Models.Entities;
@@ -26,6 +27,10 @@ namespace TlsClient.Api
 
             HttpClient.DefaultRequestHeaders.Add("x-api-key", options.ApiKey);
         }
+
+        public static void Initialize(string? libraryPath) => ApiTlsClientWrapper.Initialize(libraryPath);
+
+        public static void Dispose() => ApiTlsClientWrapper.Dispose();
 
         public ApiTlsClient(Uri apiBaseUri, string apiKey) : this(new ApiTlsClientOptions(TlsClientIdentifier.Chrome133, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 OPR/117.0.0.0", apiBaseUri, apiKey)){   }
 

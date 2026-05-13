@@ -28,12 +28,6 @@ public class HttpHelper : HtmlHelper
     //     await _eventBus.PublishAsync(new LogEvent(level, "HttpHelper", message));
     // }
 
-    public HttpHelper()
-    {
-        if (!OperatingSystem.IsLinux()) // use api on linux
-            NativeTlsClient.Initialize(null);
-    }
-    
     public async Task<string?> HttpPost(string url, Dictionary<string, string> body, string? referer = null, Dictionary<string, string>? headers = null)
     {
         if (string.IsNullOrEmpty(url)) return null;
@@ -111,6 +105,9 @@ public class HttpHelper : HtmlHelper
             {
                 return await HttpGetWithApiTLS(url, referer, proxyUrl, headers, identifier, useCookie, followRedirects, cookieOutput);
             }
+
+            // test on win dev env
+            //return await HttpGetWithApiTLS(url, referer, proxyUrl, headers, identifier, useCookie, followRedirects, cookieOutput);
         }
 
         try
