@@ -6,7 +6,9 @@
     <Project Path="Manitux.Player/LibMPVSharp.Avalonia/LibMPVSharp.Avalonia.csproj" />
     <Project Path="Manitux.Player/LibMPVSharp/LibMPVSharp.csproj" />
   </Folder>
-  <Folder Name="/Misc/">
+  <Folder Name="/Misc/" />
+  <Folder Name="/Misc/TlsClient/">
+    <Project Path="Misc/TlsClient.NET/TlsClient.Api/TlsClient.Api.csproj" />
     <Project Path="Misc/TlsClient.NET/TlsClient.Core/TlsClient.Core.csproj" />
     <Project Path="Misc/TlsClient.NET/TlsClient.Native/TlsClient.Native.csproj" />
   </Folder>
@@ -14,7 +16,7 @@
     <Deploy />
   </Project>
   <Project Path="Manitux.Core/Manitux.Core.csproj" />
-  <Project DefaultStartup="true" Path="Manitux.Desktop/Manitux.Desktop.csproj">
+  <Project Path="Manitux.Desktop/Manitux.Desktop.csproj">
     <Deploy />
   </Project>
   <Project Path="Manitux/Manitux.csproj" />

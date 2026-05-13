@@ -271,27 +271,7 @@ public class HttpHelper : HtmlHelper
     {
         try
         {
-            // NativeTlsClient.Initialize(Path.Combine(Environment.CurrentDirectory, "tls-client.so"));
-            // using var client = new NativeTlsClient();
-            // var res = client.Request(new Request { RequestUrl = url });
-            // Console.WriteLine(res.Status);
-
             string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36";
-
-            string fileName = true switch
-            {
-                _ when OperatingSystem.IsWindows() => "tls-client.dll",
-                _ when OperatingSystem.IsLinux() => "tls-client.so",
-                _ when OperatingSystem.IsMacOS() => "tls-client.dylib",
-                _ => "tlsclient.so" // android test? - ok
-            };
-
-            string filePath = fileName;
-
-            if (!OperatingSystem.IsAndroid())
-            {
-                filePath = Path.Combine(Environment.CurrentDirectory, fileName);
-            }
 
             var baseUri = new Uri("http://127.0.0.1:8080/");
 
@@ -312,11 +292,7 @@ public class HttpHelper : HtmlHelper
             var request = new Request()
             {
                 RequestUrl = url,
-                RequestMethod = HttpMethod.Get,
-                // Headers = new Dictionary<string, string>()
-                // {
-                //     { "User-Agent", "TlsClient-Example" }
-                // }
+                RequestMethod = HttpMethod.Get
             };
 
             if (headers != null)
@@ -330,7 +306,7 @@ public class HttpHelper : HtmlHelper
             }
 
             var response = await builder.RequestAsync(request);
-            LogHelper.Http.Log(LogLevel.Debug, $"[HttpGetWithTLS] Status: {response.Status}");
+            LogHelper.Http.Log(LogLevel.Debug, $"[HttpGetWithApiTLS] Status: {response.Status}");
 
             if (useCookie && cookieOutput is not null && response.Cookies is not null)
             {
@@ -344,12 +320,12 @@ public class HttpHelper : HtmlHelper
 
             if (response.IsSuccessStatus)
             {
-                //LogHelper.Http.Log(LogLevel.Debug, "[HttpGetWithTLS] " + response.Body);
+                //LogHelper.Http.Log(LogLevel.Debug, "[HttpGetWithApiTLS] " + response.Body);
                 return response.Body;
             }
             else
             {
-                LogHelper.Http.Log(LogLevel.Debug, $"[HttpGetWithTLS] Status: {response.Status} Body: {response.Body}");
+                LogHelper.Http.Log(LogLevel.Debug, $"[HttpGetWithApiTLS] Status: {response.Status} Body: {response.Body}");
             }
         }
         catch (Exception ex)
