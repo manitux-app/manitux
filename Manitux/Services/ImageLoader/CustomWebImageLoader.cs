@@ -8,13 +8,13 @@ using Avalonia.Platform.Storage;
 
 namespace Manitux.Services.ImageLoaders;
 
-public class CustomWebImageLoader1 : RamCachedWebImageLoader
+public class CustomWebImageLoader : RamCachedWebImageLoader
 {
-    public static CustomWebImageLoader1 Instance { get; } = new CustomWebImageLoader1();
+    public static CustomWebImageLoader Instance { get; } = new CustomWebImageLoader();
 
     private readonly HttpClient _httpClient;
 
-    public CustomWebImageLoader1()
+    public CustomWebImageLoader()
     {
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36");
@@ -35,13 +35,13 @@ public class CustomWebImageLoader1 : RamCachedWebImageLoader
     }
 }
 
-public class CustomWebImageLoader : RamCachedWebImageLoader
+public class CustomWebImageLoaderLinuxTest : RamCachedWebImageLoader
 {
-    public static CustomWebImageLoader Instance { get; } = new CustomWebImageLoader();
+    public static CustomWebImageLoaderLinuxTest Instance { get; } = new CustomWebImageLoaderLinuxTest();
 
     private readonly HttpClient _httpClient;
 
-    public CustomWebImageLoader()
+    public CustomWebImageLoaderLinuxTest()
     {
         var handler = new SocketsHttpHandler
         {

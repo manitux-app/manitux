@@ -154,7 +154,16 @@ namespace Manitux.ViewModels
 
                 MediaPlayer.SetProperty("volume", 50.0);
 
-                //MediaPlayer.EnsureRenderContextCreated();
+                // string ytdlPath = Path.Combine(AppContext.BaseDirectory, "yt-dlp");
+                // Debug.WriteLine($"yt-dlp path:{ytdlPath}");
+                // MediaPlayer.SetProperty("script-opts", $"ytdl_hook-ytdl_path={ytdlPath}");
+                //MediaPlayer.SetProperty("script-opts-append", "ytdl_hook-ytdl_path=C:\\yt-dlp\\yt-dlp.exe");
+
+                // if (source.Url.Contains("youtube"))
+                // {
+                //     MediaPlayer.SetProperty("ytdl", "yes");
+                //     MediaPlayer.SetProperty("try_ytdl_first", "yes");
+                // }
 
                 if (IsHlsUrl(source.Url))
                 {

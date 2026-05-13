@@ -4,37 +4,37 @@ using Manitux.Core.Models;
 
 namespace Manitux.Core.Extractors;
 
-public class Youtube : ExtractorBase
+public class Invidious : ExtractorBase
 {
     private const string InvidiousBaseUrl = "https://inv.nadeko.net";
 
-    public override string Name => "YouTube";
-    public override string MainUrl => "https://www.youtube.com";
-    public override List<string> SupportedDomains => new()
-    {
-        "youtube.com",
-        "www.youtube.com",
-        "m.youtube.com",
-        "music.youtube.com",
-        "youtube-nocookie.com",
-        "www.youtube-nocookie.com",
-        "youtu.be"
-    };
+    public override string Name => "Invidious";
+    public override string MainUrl => "https://inv.nadeko.net"; //"https://www.youtube.com";
+    // public override List<string> SupportedDomains => new()
+    // {
+    //     "youtube.com",
+    //     "www.youtube.com",
+    //     "m.youtube.com",
+    //     "music.youtube.com",
+    //     "youtube-nocookie.com",
+    //     "www.youtube-nocookie.com",
+    //     "youtu.be"
+    // };
 
     public override async Task<VideoSourceModel?> ExtractAsync(VideoSourceModel videoSource, string? referer = null)
     {
         try
         {
-            // var videoId = GetVideoId(videoSource.Url);
-            // if (string.IsNullOrWhiteSpace(videoId)) return null;
+            var videoId = GetVideoId(videoSource.Url);
+            if (string.IsNullOrWhiteSpace(videoId)) return null;
 
-            // videoSource.Name = string.IsNullOrWhiteSpace(videoSource.Name) ? Name : videoSource.Name;
-            // videoSource.Url = $"{InvidiousBaseUrl}/api/manifest/dash/id/{videoId}";
-            // videoSource.Referer = referer;
-            // videoSource.Headers = new()
-            // {
-            //     new HeaderModel { Name = "User-Agent", Value = GetUserAgent() }
-            // };
+            videoSource.Name = string.IsNullOrWhiteSpace(videoSource.Name) ? Name : videoSource.Name;
+            videoSource.Url = $"{InvidiousBaseUrl}/api/manifest/dash/id/{videoId}";
+            videoSource.Referer = MainUrl + "/";
+            videoSource.Headers = new()
+            {
+                new HeaderModel { Name = "User-Agent", Value = GetUserAgent() }
+            };
 
             return await Task.FromResult(videoSource);
         }

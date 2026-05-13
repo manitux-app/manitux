@@ -89,6 +89,65 @@ public class HttpHelper : HtmlHelper
         return null;
     }
 
+    public async Task<string?> HttpPost(string url, StringContent content, string? referer = null, Dictionary<string, string>? headers = null)
+    {
+        if (string.IsNullOrEmpty(url)) return null;
+
+        //HttpHelperLog(LogLevel.Info, url);
+
+        try
+        {
+            Uri uri = new Uri(url);
+
+            using (HttpClient client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                if (referer is null)
+                {
+                    client.DefaultRequestHeaders.Add("Referer", url);
+                }
+                else
+                {
+                    client.DefaultRequestHeaders.Add("Referer", referer);
+                }
+
+                if (headers is null)
+                {
+                    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36");
+                    //client.DefaultRequestHeaders.Add("x-requested-with", "XMLHttpRequest");
+                    //client.DefaultRequestHeaders.Add("authority", uri.Authority);
+                    //client.DefaultRequestHeaders.Add("origin", url);
+                }
+                else
+                {
+                    foreach (var header in headers)
+                    {
+                        client.DefaultRequestHeaders.Add(header.Key, header.Value);
+                    }
+                }
+
+                using (HttpResponseMessage response = await client.PostAsync(url, content))
+                {
+                    using (HttpContent httpContent = response.Content)
+                    {
+
+                        string json = await httpContent.ReadAsStringAsync();
+                        return json;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LogHelper.Http.Log(LogLevel.Error, ex.ToString());
+        }
+
+        return null;
+    }
+
+
     public async Task<string?> HttpGet(string url, string? referer = null, string? proxyUrl = null, Dictionary<string, string>? headers = null, TlsClientIdentifier? identifier = null, bool useCookie = false, bool followRedirects = true, Dictionary<string, string>? cookieOutput = null)
     {
         if (string.IsNullOrEmpty(url)) return null;
