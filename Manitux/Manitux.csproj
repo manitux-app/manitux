@@ -30,7 +30,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Manitux.Core/Manitux.Core.csproj" />
-    <ProjectReference Include="..\Manitux.Player\LibMPVSharp.Avalonia\LibMPVSharp.Avalonia.csproj" />
+    <ProjectReference Include="..\Misc\LibMPV\LibMPVSharp.Avalonia\LibMPVSharp.Avalonia.csproj" />
   </ItemGroup>
 
   <ItemGroup>
