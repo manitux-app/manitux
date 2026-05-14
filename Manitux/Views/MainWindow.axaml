@@ -7,7 +7,7 @@
         xmlns:u="https://irihi.tech/ursa"
         xmlns:views="using:Manitux.Views"
         xmlns:iri="https://irihi.tech/shared"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/logo.ico"
         Title="Manitux" WindowStartupLocation="CenterScreen" WindowState="Normal"
         Width="1366" Height="768"
         IsFullScreenButtonVisible="{OnPlatform {x:True}, macOS={x:False}}"

@@ -77,12 +77,12 @@
                                 u:NavMenu.CanToggle="True"
                                 Background="Transparent"
                                 DockPanel.Dock="Left">
-                                <!-- <Image Source="avares://Manitux/Assets/logo.png" Width="50"/> -->
+                                <Image Source="avares://Manitux/Assets/logo_trans.png" Width="40"/>
                             </Panel>
                             <TextBlock
                                 VerticalAlignment="Center"
                                 Classes="H4"
-                                Margin="0 0 0 0"
+                                Margin="10 0 0 0"
                                 IsVisible="{Binding !#menu.IsHorizontalCollapsed}"
                                 Text="manitux"
                                 Theme="{DynamicResource TitleTextBlock}" />
@@ -122,14 +122,15 @@
 						IsVisible="{Binding IsPluginsLoaded}">
 					<DockPanel>
 						<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" TextElement.FontWeight="Normal">
-							<TextBox
+                            <TextBox
                                 Name="txtSearch"
                                 Width="300"
                                 InnerLeftContent="{Binding Localize.Search}"
-                                Text="" />
+                                Text="{Binding SearchText, Mode=TwoWay}" />
 							<u:IconButton IsVisible="True"
 									HorizontalAlignment="Stretch"
 									Classes="Tertiary"
+									Command="{Binding SearchCommand}"
 									Icon="{StaticResource SemiIconSearch}"
 									RenderTransform="{x:Null}"
 									ToolTip.Tip="{Binding Localize.Search}"
@@ -152,7 +153,8 @@
 									FontWeight="Normal" FontSize="16"
 									Theme="{DynamicResource BorderlessIconButton}"/>
 						</StackPanel>
-						<TextBlock Text="{Binding CurrentPlugin.Manifest.Name}" Classes="Header H6" />
+                        <Image async:ImageLoader.Source="{Binding CurrentPlugin.Config.Favicon}" Stretch="Fill" Width="32" Height="32" Margin="0,0,10,0"/>
+						<TextBlock Text="{Binding CurrentPlugin.Manifest.Name}" Classes="Header H1" />
 						<!--<Label Content="{Binding CurrentPlugin.Manifest.Description}" />-->
 					</DockPanel>
 				</Border>

@@ -13,6 +13,7 @@ using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using Irihi.Avalonia.Shared.Contracts;
 using Manitux.Core.Application;
 using Manitux.Core.Models;
 using Manitux.Core.Plugins;
@@ -25,7 +26,7 @@ using WindowNotificationManager = Ursa.Controls.WindowNotificationManager;
 
 namespace Manitux.ViewModels;
 
-public partial class MediaInfoViewModel : ViewModelBase
+public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 {
     [ObservableProperty] private MediaInfoModel? _mediaInfo;
 
@@ -39,9 +40,10 @@ public partial class MediaInfoViewModel : ViewModelBase
 
     public event Action? OnDataRefreshed;
     public event Action? OnRequestClose;
+    public event EventHandler<object?>? RequestClose;
 
     //public ICommand ActivateCommand { get; set; }
-    // <!--Content="{Binding EpisodeNumber, StringFormat='{}{0}. Bölüm'}"-->
+    // <!--Content="{Binding EpisodeNumber, StringFormat='{}{0}. Bï¿½lï¿½m'}"-->
     public MediaInfoViewModel(PluginBase plugin, MediaInfoModel? mediaInfo, AppStrings localize)
     {
         //ActivateCommand = new RelayCommand(OnActivate);
@@ -61,32 +63,46 @@ public partial class MediaInfoViewModel : ViewModelBase
 
     public async void Play(VideoSourceModel videoSource)
     {
-        Debug.WriteLine(videoSource.Url);
         var source = await GetVideoSources(videoSource);
 
-        Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
-        ShowPlayer(source);
+        //Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
+        //ShowPlayer(source);
 
-        //if(source is not null & IsValidUrlFormat(source?.Url ?? ""))
-        //{
-        //    Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
-        //    ShowPlayer(source);
-        //}
-        //else
-        //{
-        //    ShowError(Localize?.PageNotFound ?? "Page not found");
-        //}
+        if(source is not null & IsValidUrlFormat(source?.Url ?? ""))
+        {
+           Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
+           ShowPlayer(source);
+        }
+        else
+        {
+           ShowError(Localize?.VideoNotInitialized ?? "Error");
+        }
     }
 
-    public void VlcPlay(VideoSourceModel videoSource)
+    public async void VlcPlay(VideoSourceModel videoSource)
     {
-        ShowTestPlayer();
-        Debug.WriteLine(videoSource.Url);
+        var source = await GetVideoSources(videoSource);
+        if(source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized ?? "Error"); 
+            return;
+        } 
+        var playerManager = new ExternalPlayerManager();
+        playerManager.VlcPlay(source);
+        //Debug.WriteLine(source.Url);
     }
 
-    public void MpvPlay(VideoSourceModel videoSource)
+    public async void MpvPlay(VideoSourceModel videoSource)
     {
-        Debug.WriteLine(videoSource.Url);
+        var source = await GetVideoSources(videoSource);
+        if(source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized ?? "Error"); 
+            return;
+        } 
+        var playerManager = new ExternalPlayerManager();
+        playerManager.MpvPlay(source);
+        //Debug.WriteLine(source.Url);
     }
 
     public async void GetMediaInfo(RelatedVideoModel relatedVideo)
@@ -173,12 +189,11 @@ public partial class MediaInfoViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(url)) return false;
 
-        // Geçerli bir URI formatý mý ve HTTP/HTTPS ile mi baþlýyor?
         return Uri.TryCreate(url, UriKind.Absolute, out Uri? uriResult)
                && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
     }
 
-    private void ShowToast()
+    public void ShowToast()
     {
         ToastManager?.Show(
                 new Toast(Localize?.Welcome),
@@ -196,6 +211,12 @@ public partial class MediaInfoViewModel : ViewModelBase
                 showIcon: true,
                 classes: ["Light"]);
 
-        OnRequestClose?.Invoke();
+        //RequestClose?.Invoke(this, false);
+        //OnRequestClose?.Invoke();
+    }
+
+   public void Close()
+    {
+        RequestClose?.Invoke(this, null);
     }
 }

@@ -1,35 +1,56 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace TlsClient.Native.NativeMethods
 {
     public static class NativeLinuxMethods
     {
-        [Flags]
-        public enum LoadLibraryFlags
+        public static IntPtr LoadLibrary(string path)
         {
-            None = 0,
-            Lazy = 0x0001,
-            Now = 0x0002,
-            BindingMask = 0x0003,
-            NoLoad = 0x0004,
-            DeepBind = 0x0008,
-            Local = None,
-            Global = 0x0100,
-            NoDelete = 0x1000
+            if (string.IsNullOrEmpty(path)) return IntPtr.Zero;
+
+            try
+            {
+                return NativeLibrary.Load(path);
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
         }
 
-        [DllImport("libdl.so.2", EntryPoint = "dlopen")]
-        public static extern IntPtr LoadLibrary([In][MarshalAs(UnmanagedType.LPStr)] string path, [In] LoadLibraryFlags flags = LoadLibraryFlags.Now | LoadLibraryFlags.Global);
+        public static int FreeLibrary(IntPtr hLibrary)
+        {
+            if (hLibrary == IntPtr.Zero) return -1;
 
-        [DllImport("libdl.so.2", EntryPoint = "dlclose")]
-        public static extern int FreeLibrary([In] IntPtr hLibrary);
+            try
+            {
+                NativeLibrary.Free(hLibrary);
+                return 0;
+            }
+            catch
+            {
+                return -1;
+            }
+        }
 
-        [DllImport("libdl.so.2", EntryPoint = "dlsym")]
-        public static extern IntPtr GetProcAddress([In]IntPtr handle, [In]string symbol);
+        public static IntPtr GetProcAddress(IntPtr handle, string symbol)
+        {
+            if (handle == IntPtr.Zero || string.IsNullOrEmpty(symbol))
+                return IntPtr.Zero;
+
+            try
+            {
+                return NativeLibrary.TryGetExport(handle, symbol, out var address)
+                    ? address
+                    : IntPtr.Zero;
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
+        }
     
         public static string GetLinuxDistro()
         {

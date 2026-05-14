@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using CodeLogic.Core.Logging;
+using Manitux.Core.Extractors.Helpers;
+using Manitux.Core.Extractors.Utils;
 using Manitux.Core.Models;
 
 namespace Manitux.Core.Extractors;
@@ -14,6 +16,83 @@ public class Rapidrame : ExtractorBase
     public override List<string> SupportedDomains => new() { "hdfilmcehennemi.com", "hdfilmcehennemi.nl", "rapid.filmmakinesi.to", "rapidvid.net" };
 
     // https://www.hdfilmcehennemi.nl/rplayer/iln9u9ark7oe
+
+    private string? DecryptRapidrame(string input)
+    {
+        try
+        {
+            var reversed = Reverse(input);
+            var firstPass = Base64DecodeJS(reversed);
+            var secondPass = Base64DecodeJS(firstPass);
+            var url = Unmix(secondPass);
+
+            var videoLink = GetUrl(url);
+            if (videoLink is not null)
+            {
+                Log(LogLevel.Debug, "unmix: " + videoLink);
+            }
+
+            return videoLink;
+        }
+        catch (Exception ex)
+        {
+            Log(LogLevel.Error, ex.ToString());
+            return null;
+        }
+    }
+
+    private string? TryDecrypt(string input)
+    {
+        string? videoLink = DecryptRot13Base64ReverseUnmix(input);
+        if (videoLink is not null) return videoLink;
+
+        if (CanDecodeReversedBase64(input))
+        {
+            videoLink = DecryptRapidrame(input);
+            if (videoLink is not null) return videoLink;
+
+            videoLink = Decrypt2(input);
+            if (videoLink is not null) return videoLink;
+        }
+
+        if (LooksLikeTextBase64(input))
+        {
+            videoLink = Decrypt1(input);
+            if (videoLink is not null) return videoLink;
+        }
+
+        if (LooksLikeRot13ReversedBase64(input))
+        {
+            return Decrypt3(input);
+        }
+
+        return null;
+    }
+
+    private string? DecryptRot13Base64ReverseUnmix(string input)
+    {
+        try
+        {
+            var rot13Result = ApplyRot13(input);
+            var base64Decoded = Base64DecodeJS(rot13Result);
+            if (string.IsNullOrEmpty(base64Decoded)) return null;
+
+            var reversed = Reverse(base64Decoded);
+            var url = Unmix(reversed);
+            var videoLink = GetUrl(url);
+            if (videoLink is not null)
+            {
+                Log(LogLevel.Debug, "rot13-atob-reverse-unmix: " + videoLink);
+            }
+
+            return videoLink;
+        }
+        catch (Exception ex)
+        {
+            Log(LogLevel.Error, ex.ToString());
+            return null;
+        }
+    }
 
     private string DecryptTest()
     {
@@ -79,8 +158,13 @@ public class Rapidrame : ExtractorBase
             }
 
             string url = unmix.ToString();
-            Log(LogLevel.Debug, "unmix1: " + unmix);
-            if (url.StartsWith("http://") && url.StartsWith("https://")) return url;
+            var videoLink = GetUrl(url);
+            if (videoLink is not null)
+            {
+                Log(LogLevel.Debug, "unmix1: " + videoLink);
+            }
+
+            return videoLink;
         }
         catch (Exception ex)
         {
@@ -97,10 +181,7 @@ public class Rapidrame : ExtractorBase
             // 1. Join: Parçaları birleştir
             //string joined = string.Concat(valueParts);
 
-            // 2. Reverse: String'i ters çevir
-            char[] charArray = input.ToCharArray();
-            Array.Reverse(charArray);
-            string reversed = new string(charArray);
+            string reversed = Reverse(input);
 
             // 3. Double Base64 Decode: İki kez atob() işlemi
             // JS'deki atob'un tam karşılığı ISO-8859-1 encoding kullanmaktır.
@@ -123,8 +204,13 @@ public class Rapidrame : ExtractorBase
             }
 
             string url = unmix.ToString();
-            Log(LogLevel.Debug, "unmix2: " + unmix);
-            if (url.StartsWith("http://") && url.StartsWith("https://")) return url;
+            var videoLink = GetUrl(url);
+            if (videoLink is not null)
+            {
+                Log(LogLevel.Debug, "unmix2: " + videoLink);
+            }
+
+            return videoLink;
         }
         catch (Exception ex)
         {
@@ -141,9 +227,7 @@ public class Rapidrame : ExtractorBase
             string rot13Result = ApplyRot13(input);
 
             // 3. Reverse: String'i ters çevir
-            char[] charArray = rot13Result.ToCharArray();
-            Array.Reverse(charArray);
-            string reversed = new string(charArray);
+            string reversed = Reverse(rot13Result);
 
             // 4. Base64 Decode: (atob)
             string base64Decoded = Base64Decode(reversed);
@@ -161,11 +245,13 @@ public class Rapidrame : ExtractorBase
                 unmix.Append((char)decodedChar);
             }
 
-            string finalResult = unmix.ToString();
+            var videoLink = GetUrl(unmix.ToString());
+            if (videoLink is not null)
+            {
+                Log(LogLevel.Debug, "unmix3: " + videoLink);
+            }
 
-            // Eğer sonuç içinde hala "SarahsOil" gibi metadata varsa sadece URL'yi çekelim
-            var urlMatch = Regex.Match(finalResult, @"https?://[^\s""|]+");
-            return urlMatch.Success ? urlMatch.Value : finalResult;
+            return videoLink;
         }
         catch (Exception ex)
         {
@@ -187,54 +273,205 @@ public class Rapidrame : ExtractorBase
         }));
     }
 
+    private static string Reverse(string input)
+    {
+        char[] charArray = input.ToCharArray();
+        Array.Reverse(charArray);
+        return new string(charArray);
+    }
+
+    private static string Unmix(string input)
+    {
+        StringBuilder unmix = new();
+        const long salt = 399756995;
+
+        for (int i = 0; i < input.Length; i++)
+        {
+            int charCode = input[i];
+            int offset = (int)(salt % (i + 5));
+            int decodedCharCode = (charCode - offset + 256) % 256;
+            unmix.Append((char)decodedCharCode);
+        }
+
+        return unmix.ToString();
+    }
+
+    private static string? GetUrl(string input)
+    {
+        input = input.Replace("\\/", "/", StringComparison.Ordinal);
+        var urlMatch = Regex.Match(input, @"https?://[^\s""'|<>]+");
+        return urlMatch.Success ? urlMatch.Value : null;
+    }
+
+    private bool CanDecodeReversedBase64(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return false;
+
+        var reversed = Reverse(input);
+        var firstPass = Base64DecodeJS(reversed);
+        if (string.IsNullOrEmpty(firstPass)) return false;
+
+        var secondPass = Base64DecodeJS(firstPass);
+        return !string.IsNullOrEmpty(secondPass);
+    }
+
+    private bool LooksLikeTextBase64(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return false;
+
+        var decoded = Base64DecodeJS(input);
+        return decoded.Length > 0 && GetPrintableRatio(decoded) > 0.75;
+    }
+
+    private bool LooksLikeRot13ReversedBase64(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return false;
+
+        var reversed = Reverse(ApplyRot13(input));
+        var decoded = Base64DecodeJS(reversed);
+        return decoded.Length > 0 && GetPrintableRatio(decoded) > 0.75;
+    }
+
+    private static double GetPrintableRatio(string input)
+    {
+        if (input.Length == 0) return 0;
+
+        var printable = input.Count(c => c is >= ' ' and <= '~' or '\r' or '\n' or '\t');
+        return (double)printable / input.Length;
+    }
+
+    private string? GetDirectVideoLink(string html)
+    {
+        var unpacked = JsUnpacker.Unpack(html);
+        return GetDirectVideoLinkFromSource(unpacked) ?? GetDirectVideoLinkFromSource(html);
+    }
+
+    private static string? GetDirectVideoLinkFromSource(string? source)
+    {
+        if (string.IsNullOrWhiteSpace(source)) return null;
+
+        var m3u8Match = Regex.Match(source, @"https?:\\?/\\?/[^""'\s<>]+?\.m3u8[^""'\s<>]*", RegexOptions.IgnoreCase);
+        if (!m3u8Match.Success) return null;
+
+        return m3u8Match.Value.Replace("\\/", "/", StringComparison.Ordinal);
+    }
+
     private string GetBase64FromHtml(string html)
     {
+        return GetBase64CandidatesFromHtml(html).FirstOrDefault() ?? "";
+    }
+
+    private List<string> GetBase64CandidatesFromHtml(string html)
+    {
+        var candidates = new List<string>();
+
+        AddDirectArrayValues(html, candidates);
+
+        var unpacked = JsUnpacker.Unpack(html);
+        if (!string.IsNullOrWhiteSpace(unpacked))
+        {
+            AddDirectArrayValues(unpacked, candidates);
+        }
+
         // 1. eval bloğunu bul: eval(...) yapısını en dıştan yakala
         // Desen: eval ile başla, split('|'), bir sayı ve kapalı parantezlerle bitir
-        var evalMatch = Regex.Match(html, @"eval\(function\(p,a,c,k,e,d\).*?\.split\('\|'\),\d+,\{\}\)\)", RegexOptions.Singleline);
+        var evalMatches = Regex.Matches(html, @"eval\(function\(p,a,c,k,e,d\).*?\.split\('\|'\),\d+,\{\}\)\)", RegexOptions.Singleline);
 
-        if (!evalMatch.Success) return "Hata: HTML içinde uygun eval bloğu bulunamadı.";
+        foreach (Match evalMatch in evalMatches)
+        {
+            AddPackedArrayValues(evalMatch.Value, candidates);
+        }
 
-        string evalBody = evalMatch.Value;
+        return candidates
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private void AddPackedArrayValues(string evalBody, List<string> candidates)
+    {
 
         // 2. Sözlük (Dictionary) kısmını çekelim: split('|') parantezi içindeki son string
         var dictionaryMatch = Regex.Match(evalBody, @"'([^']*)'\.split", RegexOptions.Singleline);
         if (!dictionaryMatch.Success) dictionaryMatch = Regex.Match(evalBody, @"""([^""]*)""\.split", RegexOptions.Singleline);
 
-        if (!dictionaryMatch.Success) return "Hata: Sözlük (pipe-separated list) ayıklanamadı.";
+        if (!dictionaryMatch.Success) return;
 
         string[] dictionary = dictionaryMatch.Groups[1].Value.Split('|');
 
         // 3. dc_bQZWKVgyCcO fonksiyonuna gönderilen diziyi yakalayalım
         // Bu dizi ["parça1", "parça2"...] formatındadır
-        var arrayMatch = Regex.Match(evalBody, @"\[\s*([""'].*?[""']\s*,?\s*)*\s*\]", RegexOptions.Singleline);
-        if (!arrayMatch.Success) return "Hata: Şifreli parça listesi ([...]) bulunamadı.";
-
-        var matches = Regex.Matches(arrayMatch.Value, @"[""'](?<val>.*?)[""']");
-
         string base62Lookup = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        StringBuilder fullBase64 = new StringBuilder();
 
-        foreach (Match m in matches)
+        foreach (Match arrayMatch in Regex.Matches(evalBody, @"\[\s*([""'].*?[""']\s*,?\s*)+\s*\]", RegexOptions.Singleline))
         {
-            string code = m.Groups["val"].Value;
+            var matches = Regex.Matches(arrayMatch.Value, @"[""'](?<val>.*?)[""']");
+            StringBuilder fullBase64 = new StringBuilder();
 
-            // Her bir parçayı (Örn: "O+N") sözlükten çöz
-            // Kelime karakterlerini bulup Base62 indexine göre sözlükten karşılığını getir
-            string decodedPart = Regex.Replace(code, @"\w+", match =>
+            foreach (Match m in matches)
             {
-                int index = ConvertBase62ToIndex(match.Value, base62Lookup);
-                return (index < dictionary.Length && !string.IsNullOrEmpty(dictionary[index]))
+                string code = m.Groups["val"].Value;
+
+                // Her bir parçayı (Örn: "O+N") sözlükten çöz
+                // Kelime karakterlerini bulup Base62 indexine göre sözlükten karşılığını getir
+                string decodedPart = Regex.Replace(code, @"\w+", match =>
+                {
+                    int index = ConvertBase62ToIndex(match.Value, base62Lookup);
+                    return (index < dictionary.Length && !string.IsNullOrEmpty(dictionary[index]))
                         ? dictionary[index]
                         : match.Value;
+                });
+
+                fullBase64.Append(decodedPart);
+            }
+
+            string fullString = fullBase64.ToString();
+            fullString = fullString.Replace("\\/", "/");
+            candidates.Add(fullString);
+        }
+    }
+
+    private void AddDirectArrayValues(string html, List<string> candidates)
+    {
+        var regex = new Regex(@"\b\w+\s*\(\s*(\[\s*(?:""[^""]*""|'[^']*')\s*(?:,\s*(?:""[^""]*""|'[^']*')\s*)*\])\s*\)", RegexOptions.Singleline);
+
+        foreach (Match match in regex.Matches(html))
+        {
+            var arrayText = match.Groups[1].Value;
+            var parsed = TryParseStringArray(arrayText);
+            if (!string.IsNullOrWhiteSpace(parsed))
+            {
+                candidates.Add(parsed);
+                continue;
+            }
+
+            var partRegex = new Regex(@"[""']([^""']+)[""']");
+            var fallbackParts = partRegex.Matches(arrayText).Select(x => x.Groups[1].Value);
+            candidates.Add(string.Concat(fallbackParts).Replace("\\/", "/"));
+        }
+    }
+
+    private string? TryParseStringArray(string arrayText)
+    {
+        try
+        {
+            var normalizedArrayText = Regex.Replace(arrayText, @"'([^'\\]*(?:\\.[^'\\]*)*)'", match =>
+            {
+                return JsonSerializer.Serialize(match.Groups[1].Value);
             });
 
-            fullBase64.Append(decodedPart);
+            var parts = JsonSerializer.Deserialize<List<string>>(normalizedArrayText);
+            if (parts is not null)
+            {
+                return string.Concat(parts).Replace("\\/", "/");
+            }
+        }
+        catch (JsonException ex)
+        {
+            Log(LogLevel.Warning, "encrypted array parse failed: " + ex.Message);
         }
 
-        string fullString = fullBase64.ToString();
-        fullString = fullString.Replace("\\/", "/");
-        return fullString;
+        return null;
     }
 
     private int ConvertBase62ToIndex(string value, string lookup)
@@ -359,22 +596,22 @@ public class Rapidrame : ExtractorBase
             //Log(LogLevel.Debug, "html: " + html);
             if (html is null) return null;
 
-            string base64 = GetBase64FromHtml(html);
-            Log(LogLevel.Debug, "base64: " + base64);
+             //var unpacked = JsUnpacker.Unpack(html);
+            //Log(LogLevel.Debug, "[Closeload] unpacked: " + unpacked);
+            //if (unpacked is null) return null;
 
-            string? videoLink = Decrypt1(base64);
-            Log(LogLevel.Debug, "videoLink1: " + videoLink);
+            string? videoLink = null;
 
-            if (videoLink is null)
+            foreach (var base64 in ObfuscatedVideoLinkHelper.GetBase64CandidatesFromHtml(html))
             {
-                videoLink = Decrypt2(base64);
-                Log(LogLevel.Debug, "videoLink2: " + videoLink);
-            }
+                Log(LogLevel.Debug, "base64: " + base64);
+                videoLink = ObfuscatedVideoLinkHelper.TryDecrypt(base64) ?? TryDecrypt(base64);
+                Log(LogLevel.Debug, "videoLink: " + videoLink);
 
-            if (videoLink is null)
-            {
-                videoLink = Decrypt3(base64);
-                Log(LogLevel.Debug, "videoLink3: " + videoLink);
+                if (videoLink is not null)
+                {
+                    break;
+                }
             }
 
             if (videoLink is not null)

@@ -2,13 +2,13 @@ using System;
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Notifications;
+using Avalonia.Controls.Primitives;
 using Avalonia.LogicalTree;
-using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
 using Irihi.Avalonia.Shared.Contracts;
 using Manitux.ViewModels;
 using Ursa.Controls;
-using Notification = Ursa.Controls.Notification;
 using WindowNotificationManager = Ursa.Controls.WindowNotificationManager;
 
 namespace Manitux.Pages;
@@ -16,6 +16,7 @@ namespace Manitux.Pages;
 public partial class MediaInfo : UserControl
 {
     private MediaInfoViewModel? _viewModel;
+
     public MediaInfo()
     {
         InitializeComponent();
@@ -27,24 +28,18 @@ public partial class MediaInfo : UserControl
     {
         base.OnAttachedToVisualTree(e);
         _viewModel = DataContext as MediaInfoViewModel;
+        var visualLayerManager = this.FindAncestorOfType<VisualLayerManager>();
+        if (_viewModel == null) return;
 
-        var dialog = this.FindLogicalAncestorOfType<DialogControlBase>();
-        var topLevel = TopLevel.GetTopLevel(dialog);
-        if (topLevel is null || _viewModel is null)
-        {
-            Debug.WriteLine("toplevel null");
-            return;
-        }
+        _viewModel.NotificationManager =
+            WindowNotificationManager.TryGetNotificationManager(visualLayerManager, out var notificationManager)
+                ? notificationManager
+                : new WindowNotificationManager(visualLayerManager) { MaxItems = 3 };
+        _viewModel.ToastManager = WindowToastManager.TryGetToastManager(visualLayerManager, out var toastManager)
+            ? toastManager
+            : new WindowToastManager(visualLayerManager) { MaxItems = 3 };
 
-        //Debug.WriteLine("toplevel: " + topLevel.Width);
-
-        _viewModel.NotificationManager = WindowNotificationManager.TryGetNotificationManager(topLevel, out var notificationManager)
-            ? notificationManager
-            : new WindowNotificationManager(topLevel);
-
-        _viewModel.ToastManager = WindowToastManager.TryGetToastManager(this, out var toastManager)
-           ? toastManager
-           : new WindowToastManager(topLevel);
+        Debug.Assert(WindowNotificationManager.TryGetNotificationManager(visualLayerManager, out _));
     }
 
     private void VM_DataContextChanged(object? sender, EventArgs e)
@@ -74,5 +69,10 @@ public partial class MediaInfo : UserControl
     private void CloseView()
     {
         if (this.FindLogicalAncestorOfType<DialogControlBase>() is { } dialog) dialog.Close();
+    }
+
+    public void Close()
+    {
+        throw new NotImplementedException();
     }
 }

@@ -19,24 +19,87 @@ namespace Manitux.ViewModels;
 
 public partial class PageItemsViewModel :  ViewModelBase
 {
-    public ObservableCollection<PageItemModel>? PageItems { get; set; }
-    //private PluginManager? pluginManager;
+    [ObservableProperty]
+    private ObservableCollection<PageItemModel>? _pageItems;
 
-    
-    public PageItemsViewModel(List<PageItemModel>? pageItems)
+    //private PluginManager? pluginManager;
+    private bool _suppressPageChange;
+
+    [ObservableProperty]
+    private int _currentPage = 1;
+
+    [ObservableProperty]
+    private bool _isPaginationVisible = true;
+
+    public event Action? OnDataRefreshed;
+
+    public PageItemsViewModel(List<PageItemModel>? pageItems, int currentPage = 1, bool isPaginationVisible = true)
     {
         //pluginManager = CodeLogic.CodeLogic.GetPluginManager();
         //WeakReferenceMessenger.Default.Register<PageItemsViewModel, MenuItemChangedMessage>(this, OnNavigation);
 
-        if (pageItems is null) return;
-        PageItems = new ObservableCollection<PageItemModel>(pageItems);
-        OnPropertyChanged(nameof(PageItems));
+        _suppressPageChange = true;
+        CurrentPage = Math.Max(1, currentPage);
+        _suppressPageChange = false;
+        IsPaginationVisible = isPaginationVisible;
+
+        UpdatePageItems(pageItems);
     }
 
     public void OnActivate(PageItemModel pageItem)
     {
         if (pageItem is null) return;
         WeakReferenceMessenger.Default.Send(new PageItemChangedMessage(pageItem));
+    }
+
+    [RelayCommand(CanExecute = nameof(CanGoPreviousPage))]
+    private void GoPreviousPage()
+    {
+        CurrentPage--;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanGoPreviousPage))]
+    private void GoFirstPage()
+    {
+        CurrentPage = 1;
+    }
+
+    [RelayCommand]
+    private void GoNextPage()
+    {
+        CurrentPage++;
+    }
+
+    partial void OnCurrentPageChanged(int value)
+    {
+        GoPreviousPageCommand.NotifyCanExecuteChanged();
+        GoFirstPageCommand.NotifyCanExecuteChanged();
+
+        if (_suppressPageChange) return;
+
+        var pageNumber = Math.Max(1, value);
+        if (pageNumber != value)
+        {
+            CurrentPage = pageNumber;
+            return;
+        }
+
+        WeakReferenceMessenger.Default.Send(new PageChangedMessage(pageNumber));
+    }
+
+    private bool CanGoPreviousPage()
+    {
+        return CurrentPage > 1;
+    }
+
+    public void UpdatePageItems(List<PageItemModel>? pageItems)
+    {
+        PageItems = pageItems is null
+            ? null
+            : new ObservableCollection<PageItemModel>(pageItems);
+
+        OnPropertyChanged(nameof(PageItems));
+        OnDataRefreshed?.Invoke();
     }
 
 

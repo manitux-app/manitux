@@ -7,9 +7,11 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using LibMPVSharp;
 using Manitux.Core.Models;
 using Manitux.ViewModels;
+using Microsoft.VisualBasic;
 using Ursa.Controls;
 
 namespace Manitux.Player;
@@ -18,6 +20,7 @@ public partial class PlayerView : UserControl, IDisposable
 {
     private PlayerViewModel? _viewModel;
     private PlayerViewModel? _vm;
+    private bool _isAttachedToVisualTree;
     protected bool disposed = false;
 
     public PlayerView()
@@ -41,6 +44,9 @@ public partial class PlayerView : UserControl, IDisposable
             _viewModel.OnRequestClose -= CloseView;
             _viewModel.OnRequestClose += CloseView;
 
+             _viewModel.OnErrorClose -= ErrorView;
+            _viewModel.OnErrorClose += ErrorView;
+
             _viewModel.OnAddSubtitleRequested -= AddSubtitle;
             _viewModel.OnAddSubtitleRequested += AddSubtitle;
 
@@ -50,13 +56,24 @@ public partial class PlayerView : UserControl, IDisposable
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        _isAttachedToVisualTree = true;
         base.OnAttachedToVisualTree(e);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        _isAttachedToVisualTree = false;
         base.OnDetachedFromVisualTree(e);
-        Dispose();
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (_isAttachedToVisualTree)
+            {
+                return;
+            }
+
+            Dispose();
+        }, DispatcherPriority.Background);
     }
 
     private void AddSubtitle(List<SubtitleModel> subtitles)
@@ -67,24 +84,34 @@ public partial class PlayerView : UserControl, IDisposable
 
     private void CloseView()
     {
-        if (this.FindLogicalAncestorOfType<DialogControlBase>() is { } dialog) dialog.Close();
+        if (this.FindLogicalAncestorOfType<DialogControlBase>() is { } dialog)
+        {
+            dialog.Close();
+        }
+    }
+
+    private void ErrorView(string message)
+    {
+        Debug.WriteLine(message);
+        if (this.FindLogicalAncestorOfType<DialogControlBase>() is { } dialog)
+        {
+            dialog.Close();
+        }
     }
 
     protected virtual void Dispose(bool disposing)
     {
         if (!this.disposed && disposing)
         {
-            Debug.WriteLine("PlayerView Disposing");
-
             DataContextChanged -= VM_DataContextChanged;
 
             if (_vm is not null)
             {
                 _vm.OnRequestClose -= CloseView;
+                _vm.OnErrorClose -= ErrorView;
                 _vm.OnAddSubtitleRequested -= AddSubtitle;
                 _vm.Dispose();
                 _vm = null;
-                Debug.WriteLine("PlayerView Dispose");
             }
         }
 

@@ -24,3 +24,10 @@ public class PageItemChangedMessage : ValueChangedMessage<PageItemModel>
     {
     }
 }
+
+public class PageChangedMessage : ValueChangedMessage<int>
+{
+    public PageChangedMessage(int value) : base(value)
+    {
+    }
+}

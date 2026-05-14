@@ -5,12 +5,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Labs.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
@@ -201,9 +204,12 @@ namespace Manitux.Player
         {
             _controlsIdleTimer = new DispatcherTimer
             {
-                Interval = TimeSpan.FromSeconds(10)
+                Interval = TimeSpan.FromSeconds(5)
             };
             _controlsIdleTimer.Tick += (_, _) => HideTransientControls();
+
+            AddHandler(PointerMovedEvent, OnPointerActivity, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
+            AddHandler(PointerPressedEvent, OnPointerActivity, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, true);
 
             var binds = new[]
             {
@@ -228,6 +234,11 @@ namespace Manitux.Player
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);
+            ShowTransientControls();
+        }
+
+        private void OnPointerActivity(object? sender, PointerEventArgs e)
+        {
             ShowTransientControls();
         }
 
@@ -352,7 +363,8 @@ namespace Manitux.Player
                 case MpvEventId.MPV_EVENT_PLAYBACK_RESTART:
                     break;
                 case MpvEventId.MPV_EVENT_PROPERTY_CHANGE:
-                    MpvPropertyChanged(sender, mpvEvent.ReadData<MpvEventProperty>());
+                    var property = mpvEvent.ReadData<MpvEventProperty>();
+                    MpvPropertyChanged(sender, property);
                     break;
                 case MpvEventId.MPV_EVENT_QUEUE_OVERFLOW:
                     break;
@@ -365,26 +377,73 @@ namespace Manitux.Player
 
         private void MpvPropertyChanged(object? sender, MpvEventProperty property)
         {
-            if (property.name == MPVMediaPlayer.Properties.Duration)
+            try
             {
-                DispatchSetCurrentValue(DurationProperty, TimeSpan.FromSeconds(property.ReadDoubleValue()));
+                if (property.name == MPVMediaPlayer.Properties.Duration)
+                {
+                    if (property.format != MpvFormat.MPV_FORMAT_DOUBLE)
+                    {
+                        return;
+                    }
+                    DispatchSetCurrentValue(DurationProperty, TimeSpan.FromSeconds(property.ReadDoubleValue()));
+                }
+                else if (property.name == "time-pos")
+                {
+                    if (property.format != MpvFormat.MPV_FORMAT_DOUBLE)
+                    {
+                        return;
+                    }
+                    DispatchSetTimeFromPlayer(TimeSpan.FromSeconds(property.ReadDoubleValue()));
+                }
+                else if (property.name == "pause")
+                {
+                    if (property.format != MpvFormat.MPV_FORMAT_FLAG)
+                    {
+                        return;
+                    }
+                    DispatchSetCurrentValue(PlayingProperty, !property.ReadBoolValue());
+                }
+                else if (property.name == "volume")
+                {
+                    if (!TryReadNumericProperty(property, out var volume))
+                    {
+                        return;
+                    }
+
+                    DispatchSetCurrentValue(VolumeProperty, (long)Math.Round(volume));
+                }
+                else if (property.name == "speed")
+                {
+                    if (!TryReadNumericProperty(property, out var speed))
+                    {
+                        return;
+                    }
+
+                    DispatchSetCurrentValue(SpeedProperty, speed);
+                }
             }
-            else if (property.name == "time-pos")
+            catch (FormatException)
             {
-                DispatchSetTimeFromPlayer(TimeSpan.FromSeconds(property.ReadDoubleValue()));
             }
-            else if (property.name == "pause")
+        }
+
+        private static bool TryReadNumericProperty(MpvEventProperty property, out double value)
+        {
+            value = 0;
+
+            if (property.format == MpvFormat.MPV_FORMAT_DOUBLE)
             {
-                DispatchSetCurrentValue(PlayingProperty, !property.ReadBoolValue());
+                value = property.ReadDoubleValue();
+                return true;
             }
-            else if (property.name == "volume")
+
+            if (property.format == MpvFormat.MPV_FORMAT_INT64)
             {
-                DispatchSetCurrentValue(VolumeProperty, property.ReadLongValue());
+                value = property.ReadLongValue();
+                return true;
             }
-            else if (property.name == "speed")
-            {
-                DispatchSetCurrentValue(SpeedProperty, property.ReadDoubleValue());
-            }
+
+            return false;
         }
 
         private void MpvFiledLoaded(object? sender)
@@ -573,7 +632,6 @@ namespace Manitux.Player
             writer.Flush();
             MediaPlayer.FreeNode(node);
             var vp = sw.ToString();
-            Debug.WriteLine(vp);
             DispatchSetCurrentValue(VideoParamsProperty, vp);
         }
 
@@ -609,9 +667,8 @@ namespace Manitux.Player
                 SetCurrentValue(HasAudioTracksProperty, newList.Count > 1);
                 SetCurrentValue(SelectedAudioTrackProperty, newList.FirstOrDefault());
             }
-            catch (Exception ex)
+            catch
             {
-                Debug.WriteLine("Audio track list could not be read: " + ex);
             }
             finally
             {
@@ -657,7 +714,8 @@ namespace Manitux.Player
 
                 TryReadString(map, "title", out var title);
                 TryReadString(map, "lang", out var language);
-                tracks.Add(new MpvTrackInfo(id, title, language));
+                TryReadString(map, "external-filename", out var externalFilename);
+                tracks.Add(new MpvTrackInfo(id, title, language, externalFilename));
             }
 
             return tracks;
@@ -692,7 +750,6 @@ namespace Manitux.Player
         private void TrySwitchSubTitle(object? parameter)
         {
             string? subTitleId = parameter as string;
-            Debug.WriteLine("subTitleId: " + subTitleId);
 
             if (string.IsNullOrEmpty(subTitleId) || SubTitles == null || MediaPlayer == null)
                 return;
@@ -701,15 +758,31 @@ namespace Manitux.Player
 
             if (targetSub != null)
             {
+                //Debug.WriteLine($"[MediaPlayerView] selected subtitle: {JsonSerializer.Serialize(targetSub)}");
                 SetCurrentValue(SelectedSubTitleProperty, targetSub);
-                MediaPlayer.SetProperty("sid", targetSub.Id);
+
+                if (targetSub.Id == "no")
+                {
+                    MediaPlayer.SetProperty("sid", "no");
+                    return;
+                }
+
+                try
+                {
+                    MediaPlayer.SetProperty("sid", targetSub.Id ?? "no");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[MediaPlayerView] subtitle sid selection failed. Id: {targetSub.Id} Name: {targetSub.Name} Url: {targetSub.Url} Error: {ex}");
+                }
+
+                //Debug.WriteLine($"[MediaPlayerView] selected sid: {MediaPlayer.GetPropertyString("sid")}");
             }
         }
 
         private void TrySwitchAudioTrack(object? parameter)
         {
             string? audioTrackId = parameter as string;
-            Debug.WriteLine("audioTrackId: " + audioTrackId);
 
             if (string.IsNullOrEmpty(audioTrackId) || AudioTracks == null || MediaPlayer == null)
                 return;
@@ -754,11 +827,14 @@ namespace Manitux.Player
 
         public void AddSubtitles(List<SubtitleModel> subtitles)
         {
-            Dispatcher.UIThread.Post(() =>
+            Dispatcher.UIThread.Post(async () =>
             {
                 if (MediaPlayer == null) return;
 
-                var newList = new AvaloniaList<SubtitleModel>(subtitles);
+                await Task.Delay(800);
+
+                var mappedSubtitles = MapSubtitlesToMpvTrackIds(subtitles);
+                var newList = new AvaloniaList<SubtitleModel>(mappedSubtitles);
 
                 SetCurrentValue(SubTitlesProperty, newList);
                 SetCurrentValue(HasSubTitlesProperty, newList.Any(s => s.Id != "no"));
@@ -767,6 +843,124 @@ namespace Manitux.Player
             });
         }
 
-        private sealed record MpvTrackInfo(string Id, string? Title, string? Language);
+        private List<SubtitleModel> MapSubtitlesToMpvTrackIds(List<SubtitleModel> subtitles)
+        {
+            var closed = subtitles.FirstOrDefault(s => s.Id == "no")
+                ?? new SubtitleModel
+                {
+                    Id = "no",
+                    Name = "Closed",
+                    Url = string.Empty
+                };
+
+            var visibleSubtitles = subtitles.Where(s => s.Id != "no").ToList();
+            if (MediaPlayer == null || visibleSubtitles.Count == 0)
+            {
+                return [closed];
+            }
+
+            MpvNodeWrap? node = null;
+
+            try
+            {
+                node = MediaPlayer.GetPropertyNode(MPVMediaPlayer.Properties.TrackList);
+                var mpvSubtitles = ReadTracks(node.Node, "sub");
+                var mapped = visibleSubtitles
+                    .Select((subtitle, index) =>
+                    {
+                        var track = FindMatchingSubtitleTrack(mpvSubtitles, subtitle)
+                            ?? (mpvSubtitles.Count >= visibleSubtitles.Count
+                                ? mpvSubtitles.Skip(mpvSubtitles.Count - visibleSubtitles.Count).ElementAtOrDefault(index)
+                                : mpvSubtitles.ElementAtOrDefault(index));
+
+                        //Debug.WriteLine($"[MediaPlayerView] subtitle map. Name: {subtitle.Name} Url: {subtitle.Url} TrackId: {subtitle?.Id} TrackFile: {track?.ExternalFilename}");
+                        
+                        var sub = new SubtitleModel
+                        {
+                            Id = subtitle?.Id,
+                            Name = subtitle?.Name ?? "",
+                            Url = subtitle?.Url ?? ""
+                        };
+
+                        //Debug.WriteLine($"[MediaPlayerView] subtitle sub: {JsonSerializer.Serialize(sub)}");
+
+                        return sub;
+                    })
+                    .ToList();
+
+                return [closed, .. mapped];
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MediaPlayerView] subtitle track-list mapping failed. Error: {ex}");
+                return subtitles;
+            }
+            finally
+            {
+                if (node is not null)
+                {
+                    MediaPlayer.FreeNode(node);
+                }
+            }
+        }
+
+        private static MpvTrackInfo? FindMatchingSubtitleTrack(List<MpvTrackInfo> tracks, SubtitleModel subtitle)
+        {
+            var subtitleKeys = GetSubtitleMatchKeys(subtitle.Url).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            return tracks.FirstOrDefault(track =>
+                !string.IsNullOrWhiteSpace(track.ExternalFilename)
+                && GetSubtitleMatchKeys(track.ExternalFilename).Any(subtitleKeys.Contains));
+        }
+
+        private static IEnumerable<string> GetSubtitleMatchKeys(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                yield break;
+            }
+
+            yield return value;
+
+            if (Uri.TryCreate(value, UriKind.Absolute, out var uri))
+            {
+                if (uri.IsFile)
+                {
+                    yield return uri.LocalPath;
+                    yield return Path.GetFullPath(uri.LocalPath);
+                }
+
+                yield return uri.AbsoluteUri;
+                yield break;
+            }
+
+            string? fullPath = null;
+            string? fileUri = null;
+
+            try
+            {
+                fullPath = Path.GetFullPath(value);
+
+                if (File.Exists(fullPath))
+                {
+                    fileUri = new Uri(fullPath).AbsoluteUri;
+                }
+            }
+            catch
+            {
+            }
+
+            if (!string.IsNullOrWhiteSpace(fullPath))
+            {
+                yield return fullPath;
+            }
+
+            if (!string.IsNullOrWhiteSpace(fileUri))
+            {
+                yield return fileUri;
+            }
+        }
+
+        private sealed record MpvTrackInfo(string Id, string? Title, string? Language, string? ExternalFilename);
     }
 }

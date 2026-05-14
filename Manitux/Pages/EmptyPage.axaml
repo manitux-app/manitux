@@ -5,10 +5,10 @@
              xmlns:collections="clr-namespace:Avalonia.Collections;assembly=Avalonia.Base"
              xmlns:iri="https://irihi.tech/shared"
              xmlns:u="https://irihi.tech/ursa"
-             xmlns:viewModels="clr-namespace:Manitux.ViewModels"
+             xmlns:vm="clr-namespace:Manitux.ViewModels"
              mc:Ignorable="d" d:DesignWidth="800"
              d:DesignHeight="450"
-             x:DataType="viewModels:EmptyPageViewModel"
+             x:DataType="vm:EmptyPageViewModel"
              x:Class="Manitux.Pages.EmptyPage">
     
     <Grid RowDefinitions="*, Auto">

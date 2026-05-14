@@ -26,7 +26,14 @@ sealed class Program
             .With(new Win32PlatformOptions())
             .WithInterFont()
             .LogToTrace()
-            .With(new X11PlatformOptions { EnableIme = false, RenderingMode = new[] { X11RenderingMode.Software } });
-
-            //.With(new X11PlatformOptions { EnableIme = false });
+            .With(new X11PlatformOptions { EnableIme = false });
+            // .With(new SkiaOptions { 
+            //     MaxGpuResourceSizeBytes = 64 * 1024 * 1024, // GPU önbelleğini 64MB ile sınırla
+            //     UseOpacitySaveLayer = true 
+            // })
+            // .With(new X11PlatformOptions { 
+            //     EnableIme = false, 
+            //     RenderingMode = new[] { X11RenderingMode.Software },
+            //     EnableMultiTouch = false 
+            // });
 }

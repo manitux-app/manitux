@@ -40,7 +40,7 @@ namespace TlsClient.Native.Wrappers
             if (_isInitialized) return;
 
             libraryPath ??= NativeLoader.GetLibraryPath();
-            Debug.WriteLine(libraryPath);
+            Debug.WriteLine("TlsClientWrapper Initialize libraryPath: " + libraryPath);
 
             _module = NativeLoader.LoadNativeAssembly(libraryPath);
 

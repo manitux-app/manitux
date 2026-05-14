@@ -1,0 +1,1 @@
+https://github.com/vrjure/LibMPV.AutoGen

@@ -14,6 +14,7 @@ using Avalonia.Data;
 using Avalonia.Styling;
 using CodeLogic.Framework.Application.Plugins;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Manitux.Core.Application;
 using Manitux.Core.Framework;
@@ -43,6 +44,8 @@ public partial class MainViewModel : ViewModelBase
     private AppConfig _config = new();
     [ObservableProperty] private AppStrings _localize = new();
     private ManituxFramework _framework = new ManituxFramework();
+    private MenuItemViewModel? _currentPageItemsNavigation;
+    private PageItemsViewModel? _currentPageItemsViewModel;
 
     [ObservableProperty] private PluginBase? _currentPlugin;
     private List<PluginMenuModel>? _pluginMenus;
@@ -51,6 +54,7 @@ public partial class MainViewModel : ViewModelBase
     public LocaleViewModel Locales { get; set; } = new LocaleViewModel();
 
     [ObservableProperty] private object? _content;
+    [ObservableProperty] private string? _searchText;
     [ObservableProperty] private bool _isReady = false;
     [ObservableProperty] private bool _isInitialized = false;
     [ObservableProperty] private bool _isPluginsLoaded = false;
@@ -63,12 +67,47 @@ public partial class MainViewModel : ViewModelBase
 
         WeakReferenceMessenger.Default.Register<MainViewModel, MenuItemChangedMessage>(this, OnNavigation);
         WeakReferenceMessenger.Default.Register<MainViewModel, PageItemChangedMessage>(this, OnNavigation);
+        WeakReferenceMessenger.Default.Register<MainViewModel, PageChangedMessage>(this, OnNavigation);
         //WeakReferenceMessenger.Default.Register<MainViewModel, string, string>(this, "JumpTo", OnNavigation);
         //OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
 
         InitFramework();
         //TestMessage();
         //TestPlugin();
+    }
+
+    [RelayCommand]
+    private async Task Search()
+    {
+        if (CurrentPlugin is null)
+        {
+            ShowToast("Plugin not selected", NotificationType.Warning);
+            return;
+        }
+
+        var query = SearchText?.Trim();
+        if (string.IsNullOrWhiteSpace(query)) return;
+
+        var results = await CurrentPlugin.GetSearchResults(query);
+        if (results is null || !results.Any())
+        {
+            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
+            return;
+        }
+
+        _currentPageItemsNavigation = null;
+
+        if (_currentPageItemsViewModel is null)
+        {
+            _currentPageItemsViewModel = new PageItemsViewModel(results, isPaginationVisible: false);
+            Content = _currentPageItemsViewModel;
+        }
+        else
+        {
+            _currentPageItemsViewModel.IsPaginationVisible = false;
+            _currentPageItemsViewModel.UpdatePageItems(results);
+            Content = _currentPageItemsViewModel;
+        }
     }
 
 
@@ -103,6 +142,11 @@ public partial class MainViewModel : ViewModelBase
         //};
 
         Content = null;
+        if (key != MenuKeys.MenuKeyPageItems)
+        {
+            _currentPageItemsNavigation = null;
+            _currentPageItemsViewModel = null;
+        }
 
         switch (key)
         {
@@ -116,8 +160,14 @@ public partial class MainViewModel : ViewModelBase
                 ShowTestPlayer();
                 break;
             case MenuKeys.MenuKeyPageItems:
+                message.Value.PageNumber = Math.Max(1, message.Value.PageNumber);
+                _currentPageItemsNavigation = message.Value;
                 var items = await GetPageItems(message);
-                if(items is not null) Content = new PageItemsViewModel(items);
+                if(items is not null)
+                {
+                    _currentPageItemsViewModel = new PageItemsViewModel(items, message.Value.PageNumber);
+                    Content = _currentPageItemsViewModel;
+                }
                 break;
         }
 
@@ -133,6 +183,27 @@ public partial class MainViewModel : ViewModelBase
         if (mediaInfo is not null)
         {
             ShowMediaInfo(mediaInfo);
+        }
+        else
+        {
+            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
+        }
+    }
+
+    private async void OnNavigation(MainViewModel vm, PageChangedMessage message)
+    {
+        if (_currentPageItemsNavigation is null || _currentPageItemsViewModel is null)
+        {
+            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
+            return;
+        }
+
+        _currentPageItemsNavigation.PageNumber = Math.Max(1, message.Value);
+        var items = await GetPageItems(new MenuItemChangedMessage(_currentPageItemsNavigation));
+
+        if (items is not null)
+        {
+            _currentPageItemsViewModel.UpdatePageItems(items);
         }
         else
         {
@@ -232,11 +303,11 @@ public partial class MainViewModel : ViewModelBase
 
                 Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(plugin.Manifest)}" + Environment.NewLine);
                 var cat = message.Value.Category;
-                Debug.WriteLine($"Category: {JsonSerializer.Serialize(cat)}" + Environment.NewLine);
+                //Debug.WriteLine($"Category: {JsonSerializer.Serialize(cat)}" + Environment.NewLine);
                 if (cat is null) return null;
                 var pageItems = await plugin.GetPageItems(pageNumber, cat);
                 if (pageItems is null) return null;
-                Debug.WriteLine($"PageItems: {JsonSerializer.Serialize(pageItems)}" + Environment.NewLine);
+                //Debug.WriteLine($"PageItems: {JsonSerializer.Serialize(pageItems)}" + Environment.NewLine);
                 return pageItems;
             }
         }
@@ -259,9 +330,9 @@ public partial class MainViewModel : ViewModelBase
 
         if (CurrentPlugin is not null)
         {
-            Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(CurrentPlugin.Manifest)}" + Environment.NewLine);
+            //Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(CurrentPlugin.Manifest)}" + Environment.NewLine);
             mediaInfo = await CurrentPlugin.GetMediaInfo(pageItem);
-            Debug.WriteLine($"MediaInfo: {JsonSerializer.Serialize(mediaInfo)}" + Environment.NewLine);
+            //Debug.WriteLine($"MediaInfo: {JsonSerializer.Serialize(mediaInfo)}" + Environment.NewLine);
         }
 
         return mediaInfo;
@@ -295,6 +366,8 @@ public partial class MainViewModel : ViewModelBase
     {
         var options = new OverlayDialogOptions()
         {
+            HorizontalAnchor = HorizontalPosition.Center,
+            VerticalAnchor = VerticalPosition.Center,
             FullScreen = true,
             Buttons = DialogButton.None,
             Mode = DialogMode.None,
@@ -302,13 +375,18 @@ public partial class MainViewModel : ViewModelBase
             CanResize = false,
         };
 
-        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(videoSource, Localize), null, options: options);
+        var content = new PlayerView
+        {
+            DataContext = new PlayerViewModel(videoSource, Localize)
+        };
+
+        await OverlayDialog.ShowCustomModal<RootPage, RootPageViewModel, object>(new RootPageViewModel(content), null, options: options);
     }
 
     private void ShowTestPlayer()
     {
-        ShowPlayer(null);
-        //ShowPlayer(new VideoSourceModel() { Name = "Test", Url = "https://server15700.contentdm.oclc.org/dmwebservices/index.php?q=dmGetStreamingFile/p15700coll2/15.mp4/byte/json", Subtitles = new() { new() { Id = "1", Name = "Test", Url = "https://cdmdemo.contentdm.oclc.org/utils/getfile/collection/p15700coll2/id/18/filename/video2.vtt" } } });
+        //ShowPlayer(null);
+        ShowPlayer(new VideoSourceModel() { Name = "Test", Url = "https://server15700.contentdm.oclc.org/dmwebservices/index.php?q=dmGetStreamingFile/p15700coll2/15.mp4/byte/json", Subtitles = new() { new() { Id = "1", Name = "Test", Url = "https://cdmdemo.contentdm.oclc.org/utils/getfile/collection/p15700coll2/id/18/filename/video2.vtt" } } });
     }
 
     private async void TestMessage()
@@ -316,12 +394,13 @@ public partial class MainViewModel : ViewModelBase
         var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
         while (await timer.WaitForNextTickAsync())
         {
+            //ShowTestPlayer();
             //ShowMessage("test", "test 123");
             //ShowNotify("test", "test 123", NotificationType.Success);
             //ShowMessage("test", "test 123", NotificationType.Warning);
             //ShowMessage("test", "test 123", NotificationType.Error);
 
-            ShowToast("test 123456", NotificationType.Information, "Light");
+            //ShowToast("test 123456", NotificationType.Information, "Light");
             //ShowToast("test 123456", NotificationType.Success, "Light");
             //ShowToast(_pluginManager, NotificationType.Warning, "Light");
             //ShowToast("test 123456", NotificationType.Error, "Light");

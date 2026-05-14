@@ -1,22 +1,54 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace TlsClient.Native.NativeMethods
 {
     public static class NativeWindowsMethods
     {
+        public static IntPtr LoadLibrary(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return IntPtr.Zero;
 
-        [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true, EntryPoint = "LoadLibraryW")]
-        public static extern IntPtr LoadLibrary([In][MarshalAs(UnmanagedType.LPWStr)] string path);
+            try
+            {
+                return NativeLibrary.Load(path);
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
+        }
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr GetProcAddress([In] IntPtr hModule, [In] string procName);
+        public static IntPtr GetProcAddress(IntPtr hModule, string procName)
+        {
+            if (hModule == IntPtr.Zero || string.IsNullOrEmpty(procName))
+                return IntPtr.Zero;
 
-        [DllImport("kernel32.dll", SetLastError = true, EntryPoint = "FreeLibrary")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool FreeLibrary([In] IntPtr hLibrary);
+            try
+            {
+                return NativeLibrary.TryGetExport(hModule, procName, out var address)
+                    ? address
+                    : IntPtr.Zero;
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
+        }
 
+        public static bool FreeLibrary(IntPtr hLibrary)
+        {
+            if (hLibrary == IntPtr.Zero) return false;
+
+            try
+            {
+                NativeLibrary.Free(hLibrary);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

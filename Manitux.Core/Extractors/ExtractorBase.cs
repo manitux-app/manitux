@@ -9,6 +9,9 @@ using CodeLogic.Core.Logging;
 
 namespace Manitux.Core.Extractors;
 
+// https://github.com/recloudstream/cloudstream/tree/master/library/src/commonMain/kotlin/com/lagradost/cloudstream3/extractors
+// https://github.com/recloudstream/extensions
+
 public abstract class ExtractorBase : HttpHelper, IAsyncDisposable
 {
     public virtual string Name { get; set; } = "Extractor";
@@ -24,7 +27,20 @@ public abstract class ExtractorBase : HttpHelper, IAsyncDisposable
         if (!string.IsNullOrEmpty(MainUrl) && url.Contains(MainUrl))
             return true;
 
-        return SupportedDomains.Any(domain => domain.Contains(GetDomain(url)));
+        var host = GetDomain(url);
+        if (host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+        {
+            host = host[4..];
+        }
+
+        return SupportedDomains.Any(domain =>
+        {
+            var supportedDomain = domain.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+                ? domain[4..]
+                : domain;
+
+            return string.Equals(supportedDomain, host, StringComparison.OrdinalIgnoreCase);
+        });
     }
 
     protected string GetBaseUrl(string url)

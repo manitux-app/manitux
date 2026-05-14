@@ -1,36 +1,54 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace TlsClient.Native.NativeMethods
 {
     public static class NativeDarwinMethods
     {
-        [Flags]
-        public enum LoadLibraryFlags
+        public static IntPtr LoadLibrary(string path)
         {
-            None = 0,
-            Lazy = 0x01,
-            Now = 0x02,
-            Local = 0x04,
-            Global = 0x08,
-            NoLoad = 0x10,
-            NoDelete = 0x80
+            if (string.IsNullOrEmpty(path)) return IntPtr.Zero;
+
+            try
+            {
+                return NativeLibrary.Load(path);
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
         }
 
-        [DllImport("libdl.dylib", EntryPoint = "dlopen")]
-        public static extern IntPtr LoadLibrary(
-            [In][MarshalAs(UnmanagedType.LPStr)] string path,
-            [In] LoadLibraryFlags flags = LoadLibraryFlags.Now | LoadLibraryFlags.Global
-        );
+        public static int FreeLibrary(IntPtr hLibrary)
+        {
+            if (hLibrary == IntPtr.Zero) return -1;
 
-        [DllImport("libdl.dylib", EntryPoint = "dlclose")]
-        public static extern int FreeLibrary(
-            [In] IntPtr hLibrary
-        );
+            try
+            {
+                NativeLibrary.Free(hLibrary);
+                return 0;
+            }
+            catch
+            {
+                return -1;
+            }
+        }
 
-        [DllImport("libdl.dylib", EntryPoint = "dlsym")]
-        public static extern IntPtr GetProcAddress([In]IntPtr handle, [In]string symbol);
+        public static IntPtr GetProcAddress(IntPtr handle, string symbol)
+        {
+            if (handle == IntPtr.Zero || string.IsNullOrEmpty(symbol))
+                return IntPtr.Zero;
+
+            try
+            {
+                return NativeLibrary.TryGetExport(handle, symbol, out var address)
+                    ? address
+                    : IntPtr.Zero;
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
+        }
     }
 }
