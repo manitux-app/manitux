@@ -34,7 +34,7 @@
                 <u:NavMenu
                     Name="menu"
                     CommandBinding="{Binding ActivateCommand}"
-                    ExpandWidth="300"
+                    ExpandWidth="250"
                     SubMenuBinding="{Binding Children}"
                     HeaderBinding="{Binding}"
                     IconBinding="{Binding MenuIconName}"
@@ -125,7 +125,7 @@
                             <TextBox
                                 Name="txtSearch"
                                 Width="300"
-                                InnerLeftContent="{Binding Localize.Search}"
+                                InnerLeftContent="{Binding L.Search}"
                                 Text="{Binding SearchText, Mode=TwoWay}" />
 							<u:IconButton IsVisible="True"
 									HorizontalAlignment="Stretch"
@@ -133,7 +133,7 @@
 									Command="{Binding SearchCommand}"
 									Icon="{StaticResource SemiIconSearch}"
 									RenderTransform="{x:Null}"
-									ToolTip.Tip="{Binding Localize.Search}"
+									ToolTip.Tip="{Binding L.Search}"
 									FontWeight="Normal" FontSize="16"
 									Theme="{DynamicResource BorderlessIconButton}"/>
 							<u:IconButton IsVisible="True"
@@ -141,7 +141,7 @@
 									Classes="Tertiary"
 									Icon="{StaticResource SemiIconSetting}"
 									RenderTransform="{x:Null}"
-									ToolTip.Tip="{Binding Localize.Settings}"
+									ToolTip.Tip="{Binding L.Settings}"
 									FontWeight="Normal" FontSize="16"
 									Theme="{DynamicResource BorderlessIconButton}"/>
 							<u:IconButton IsVisible="True"
@@ -149,7 +149,7 @@
 									Classes="Tertiary"
 									Icon="{StaticResource SemiIconRefresh}"
 									RenderTransform="{x:Null}"
-									ToolTip.Tip="{Binding Localize.Refresh}"
+									ToolTip.Tip="{Binding L.Refresh}"
 									FontWeight="Normal" FontSize="16"
 									Theme="{DynamicResource BorderlessIconButton}"/>
 						</StackPanel>

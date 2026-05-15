@@ -42,10 +42,11 @@
 	</UserControl.Styles>
 
 
-	<Grid RowDefinitions="*, Auto">
-		<!--<TextBlock Text="İçerikler" FontSize="24" Foreground="White" Margin="20,20,0,10" FontWeight="Bold"/>-->
-        <ScrollViewer Name="MainScrollViewer" Grid.Row="0"  HorizontalScrollBarVisibility="Disabled"
-              VerticalScrollBarVisibility="Auto">
+	<u:LoadingContainer IsLoading="{Binding IsLoading}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+		<Grid RowDefinitions="*, Auto">
+			<!--<TextBlock Text="İçerikler" FontSize="24" Foreground="White" Margin="20,20,0,10" FontWeight="Bold"/>-->
+	        <ScrollViewer Name="MainScrollViewer" Grid.Row="0"  HorizontalScrollBarVisibility="Disabled"
+	              VerticalScrollBarVisibility="Auto">
         <ItemsControl ItemsSource="{Binding PageItems}">
             
             <ItemsControl.ItemsPanel>
@@ -188,5 +189,6 @@
 						   Text="&gt;"/>
 			</Button>
 		</Grid>
-	</Grid>
+		</Grid>
+	</u:LoadingContainer>
 </UserControl>

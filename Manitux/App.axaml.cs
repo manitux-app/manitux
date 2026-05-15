@@ -1,16 +1,19 @@
 using System;
+using System.Diagnostics;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Notifications;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
+using CodeLogic.Framework.Application.Plugins;
+using Manitux.Services.Applications;
+using Manitux.Services.Localizations;
+using Manitux.Services.Notifications;
+using Manitux.Services.Plugins;
 using Manitux.ViewModels;
 using Manitux.Views;
 using Microsoft.Extensions.DependencyInjection;
-using Avalonia.Controls;
-using Manitux.Services.Notifications;
-using Avalonia.Controls.Notifications;
-using System.Diagnostics;
-using Manitux.Services.Applications;
-using Avalonia.Threading;
 
 namespace Manitux;
 
@@ -61,7 +64,9 @@ public partial class App : Application
             //await services.AddPluginManagerAsync();
             //services.AddPluginManagerAsync().ConfigureAwait(true);
 
-            //services.AddSingleton<LocalizationService>();
+            services.AddSingleton<IPluginService, PluginService>();
+            services.AddSingleton<ILocalizationService, LocalizationService>();
+
             services.AddTransient<MainViewModel>();
 
             var provider = services.BuildServiceProvider();
@@ -92,6 +97,9 @@ public partial class App : Application
             services.AddNotificationServices(topLevel);
 
             //services.AddPluginManagerAsync().ConfigureAwait(false);
+
+            services.AddSingleton<IPluginService, PluginService>();
+            services.AddSingleton<ILocalizationService, LocalizationService>();
 
             services.AddTransient<MainViewModel>();
 

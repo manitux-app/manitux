@@ -1,12 +1,20 @@
 using System;
+using System.ComponentModel;
 using CodeLogic.Core.Localization;
 
 namespace Manitux.Core.Application;
 
 [LocalizationSection("manitux")]
-public class AppStrings: LocalizationModelBase
+public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
 {
-// ── Startup / shutdown ────────────────────────────────────────────────
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public void RefreshBindings()
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
+    }
+
+    // ── Startup / shutdown ────────────────────────────────────────────────
     public string Welcome     { get; set; } = "{0} started.";
     public string Goodbye     { get; set; } = "{0} stopped.";
     public string Starting    { get; set; } = "Starting up...";

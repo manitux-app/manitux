@@ -59,16 +59,17 @@
 		</Style>
 	</Control.Styles> -->
 
-	<Grid>
-		<Grid IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-			<async:AdvancedImage Source="{Binding MediaInfo.Backdrop}"
-								 Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
-								 Stretch="UniformToFill"/>
-		</Grid>
+	<u:LoadingContainer IsLoading="{Binding IsLoading}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Background="#111111">
+		<Grid>
+			<Grid IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+				<async:AdvancedImage Source="{Binding MediaInfo.Backdrop}"
+									 Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
+									 Stretch="UniformToFill"/>
+			</Grid>
 
-		<Border Background="Black" Opacity="0.7" IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-		
-		<Grid RowDefinitions="Auto, *" Width="{Binding $parent.Bounds.Width}" Height="{Binding $parent.Bounds.Height}">
+			<Border Background="Black" Opacity="0.7" IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+			
+			<Grid RowDefinitions="Auto, *" Width="{Binding $parent.Bounds.Width}" Height="{Binding $parent.Bounds.Height}">
 
 
 
@@ -110,7 +111,7 @@
 									Icon="{StaticResource SemiIconCalendar}"
 									Content="{Binding MediaInfo.Year}"
 									RenderTransform="{x:Null}"
-									ToolTip.Tip="{Binding Localize.Year}"
+									ToolTip.Tip="{Binding L.Year}"
 									FontWeight="Normal" FontSize="16"
 									Theme="{DynamicResource BorderlessIconButton}"/>
 								<u:IconButton IsVisible="True"
@@ -119,7 +120,7 @@
 									Icon="{StaticResource SemiIconGlobe}"
 									Content="{Binding MediaInfo.Country}"
 									RenderTransform="{x:Null}"
-									ToolTip.Tip="{Binding Localize.Country}"
+									ToolTip.Tip="{Binding L.Country}"
 									FontWeight="Normal" FontSize="16"
 									Theme="{DynamicResource BorderlessIconButton}"/>
 								<u:IconButton IsVisible="True"
@@ -128,7 +129,7 @@
 									Icon="{StaticResource SemiIconClock}"
 									Content="{Binding MediaInfo.Duration}"
 									RenderTransform="{x:Null}"
-									ToolTip.Tip="{Binding Localize.Duration}"
+									ToolTip.Tip="{Binding L.Duration}"
 									FontWeight="Normal" FontSize="16"
 									Theme="{DynamicResource BorderlessIconButton}"/>
 							</StackPanel>
@@ -311,9 +312,10 @@
 
 				</StackPanel>
 			</ScrollViewer>
-		</Grid>
+			</Grid>
 
-	</Grid>
+		</Grid>
+	</u:LoadingContainer>
 	
 	
 </UserControl>

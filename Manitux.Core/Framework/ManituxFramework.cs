@@ -52,7 +52,7 @@ public class ManituxFramework
         // with the rest of the app. It is registered with the runtime for health
         // checks and graceful shutdown.
 
-        string baseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
+        string baseDir = OperatingSystem.IsAndroid()
             ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android /data/user/0/.../files/
             : AppContext.BaseDirectory;
 
@@ -168,8 +168,8 @@ public class ManituxFramework
         // Build a PluginContext that reuses the app's paths/services
         //var pluginDir = Path.Combine("data/plugins", plugin.Manifest.Id);
 
-        string baseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
-           ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android /data/user/0/.../files/
+        string baseDir = OperatingSystem.IsAndroid()
+           ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android: /data/user/0/.../files/
            : AppContext.BaseDirectory;
 
         string pluginsDir = Path.Combine(baseDir, "data/plugins");

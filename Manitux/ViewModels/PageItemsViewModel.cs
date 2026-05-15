@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -14,11 +15,16 @@ using CommunityToolkit.Mvvm.Messaging;
 using Manitux.Core.Models;
 using Manitux.Core.Plugins;
 using Manitux.Models;
+using Manitux.Services.Plugins;
 
 namespace Manitux.ViewModels;
 
 public partial class PageItemsViewModel :  ViewModelBase
 {
+    private readonly IPluginService? _pluginService;
+    private PluginManager? _pluginManager;
+    private MenuItemViewModel? _navigation;
+    
     [ObservableProperty]
     private ObservableCollection<PageItemModel>? _pageItems;
 
@@ -30,6 +36,9 @@ public partial class PageItemsViewModel :  ViewModelBase
 
     [ObservableProperty]
     private bool _isPaginationVisible = true;
+
+    [ObservableProperty]
+    private bool _isLoading;
 
     public event Action? OnDataRefreshed;
 
@@ -44,6 +53,19 @@ public partial class PageItemsViewModel :  ViewModelBase
         IsPaginationVisible = isPaginationVisible;
 
         UpdatePageItems(pageItems);
+    }
+
+    public PageItemsViewModel(IPluginService pluginService, MenuItemViewModel? navigation)
+    {
+        _pluginService = pluginService;
+        _navigation = navigation;
+
+        _suppressPageChange = true;
+        CurrentPage = Math.Max(1, navigation?.PageNumber ?? 1);
+        _suppressPageChange = false;
+        IsPaginationVisible = true;
+
+        _ = LoadPageItems(CurrentPage);
     }
 
     public void OnActivate(PageItemModel pageItem)
@@ -84,7 +106,7 @@ public partial class PageItemsViewModel :  ViewModelBase
             return;
         }
 
-        WeakReferenceMessenger.Default.Send(new PageChangedMessage(pageNumber));
+        _ = LoadPageItems(pageNumber);
     }
 
     private bool CanGoPreviousPage()
@@ -100,6 +122,75 @@ public partial class PageItemsViewModel :  ViewModelBase
 
         OnPropertyChanged(nameof(PageItems));
         OnDataRefreshed?.Invoke();
+    }
+
+    public async Task<bool> Search(string? query)
+    {
+        query = query?.Trim();
+        if (string.IsNullOrWhiteSpace(query) || _pluginService?.CurrentPlugin is null)
+        {
+            return false;
+        }
+
+        IsLoading = true;
+
+        try
+        {
+            var results = await _pluginService.CurrentPlugin.GetSearchResults(query);
+            if (results is null || !results.Any())
+            {
+                return false;
+            }
+
+            _navigation = null;
+            IsPaginationVisible = false;
+            UpdatePageItems(results);
+            return true;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task LoadPageItems(int pageNumber)
+    {
+        if (_pluginService is null || _navigation is null)
+        {
+            return;
+        }
+
+        var pluginId = _navigation.PluginId;
+        var category = _navigation.Category;
+        if (pluginId is null || category is null)
+        {
+            UpdatePageItems(null);
+            return;
+        }
+
+        _pluginManager ??= CodeLogic.CodeLogic.GetPluginManager();
+        var plugin = _pluginManager?.GetPlugin<PluginBase>(pluginId);
+
+        if (plugin is null || plugin.State != PluginState.Started)
+        {
+            UpdatePageItems(null);
+            return;
+        }
+
+        IsLoading = true;
+        _pluginService.CurrentPlugin = plugin;
+        _navigation.PageNumber = pageNumber;
+
+        try
+        {
+            Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(plugin.Manifest)}" + Environment.NewLine);
+            var pageItems = await plugin.GetPageItems(pageNumber, category);
+            UpdatePageItems(pageItems);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
 

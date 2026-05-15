@@ -821,7 +821,7 @@ namespace Manitux.Player
         {
             if (DataContext is PlayerViewModel viewModel)
             {
-                viewModel.RequestClose();
+                viewModel.Close();
             }
         }
 

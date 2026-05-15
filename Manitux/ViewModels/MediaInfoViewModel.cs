@@ -20,23 +20,30 @@ using Manitux.Core.Plugins;
 using Manitux.Models;
 using Manitux.Pages;
 using Manitux.Player;
+using Manitux.Services.Localizations;
+using Manitux.Services.Plugins;
 using Ursa.Controls;
-using Notification = Ursa.Controls.Notification;
 using WindowNotificationManager = Ursa.Controls.WindowNotificationManager;
 
 namespace Manitux.ViewModels;
 
 public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 {
+    private readonly IPluginService _pluginService;
+    private readonly ILocalizationService _localizationService;
+
     [ObservableProperty] private MediaInfoModel? _mediaInfo;
 
     [ObservableProperty] private AppStrings? _localize;
 
+    [ObservableProperty] private bool _isLoading;
+
+    public AppStrings L { get; }
+
     public WindowNotificationManager? NotificationManager { get; set; }
     public WindowToastManager? ToastManager { get; set; }
 
-    private PluginBase? _plugin;
-    public List<SeasonModel>? Seasons { get; set; }
+    [ObservableProperty] private List<SeasonModel>? _seasons;
 
     public event Action? OnDataRefreshed;
     public event Action? OnRequestClose;
@@ -44,38 +51,82 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
     //public ICommand ActivateCommand { get; set; }
     // <!--Content="{Binding EpisodeNumber, StringFormat='{}{0}. B�l�m'}"-->
-    public MediaInfoViewModel(PluginBase plugin, MediaInfoModel? mediaInfo, AppStrings localize)
+    public MediaInfoViewModel(IPluginService pluginService, ILocalizationService localizationService, PageItemModel? pageItem)
     {
         //ActivateCommand = new RelayCommand(OnActivate);
 
-        if (mediaInfo is null) return;
-        _plugin = plugin;
-        Localize = localize;
-        MediaInfo = mediaInfo;
+        _pluginService = pluginService;
+        _localizationService = localizationService;
+        L = _localizationService.Strings;
+        Localize = L;
 
-        if(mediaInfo.Episodes is not null)
+        if (pageItem is null) return;
+
+        MediaInfo = CreatePlaceholderMediaInfo(pageItem);
+        _ = LoadMediaInfo(pageItem);
+    }
+
+    private static MediaInfoModel CreatePlaceholderMediaInfo(PageItemModel pageItem)
+    {
+        return new MediaInfoModel
         {
-            CreateSeasonGroup(mediaInfo.Episodes);
+            Title = pageItem.Title,
+            Url = pageItem.Url,
+            Poster = pageItem.Poster,
+            Rating = pageItem.Rating,
+            Year = pageItem.Year,
+        };
+    }
+
+    private async Task LoadMediaInfo(PageItemModel pageItem)
+    {
+        if (_pluginService.CurrentPlugin is null)
+        {
+            ShowError(Localize?.PageNotFound);
+            return;
         }
-        
-        OnPropertyChanged(nameof(MediaInfo));
+
+        IsLoading = true;
+
+        try
+        {
+            var mediaInfo = await _pluginService.CurrentPlugin.GetMediaInfo(pageItem);
+            if (mediaInfo is null)
+            {
+                ShowError(Localize?.PageNotFound);
+                return;
+            }
+
+            SetMediaInfo(mediaInfo);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"MediaInfo load failed: {ex}");
+            ShowError(Localize?.PageNotFound);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void SetMediaInfo(MediaInfoModel mediaInfo)
+    {
+        MediaInfo = mediaInfo;
+        Seasons = mediaInfo.Episodes is null ? null : CreateSeasonGroup(mediaInfo.Episodes);
+        OnDataRefreshed?.Invoke();
     }
 
     public async void Play(VideoSourceModel videoSource)
     {
-        var source = await GetVideoSources(videoSource);
-
-        //Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
-        //ShowPlayer(source);
-
-        if(source is not null & IsValidUrlFormat(source?.Url ?? ""))
+        if(videoSource is not null)
         {
-           Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
-           ShowPlayer(source);
+           Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(videoSource)}" + Environment.NewLine);
+           ShowPlayer(videoSource);
         }
         else
         {
-           ShowError(Localize?.VideoNotInitialized ?? "Error");
+           ShowError(Localize?.VideoNotInitialized);
         }
     }
 
@@ -84,7 +135,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         var source = await GetVideoSources(videoSource);
         if(source is null)
         {
-            ShowError(Localize?.VideoNotInitialized ?? "Error"); 
+            ShowError(Localize?.VideoNotInitialized); 
             return;
         } 
         var playerManager = new ExternalPlayerManager();
@@ -97,7 +148,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         var source = await GetVideoSources(videoSource);
         if(source is null)
         {
-            ShowError(Localize?.VideoNotInitialized ?? "Error"); 
+            ShowError(Localize?.VideoNotInitialized); 
             return;
         } 
         var playerManager = new ExternalPlayerManager();
@@ -107,32 +158,27 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
     public async void GetMediaInfo(RelatedVideoModel relatedVideo)
     {
-        if (_plugin is not null)
+        if (relatedVideo is null)
         {
-            var pageItem = new PageItemModel() { Title = relatedVideo.Title, Url = relatedVideo.Url };
-            var mediaInfo = await _plugin.GetMediaInfo(pageItem);
-            if(mediaInfo is not null)
-            {
-                MediaInfo = mediaInfo;
-                OnPropertyChanged(nameof(MediaInfo));
-                OnDataRefreshed?.Invoke();
-            }
-            else
-            {
-                ShowError(Localize?.PageNotFound ?? "Page not found");
-            }
+            ShowError(Localize?.PageNotFound);
+            return;
         }
-        else
+
+        var pageItem = new PageItemModel()
         {
-            ShowError(Localize?.PageNotFound ?? "Page not found");
-        }
+            Title = relatedVideo.Title,
+            Url = relatedVideo.Url,
+            Poster = relatedVideo.Poster
+        };
+
+        await LoadMediaInfo(pageItem);
     }
 
     private async Task<VideoSourceModel?> GetVideoSources(VideoSourceModel videoSource)
     {
-        if (_plugin is not null)
+        if (_pluginService.CurrentPlugin is not null)
         {
-            var source = await _plugin.GetVideoSources(videoSource);
+            var source = await _pluginService.CurrentPlugin.GetVideoSources(videoSource);
             
             if (source is not null)
             {
@@ -140,20 +186,20 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             }
             else
             {
-                ShowError(Localize?.PageNotFound ?? "Page not found");
+                ShowError(Localize?.PageNotFound);
             }
         }
         else
         {
-            ShowError(Localize?.PageNotFound ?? "Page not found");
+            ShowError(Localize?.PageNotFound);
         }
 
         return null;
     }
 
-    public void CreateSeasonGroup(List<EpisodeModel> episodes)
+    public List<SeasonModel> CreateSeasonGroup(List<EpisodeModel> episodes)
     {
-        Seasons = episodes
+        return episodes
             .GroupBy(e => e.SeasonNumber)
             .OrderBy(g => g.Key)
             .Select(g => new SeasonModel
@@ -175,7 +221,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             CanResize = false,
         };
 
-        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(videoSource, Localize), null, options: options);
+        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(_pluginService, _localizationService, videoSource), null, options: options);
 
         //  ShowPlayer(new VideoSourceModel() { Name = "Test", Url = "https://server15700.contentdm.oclc.org/dmwebservices/index.php?q=dmGetStreamingFile/p15700coll2/15.mp4/byte/json", Subtitles = new() { new() { Name = "Test", Url = "https://cdmdemo.contentdm.oclc.org/utils/getfile/collection/p15700coll2/id/18/filename/video2.vtt" } } });
     }
@@ -203,10 +249,10 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
     }
 
-    private void ShowError(string message)
+    private void ShowError(string? message)
     {
         ToastManager?.Show(
-                new Toast(message),
+                new Toast(message ?? "Error"),
                 type: NotificationType.Error,
                 showIcon: true,
                 classes: ["Light"]);

@@ -17,22 +17,22 @@ public partial class MainWindow : UrsaWindow
 
         //framework.Init().ConfigureAwait(false);
 
-        this.Loaded += (_, _) =>
-        {
-            if (!OperatingSystem.IsLinux())
-            {
-                // use native on non linux platforms
-                NativeTlsClient.Initialize(null);
-            }
-            else
-            {
-                // use api on linux
-                ApiTlsClient.Initialize(null);
-            }
+        //this.Loaded += (_, _) =>
+        //{
+        //    if (!OperatingSystem.IsLinux())
+        //    {
+        //        // use native on non linux platforms
+        //        NativeTlsClient.Initialize(null);
+        //    }
+        //    else
+        //    {
+        //        // use api on linux
+        //        ApiTlsClient.Initialize(null);
+        //    }
 
-            // test on win dev env
-            //ApiTlsClient.Initialize(null);
-        };
+        //    // test on win dev env
+        //    //ApiTlsClient.Initialize(null);
+        //};
 
         this.Closed += (_, _) =>
         {
@@ -47,8 +47,6 @@ public partial class MainWindow : UrsaWindow
                 ApiTlsClient.Dispose();
             }
         };
-
-
     }
 
     // protected override async void OnOpened(EventArgs e)

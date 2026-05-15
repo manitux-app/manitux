@@ -15,11 +15,16 @@ using LibMPVSharp.Extensions;
 using Manitux.Core.Application;
 using Manitux.Core.Helpers;
 using Manitux.Core.Models;
+using Manitux.Services.Localizations;
+using Manitux.Services.Plugins;
 
 namespace Manitux.ViewModels
 {
-    public partial class PlayerViewModel : ViewModelBase, IDisposable
+    public partial class PlayerViewModel : ViewModelBase, IDialogContext, IDisposable
     {
+        private readonly IPluginService _pluginService;
+        private readonly ILocalizationService _localizationService;
+
         [ObservableProperty]
         private MPVMediaPlayer? _mediaPlayer;
 
@@ -37,21 +42,19 @@ namespace Manitux.ViewModels
         public event Action? OnRequestClose;
         public event Action<string>? OnErrorClose;
         public event Action<List<SubtitleModel>>? OnAddSubtitleRequested;
+        public event EventHandler<object?>? RequestClose;
 
-        public void RequestClose()
+        public void Close()
         {
+            RequestClose?.Invoke(this, null);
             OnRequestClose?.Invoke();
         }
 
-        public PlayerViewModel(VideoSourceModel? videoSource, AppStrings? localize)
+        public PlayerViewModel(IPluginService pluginService, ILocalizationService localizationService, VideoSourceModel? videoSource)
         {
-            if (videoSource is null || string.IsNullOrEmpty(videoSource?.Url) || !IsValidUrlFormat(videoSource?.Url ?? ""))
-            {
-                _localize = localize;
-                ErrorString = _localize?.VideoNotInitialized;
-                HasError = true;
-                return;
-            }
+            _pluginService = pluginService;
+            _localizationService = localizationService;
+            _localize = _localizationService.Strings;
 
             //var opt = new MPVMediaPlayerOptions();
             MediaPlayer = new MPVMediaPlayer();
@@ -97,7 +100,7 @@ namespace Manitux.ViewModels
                                     //return;
                                 }
 
-                                OnRequestClose?.Invoke();
+                                Close();
                             });
                             break;
 
@@ -112,13 +115,16 @@ namespace Manitux.ViewModels
                     }
                 };
 
-            if (videoSource is not null)
+            if (videoSource is null)
             {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    Play(videoSource);
-                });
+                SetError(_localize?.VideoNotInitialized);
+                return;
             }
+
+            Dispatcher.UIThread.Post(async () =>
+            {
+                await LoadAndPlay(videoSource);
+            });
                
 
             //Task.Run(() => Play(videoSource));
@@ -128,12 +134,49 @@ namespace Manitux.ViewModels
             //HasError = true;
         }
 
+        private async Task LoadAndPlay(VideoSourceModel videoSource)
+        {
+            var source = await GetVideoSources(videoSource);
+            if (source is null || string.IsNullOrEmpty(source.Url) || !IsValidUrlFormat(source.Url))
+            {
+                SetError(_localize?.VideoNotInitialized);
+                return;
+            }
+
+            Play(source);
+        }
+
+        private async Task<VideoSourceModel?> GetVideoSources(VideoSourceModel videoSource)
+        {
+            try
+            {
+                if (_pluginService.CurrentPlugin is not null)
+                {
+                    var source = await _pluginService.CurrentPlugin.GetVideoSources(videoSource);
+                    if (source is not null)
+                    {
+                        return source;
+                    }
+
+                    SetError(_localize?.PageNotFound);
+                    return null;
+                }
+
+                return IsValidUrlFormat(videoSource.Url) ? videoSource : null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PlayerViewModel] Video source resolve failed. Url: {videoSource.Url} Error: {ex}");
+                SetError(_localize?.VideoNotInitialized);
+                return null;
+            }
+        }
+
         private async void Play(VideoSourceModel source)
         {
             if (MediaPlayer is null)
             {
-                ErrorString = _localize?.PlayerNotInitialized;
-                HasError = true;
+                SetError(_localize?.PlayerNotInitialized);
                 return;
             }
 
@@ -234,10 +277,7 @@ namespace Manitux.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorString = ex.Message;
-                HasError = true;
-                OnPropertyChanged(nameof(ErrorString));
-                OnPropertyChanged(nameof(HasError));
+                SetError(ex.Message);
             }
             finally
             {
@@ -247,6 +287,16 @@ namespace Manitux.ViewModels
 
             //await Task.Delay(10000);
             //Dispose();
+        }
+
+        private void SetError(string? message)
+        {
+            ErrorString = message ?? "Error";
+            HasError = true;
+            IsReady = true;
+            OnPropertyChanged(nameof(ErrorString));
+            OnPropertyChanged(nameof(HasError));
+            OnPropertyChanged(nameof(IsReady));
         }
 
         private bool IsValidUrlFormat(string url)
