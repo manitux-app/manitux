@@ -237,15 +237,15 @@
 													<Button.Flyout>
 														<MenuFlyout Placement="BottomEdgeAlignedRight">
 															<MenuItem Header="Manitux Player" 
-																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).ShowToast}" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).PlayEpisode}" 
 																	CommandParameter="{Binding}"/>
 															
 															<MenuItem Header="VLC Player" 
-																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).VlcPlay}" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).VlcPlayEpisode}" 
 																	CommandParameter="{Binding}"/>
 															
 															<MenuItem Header="MPV Player" 
-																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).MpvPlay}" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).MpvPlayEpisode}" 
 																	CommandParameter="{Binding}"/>
 														</MenuFlyout>
 													</Button.Flyout>

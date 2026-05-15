@@ -156,6 +156,59 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         //Debug.WriteLine(source.Url);
     }
 
+    public async void PlayEpisode(EpisodeModel episode)
+    {
+        var source = await GetEpisodeVideoSource(episode);
+        if (source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        Debug.WriteLine($"Episode VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
+        ShowPlayer(source);
+    }
+
+    public async void VlcPlayEpisode(EpisodeModel episode)
+    {
+        var source = await GetEpisodeVideoSource(episode);
+        if (source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var resolvedSource = await GetVideoSources(source);
+        if (resolvedSource is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var playerManager = new ExternalPlayerManager();
+        playerManager.VlcPlay(resolvedSource);
+    }
+
+    public async void MpvPlayEpisode(EpisodeModel episode)
+    {
+        var source = await GetEpisodeVideoSource(episode);
+        if (source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var resolvedSource = await GetVideoSources(source);
+        if (resolvedSource is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var playerManager = new ExternalPlayerManager();
+        playerManager.MpvPlay(resolvedSource);
+    }
+
     public async void GetMediaInfo(RelatedVideoModel relatedVideo)
     {
         if (relatedVideo is null)
@@ -195,6 +248,53 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         }
 
         return null;
+    }
+
+    private async Task<VideoSourceModel?> GetEpisodeVideoSource(EpisodeModel episode)
+    {
+        if (_pluginService.CurrentPlugin is null)
+        {
+            ShowError(Localize?.PageNotFound);
+            return null;
+        }
+
+        if (episode is null || string.IsNullOrWhiteSpace(episode.Url))
+        {
+            ShowError(Localize?.PageNotFound);
+            return null;
+        }
+
+        IsLoading = true;
+
+        try
+        {
+            var pageItem = new PageItemModel
+            {
+                Title = episode.Title ?? $"Episode {episode.EpisodeNumber}",
+                Url = episode.Url
+            };
+
+            var episodeInfo = await _pluginService.CurrentPlugin.GetMediaInfo(pageItem);
+            var source = episodeInfo?.VideoSources?.FirstOrDefault(x => !x.IsTrailer)
+                         ?? episodeInfo?.VideoSources?.FirstOrDefault();
+
+            if (source is null)
+            {
+                ShowError(Localize?.VideoNotInitialized);
+            }
+
+            return source;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Episode source load failed: {ex}");
+            ShowError(Localize?.VideoNotInitialized);
+            return null;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     public List<SeasonModel> CreateSeasonGroup(List<EpisodeModel> episodes)
