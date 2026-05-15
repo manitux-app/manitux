@@ -76,6 +76,9 @@ Pages/
  EmptyPage.axaml.cs
  MediaInfo.axaml.cs
  PageItems.axaml.cs
+ PluginConfigEditor.axaml.cs
+ PluginTopBar.axaml.cs
+ RemotePlugins.axaml.cs
  RootPage.axaml.cs
 Player/
  ExternalPlayerManager.cs
@@ -108,6 +111,9 @@ ViewModels/
  MenuViewModel.cs
  PageItemsViewModel.cs
  PlayerViewModel.cs
+ PluginConfigEditorViewModel.cs
+ PluginTopBarViewModel.cs
+ RemotePluginsViewModel.cs
  RootPageViewModel.cs
  ViewModelBase.cs
 Views/
@@ -361,6 +367,9 @@ Pages/
  EmptyPage.axaml
  MediaInfo.axaml
  PageItems.axaml
+ PluginConfigEditor.axaml
+ PluginTopBar.axaml
+ RemotePlugins.axaml
  RootPage.axaml
 Player/
  PlayerView.axaml

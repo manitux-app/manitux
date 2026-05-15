@@ -7,6 +7,7 @@ using Avalonia.Controls.Notifications;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using CodeLogic.Framework.Application.Plugins;
+using Manitux.Core.Services.Plugins;
 using Manitux.Services.Applications;
 using Manitux.Services.Localizations;
 using Manitux.Services.Notifications;
@@ -66,6 +67,7 @@ public partial class App : Application
 
             services.AddSingleton<IPluginService, PluginService>();
             services.AddSingleton<ILocalizationService, LocalizationService>();
+            services.AddSingleton<IRemotePluginService, RemotePluginService>();
 
             services.AddTransient<MainViewModel>();
 
@@ -100,6 +102,7 @@ public partial class App : Application
 
             services.AddSingleton<IPluginService, PluginService>();
             services.AddSingleton<ILocalizationService, LocalizationService>();
+            services.AddSingleton<IRemotePluginService, RemotePluginService>();
 
             services.AddTransient<MainViewModel>();
 

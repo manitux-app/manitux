@@ -21,6 +21,7 @@ public class MenuItemViewModel: ViewModelBase
 {
     public string? MenuHeader { get; set; }
     public string? MenuIconName { get; set; }
+    public string? PluginFavicon { get; set; }
     public string? Key { get; set; }
     public string? PluginId { get; set; }
     public CategoryModel? Category { get; set; }

@@ -22,6 +22,7 @@ using Manitux.Core.Application;
 using Manitux.Core.Framework;
 using Manitux.Core.Models;
 using Manitux.Core.Plugins;
+using Manitux.Core.Services.Plugins;
 using Manitux.Models;
 using Manitux.Pages;
 using Manitux.Player;
@@ -47,6 +48,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly INotificationService _notificationService;
     private readonly IPluginService _pluginService;
     private readonly ILocalizationService _localizationService;
+    private readonly IRemotePluginService _remotePluginService;
 
     private PluginManager? _pluginManager;
 
@@ -63,17 +65,22 @@ public partial class MainViewModel : ViewModelBase
     public LocaleViewModel Locales { get; set; } = new LocaleViewModel();
 
     [ObservableProperty] private object? _content;
-    [ObservableProperty] private string? _searchText;
     [ObservableProperty] private bool _isReady = false;
     [ObservableProperty] private bool _isInitialized = false;
     [ObservableProperty] private bool _isPluginsLoaded = false;
 
-    public MainViewModel(IToastService toastService, INotificationService notificationService, IPluginService pluginService, ILocalizationService localizationService)
+    public MainViewModel(
+        IToastService toastService,
+        INotificationService notificationService,
+        IPluginService pluginService,
+        ILocalizationService localizationService,
+        IRemotePluginService remotePluginService)
     {
         _toastService = toastService;
         _notificationService = notificationService;
         _pluginService = pluginService;
         _localizationService = localizationService;
+        _remotePluginService = remotePluginService;
 
         L = _localizationService.Strings;
 
@@ -84,32 +91,9 @@ public partial class MainViewModel : ViewModelBase
 
         InitFramework();
         InitTlsClient();
-        TestMessage();
+        //TestMessage();
         //TestPlugin();
     }
-
-    [RelayCommand]
-    private async Task Search()
-    {
-        if (_currentPageItemsViewModel is null || _pluginService.CurrentPlugin is null)
-        {
-            ShowToast("Plugin not selected", NotificationType.Warning);
-            return;
-        }
-
-        var query = SearchText?.Trim();
-        if (string.IsNullOrWhiteSpace(query)) return;
-
-        var hasResults = await _currentPageItemsViewModel.Search(query);
-        if (!hasResults)
-        {
-            ShowToast($"{L.PageNotFound}", NotificationType.Error);
-            return;
-        }
-
-        Content = _currentPageItemsViewModel;
-    }
-
 
     private void OnNavigation(MainViewModel vm, string s)
     {
@@ -156,12 +140,12 @@ public partial class MainViewModel : ViewModelBase
                 Content = new AboutUsViewModel();
                 break;
             case MenuKeys.MenuKeySettings:
-                ShowTestPlayer();
+                Content = new RemotePluginsViewModel(_remotePluginService);
                 break;
             case MenuKeys.MenuKeyPageItems:
                 message.Value.PageNumber = Math.Max(1, message.Value.PageNumber);
                 SetCurrentPlugin(message.Value.PluginId);
-                _currentPageItemsViewModel = new PageItemsViewModel(_pluginService, message.Value);
+                _currentPageItemsViewModel = new PageItemsViewModel(_pluginService, _localizationService, _remotePluginService, message.Value);
                 Content = _currentPageItemsViewModel;
                 break;
         }

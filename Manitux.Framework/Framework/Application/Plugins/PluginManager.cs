@@ -61,8 +61,26 @@ public sealed class PluginManager : IAsyncDisposable
 
         foreach (var dir in Directory.GetDirectories(_options.PluginsDirectory, "*.Plugin"))
         {
+           string[] files = Directory.GetFiles(dir, "*.dll");
+            
+            var dll  = files[0];
+            
+            if (File.Exists(dll)) paths.Add(dll);
+        }
+        return Task.FromResult(paths);
+    }
+
+    public Task<List<string>> DiscoverAsync_Old()
+    {
+        var paths = new List<string>();
+        if (!Directory.Exists(_options.PluginsDirectory)) return Task.FromResult(paths);
+
+        foreach (var dir in Directory.GetDirectories(_options.PluginsDirectory, "*.Plugin"))
+        {
             var name = Path.GetFileName(dir);
+            
             var dll  = Path.Combine(dir, $"{name}.dll");
+            
             if (File.Exists(dll)) paths.Add(dll);
         }
         return Task.FromResult(paths);
@@ -79,11 +97,10 @@ public sealed class PluginManager : IAsyncDisposable
         try
         {
             // cross-platform
-            bool isAndroid = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"));
             Assembly assembly;
             AssemblyLoadContext loadCtx;
 
-            if (isAndroid)
+            if (OperatingSystem.IsAndroid())
             {
                 // Android
                 loadCtx = new PluginLoadContextForAndroid(pluginPath);

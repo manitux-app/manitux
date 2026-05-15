@@ -1,0 +1,22 @@
+[
+  {
+    "url": "https://raw.githubusercontent.com/YOUR_GITHUB_USER/YOUR_PLUGIN_REPOSITORY/builds/plugins/ExamplePlugin.dll",
+    "status": 1,
+    "version": 1,
+    "apiVersion": 1,
+    "name": "Example Plugin",
+    "internalName": "ExamplePlugin",
+    "authors": [
+      "Manitux"
+    ],
+    "description": "Example Manitux remote plugin manifest entry.",
+    "repositoryUrl": "https://github.com/YOUR_GITHUB_USER/YOUR_PLUGIN_REPOSITORY",
+    "tvTypes": [
+      "Movie",
+      "TvSeries"
+    ],
+    "language": "tr",
+    "iconUrl": "https://raw.githubusercontent.com/YOUR_GITHUB_USER/YOUR_PLUGIN_REPOSITORY/builds/icons/example.png",
+    "isAdult": false
+  }
+]

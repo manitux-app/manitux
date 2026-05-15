@@ -126,6 +126,10 @@ Plugins/
  PluginConfig.cs
  RareFilm.cs
  TmdbPlugin.cs
+Services/Plugins/
+ IRemotePluginService.cs
+ RemotePluginModels.cs
+ RemotePluginService.cs
 
 [metadataReferences]
 ../

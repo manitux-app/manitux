@@ -76,7 +76,6 @@ public class ManituxFramework
         await LoadInProcessPluginAsync(pluginMgr, new FilmEkseni());
         await LoadInProcessPluginAsync(pluginMgr, new FilmModu());
         
-
         //await pluginMgr.LoadAllAsync();
 
         // Register with the runtime — health checks + graceful shutdown

@@ -14,7 +14,9 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Manitux.Core.Models;
 using Manitux.Core.Plugins;
+using Manitux.Core.Services.Plugins;
 using Manitux.Models;
+using Manitux.Services.Localizations;
 using Manitux.Services.Plugins;
 
 namespace Manitux.ViewModels;
@@ -40,6 +42,9 @@ public partial class PageItemsViewModel :  ViewModelBase
     [ObservableProperty]
     private bool _isLoading;
 
+    [ObservableProperty]
+    private PluginTopBarViewModel? _topBar;
+
     public event Action? OnDataRefreshed;
 
     public PageItemsViewModel(List<PageItemModel>? pageItems, int currentPage = 1, bool isPaginationVisible = true)
@@ -55,10 +60,20 @@ public partial class PageItemsViewModel :  ViewModelBase
         UpdatePageItems(pageItems);
     }
 
-    public PageItemsViewModel(IPluginService pluginService, MenuItemViewModel? navigation)
+    public PageItemsViewModel(
+        IPluginService pluginService,
+        ILocalizationService localizationService,
+        IRemotePluginService remotePluginService,
+        MenuItemViewModel? navigation)
     {
         _pluginService = pluginService;
         _navigation = navigation;
+        TopBar = new PluginTopBarViewModel(
+            pluginService,
+            localizationService,
+            remotePluginService,
+            Search,
+            RefreshPageItems);
 
         _suppressPageChange = true;
         CurrentPage = Math.Max(1, navigation?.PageNumber ?? 1);
@@ -153,6 +168,16 @@ public partial class PageItemsViewModel :  ViewModelBase
         }
     }
 
+    private async Task RefreshPageItems()
+    {
+        if (_navigation is null)
+        {
+            return;
+        }
+
+        await LoadPageItems(CurrentPage);
+    }
+
     private async Task LoadPageItems(int pageNumber)
     {
         if (_pluginService is null || _navigation is null)
@@ -179,6 +204,7 @@ public partial class PageItemsViewModel :  ViewModelBase
 
         IsLoading = true;
         _pluginService.CurrentPlugin = plugin;
+        TopBar?.UpdatePluginInfo();
         _navigation.PageNumber = pageNumber;
 
         try
@@ -192,6 +218,7 @@ public partial class PageItemsViewModel :  ViewModelBase
             IsLoading = false;
         }
     }
+
 
 
     //[RelayCommand] {Binding AvtivateCommand}

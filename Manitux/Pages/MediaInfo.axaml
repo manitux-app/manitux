@@ -73,9 +73,9 @@
 
 
 
-			<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="20,15" Spacing="10">
+			<DockPanel Grid.Row="0" Margin="20,15">
 				<TextBlock Text="{Binding MediaInfo.Title}" VerticalAlignment="Center" FontSize="16" Opacity="0.7"/>
-			</StackPanel>
+			</DockPanel>
 
 			<!-- poster-name-desc-tags-rating-year-country-duration -->
 			<ScrollViewer Name="MainScrollViewer" Grid.Row="1">

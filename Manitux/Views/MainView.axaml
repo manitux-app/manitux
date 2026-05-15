@@ -61,6 +61,11 @@
                     <u:NavMenu.HeaderTemplate>
                         <DataTemplate x:DataType="vm:MenuItemViewModel">
                             <StackPanel Orientation="Horizontal" Spacing="{StaticResource SemiSpacingExtraTight}">
+                                <!-- <Image async:ImageLoader.Source="{Binding PluginFavicon}"
+                                       Width="18"
+                                       Height="18"
+                                       Stretch="UniformToFill"
+                                       IsVisible="{Binding PluginFavicon, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" /> -->
                                 <TextBlock HorizontalAlignment="Left" Text="{Binding MenuHeader}" />
                                 <Label
                                     Theme="{StaticResource TagLabel}"
@@ -115,51 +120,8 @@
                 </u:NavMenu>
             </Border>
 			
-			<Grid Grid.Column="1" Margin="12,36,12,12" RowDefinitions="Auto, *">
-				<Border Grid.Row="0"
-						Height="60"
-						Theme="{DynamicResource CardBorder}"
-						IsVisible="{Binding IsPluginsLoaded}">
-					<DockPanel>
-						<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" TextElement.FontWeight="Normal">
-                            <TextBox
-                                Name="txtSearch"
-                                Width="300"
-                                InnerLeftContent="{Binding L.Search}"
-                                Text="{Binding SearchText, Mode=TwoWay}" />
-							<u:IconButton IsVisible="True"
-									HorizontalAlignment="Stretch"
-									Classes="Tertiary"
-									Command="{Binding SearchCommand}"
-									Icon="{StaticResource SemiIconSearch}"
-									RenderTransform="{x:Null}"
-									ToolTip.Tip="{Binding L.Search}"
-									FontWeight="Normal" FontSize="16"
-									Theme="{DynamicResource BorderlessIconButton}"/>
-							<u:IconButton IsVisible="True"
-									HorizontalAlignment="Stretch"
-									Classes="Tertiary"
-									Icon="{StaticResource SemiIconSetting}"
-									RenderTransform="{x:Null}"
-									ToolTip.Tip="{Binding L.Settings}"
-									FontWeight="Normal" FontSize="16"
-									Theme="{DynamicResource BorderlessIconButton}"/>
-							<u:IconButton IsVisible="True"
-									HorizontalAlignment="Stretch"
-									Classes="Tertiary"
-									Icon="{StaticResource SemiIconRefresh}"
-									RenderTransform="{x:Null}"
-									ToolTip.Tip="{Binding L.Refresh}"
-									FontWeight="Normal" FontSize="16"
-									Theme="{DynamicResource BorderlessIconButton}"/>
-						</StackPanel>
-                        <Image async:ImageLoader.Source="{Binding CurrentPlugin.Config.Favicon}" Stretch="Fill" Width="32" Height="32" Margin="0,0,10,0"/>
-						<TextBlock Text="{Binding CurrentPlugin.Manifest.Name}" Classes="Header H1" />
-						<!--<Label Content="{Binding CurrentPlugin.Manifest.Description}" />-->
-					</DockPanel>
-				</Border>
-
-				<ContentControl Grid.Row="1"
+			<Grid Grid.Column="1" Margin="12,36,12,12">
+				<ContentControl
 								Content="{Binding Content}">
 					<ContentControl.ContentTemplate>
 						<converters:ViewLocator />
