@@ -12,10 +12,11 @@
         Width="1366" Height="768"
         IsFullScreenButtonVisible="{OnPlatform {x:True}, macOS={x:False}}"
         IsManagedResizerVisible="{OnPlatform {x:False}, Linux={x:True}}"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:CompileBindings="True">
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:CompileBindings="True"
+        x:DataType="vm:MainViewModel">
 	<!-- <views:TvView /> -->
 	<views:MainView />
         <u:UrsaWindow.RightContent>
-        <views:TitleBarRightContent />
+        <views:TitleBarRightContent DataContext="{Binding Locales}" />
     </u:UrsaWindow.RightContent>
 </u:UrsaWindow>

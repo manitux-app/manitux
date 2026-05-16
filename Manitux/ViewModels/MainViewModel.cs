@@ -64,7 +64,7 @@ public partial class MainViewModel : ViewModelBase
     private List<PluginMenuModel>? _pluginMenus;
 
     public MenuViewModel Menus { get; set; } = new MenuViewModel();
-    public LocaleViewModel Locales { get; set; } = new LocaleViewModel();
+    public LocaleViewModel Locales { get; }
 
     [ObservableProperty] private object? _content;
     [ObservableProperty] private bool _isReady = false;
@@ -85,9 +85,11 @@ public partial class MainViewModel : ViewModelBase
         _localizationService = localizationService;
         _remotePluginService = remotePluginService;
         _favoritesService = favoritesService;
+        Locales = new LocaleViewModel(localizationService);
 
         L = _localizationService.Strings;
         FooterText = L.Settings;
+        _localizationService.LanguageChanged += OnLanguageChanged;
 
         WeakReferenceMessenger.Default.Register<MainViewModel, MenuItemChangedMessage>(this, OnNavigation);
         WeakReferenceMessenger.Default.Register<MainViewModel, PageItemChangedMessage>(this, OnNavigation);
@@ -204,7 +206,22 @@ public partial class MainViewModel : ViewModelBase
             if (IsInitialized) break;
 
             _pluginManager = await _framework.InitAsync();
+            await _localizationService.SelectSystemOrDefaultLanguageAsync();
             LoadPlugins();
+        }
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        FooterText = IsCollapsed ? null : L.Settings;
+
+        if (_pluginMenus?.Any() == true)
+        {
+            Menus.LoadMenus(_pluginMenus, L);
+        }
+        else
+        {
+            Menus.LoadDefaultMenu(L);
         }
     }
 
@@ -347,7 +364,7 @@ public partial class MainViewModel : ViewModelBase
         var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
         while (await timer.WaitForNextTickAsync())
         {
-            _localizationService.ChangeLanguage("tr-TR");
+            await _localizationService.ChangeLanguageAsync("tr-TR");
             
             //ShowTestPlayer();
             //ShowMessage("test", "test 123");

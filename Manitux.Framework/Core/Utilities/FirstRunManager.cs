@@ -112,8 +112,8 @@ public static class FirstRunManager
                 },
                 localization = new
                 {
-                    defaultCulture = "tr-Tr",
-                    supportedCultures = new[] { "en-US", "tr-TR" },
+                    defaultCulture = "tr-TR",
+                    supportedCultures = new[] { "tr-TR", "en-US", "de-DE", "fr-FR" },
                     autoGenerateTemplates = true
                 },
                 libraries = new

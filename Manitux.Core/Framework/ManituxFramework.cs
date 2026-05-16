@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using CodeLogic.Framework.Application;
 using CodeLogic.Framework.Application.Plugins;
 using Manitux.Core.Application;
@@ -12,6 +14,8 @@ public class ManituxFramework
 {
     public async Task<PluginManager> InitAsync()
     {
+        EnsureLocalizationCulturesConfigured();
+
         // ── Step 1: Initialize ────────────────────────────────────────────────────
         var initResult = await CodeLogic.CodeLogic.InitializeAsync(opts =>
         {
@@ -93,6 +97,8 @@ public class ManituxFramework
     
     public async Task Init()
     {
+        EnsureLocalizationCulturesConfigured();
+
         // ── Step 1: Initialize ────────────────────────────────────────────────────
         var initResult = await CodeLogic.CodeLogic.InitializeAsync(opts =>
         {
@@ -207,5 +213,48 @@ public class ManituxFramework
         Console.WriteLine($"  [Plugins] {plugin.Manifest.Id} loaded and started");
 
         //await CodeLogic.CodeLogic.StopAsync();
+    }
+
+    private static void EnsureLocalizationCulturesConfigured()
+    {
+        try
+        {
+            var baseDir = OperatingSystem.IsAndroid()
+                ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+                : AppContext.BaseDirectory;
+
+            var configPath = Path.Combine(baseDir, "data", "codelogic", "Framework", "CodeLogic.json");
+            if (!File.Exists(configPath))
+            {
+                return;
+            }
+
+            var root = JsonNode.Parse(File.ReadAllText(configPath))?.AsObject();
+            if (root is null)
+            {
+                return;
+            }
+
+            var localization = root["localization"] as JsonObject ?? new JsonObject();
+            root["localization"] = localization;
+            localization["defaultCulture"] = "tr-TR";
+
+            var cultures = localization["supportedCultures"] as JsonArray ?? new JsonArray();
+            localization["supportedCultures"] = cultures;
+
+            foreach (var culture in new[] { "tr-TR", "en-US", "de-DE", "fr-FR" })
+            {
+                if (!cultures.Any(x => string.Equals(x?.GetValue<string>(), culture, StringComparison.OrdinalIgnoreCase)))
+                {
+                    cultures.Add(culture);
+                }
+            }
+
+            File.WriteAllText(configPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Localization culture config update failed: {ex}");
+        }
     }
 }
