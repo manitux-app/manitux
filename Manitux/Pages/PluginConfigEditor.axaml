@@ -24,26 +24,26 @@
         <ScrollViewer Grid.Row="2">
             <u:Form LabelPosition="Top">
                 <StackPanel Spacing="12">
-                <TextBox u:FormItem.Label="Main URL"
+                <TextBox u:FormItem.Label="{Binding L.MainUrl}"
                          Watermark="https://example.com"
                          Text="{Binding MainUrl, Mode=TwoWay}" />
 
-                <TextBox u:FormItem.Label="API Key"
+                <TextBox u:FormItem.Label="{Binding L.ApiKey}"
                          PasswordChar="*"
                          Text="{Binding ApiKey, Mode=TwoWay}" />
 
-                <TextBox u:FormItem.Label="Favicon"
+                <TextBox u:FormItem.Label="{Binding L.Favicon}"
                          Watermark="https://example.com/favicon.ico"
                          Text="{Binding Favicon, Mode=TwoWay}" />
 
-                <TextBox u:FormItem.Label="Language"
+                <TextBox u:FormItem.Label="{Binding L.Language}"
                          Watermark="tr"
                          Text="{Binding Language, Mode=TwoWay}" />
 
-                <CheckBox Content="Use proxy"
+                <CheckBox Content="{Binding L.UseProxy}"
                           IsChecked="{Binding UseProxy, Mode=TwoWay}" />
 
-                <CheckBox Content="Adult content"
+                <CheckBox Content="{Binding L.AdultContent}"
                           IsChecked="{Binding IsAdult, Mode=TwoWay}" />
                 </StackPanel>
             </u:Form>
@@ -53,9 +53,9 @@
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="8">
-            <Button Content="Cancel"
+            <Button Content="{Binding L.Cancel}"
                     Command="{Binding CancelCommand}" />
-            <Button Content="Save"
+            <Button Content="{Binding L.Save}"
                     Classes="Primary"
                     Command="{Binding SaveCommand}" />
         </StackPanel>

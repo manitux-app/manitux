@@ -19,6 +19,9 @@ namespace Manitux.Core.Models
         public string? Poster { get; set; }
         public string? Rating { get; set; }
         public string? Year { get; set; }
+        public string? PluginId { get; set; }
+        public string? PluginName { get; set; }
+        public string? PluginFavicon { get; set; }
         public IpTvChannelModel? IpTvChannel { get; set; }
     }
 

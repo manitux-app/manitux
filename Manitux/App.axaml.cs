@@ -9,6 +9,7 @@ using Avalonia.Threading;
 using CodeLogic.Framework.Application.Plugins;
 using Manitux.Core.Services.Plugins;
 using Manitux.Services.Applications;
+using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Notifications;
 using Manitux.Services.Plugins;
@@ -68,6 +69,7 @@ public partial class App : Application
             services.AddSingleton<IPluginService, PluginService>();
             services.AddSingleton<ILocalizationService, LocalizationService>();
             services.AddSingleton<IRemotePluginService, RemotePluginService>();
+            services.AddSingleton<IFavoritesService, FavoritesService>();
 
             services.AddTransient<MainViewModel>();
 
@@ -77,7 +79,7 @@ public partial class App : Application
             mainWindow.DataContext = vm;
 
             desktop.MainWindow = mainWindow;
-            vm.ShowToast("Manitux Desktop App", NotificationType.Information);
+            vm.ShowToast(vm.L.ManituxDesktopApp, NotificationType.Information);
 
             desktop.ShutdownRequested += async (sender, e) =>
                {
@@ -87,8 +89,7 @@ public partial class App : Application
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
         {
-            //var mainView = new MainView();
-            singleViewPlatform.MainView = new SingleView();
+            singleViewPlatform.MainView = new TvView();
 
             var topLevel = TopLevel.GetTopLevel(singleViewPlatform.MainView);
             if (topLevel is null)
@@ -103,6 +104,7 @@ public partial class App : Application
             services.AddSingleton<IPluginService, PluginService>();
             services.AddSingleton<ILocalizationService, LocalizationService>();
             services.AddSingleton<IRemotePluginService, RemotePluginService>();
+            services.AddSingleton<IFavoritesService, FavoritesService>();
 
             services.AddTransient<MainViewModel>();
 
@@ -110,7 +112,7 @@ public partial class App : Application
 
             var vm = provider.GetRequiredService<MainViewModel>();
             singleViewPlatform.MainView.DataContext = vm;
-            vm.ShowToast("Manitux Mobile App", NotificationType.Information);
+            vm.ShowToast(vm.L.ManituxMobileApp, NotificationType.Information);
         }
 
         Dispatcher.UIThread.UnhandledException += (sender, e) =>

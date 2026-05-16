@@ -20,6 +20,7 @@ using Manitux.Core.Plugins;
 using Manitux.Models;
 using Manitux.Pages;
 using Manitux.Player;
+using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Plugins;
 using Ursa.Controls;
@@ -31,12 +32,20 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 {
     private readonly IPluginService _pluginService;
     private readonly ILocalizationService _localizationService;
+    private readonly IFavoritesService _favoritesService;
+    private readonly PageItemModel? _sourcePageItem;
 
     [ObservableProperty] private MediaInfoModel? _mediaInfo;
 
     [ObservableProperty] private AppStrings? _localize;
 
     [ObservableProperty] private bool _isLoading;
+
+    [ObservableProperty] private string _favoriteButtonText;
+
+    [ObservableProperty] private bool _isFavoriteButtonVisible;
+
+    [ObservableProperty] private bool _isFavorite;
 
     public AppStrings L { get; }
 
@@ -51,14 +60,21 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
     //public ICommand ActivateCommand { get; set; }
     // <!--Content="{Binding EpisodeNumber, StringFormat='{}{0}. B�l�m'}"-->
-    public MediaInfoViewModel(IPluginService pluginService, ILocalizationService localizationService, PageItemModel? pageItem)
+    public MediaInfoViewModel(
+        IPluginService pluginService,
+        ILocalizationService localizationService,
+        IFavoritesService favoritesService,
+        PageItemModel? pageItem)
     {
         //ActivateCommand = new RelayCommand(OnActivate);
 
         _pluginService = pluginService;
         _localizationService = localizationService;
+        _favoritesService = favoritesService;
+        _sourcePageItem = pageItem;
         L = _localizationService.Strings;
         Localize = L;
+        FavoriteButtonText = L.AddToFavorites;
 
         if (pageItem is null) return;
 
@@ -112,9 +128,84 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
     private void SetMediaInfo(MediaInfoModel mediaInfo)
     {
+        IsFavoriteButtonVisible = false;
         MediaInfo = mediaInfo;
         Seasons = mediaInfo.Episodes is null ? null : CreateSeasonGroup(mediaInfo.Episodes);
         OnDataRefreshed?.Invoke();
+        _ = UpdateFavoriteButtonVisibility(mediaInfo);
+    }
+
+    [RelayCommand]
+    private async Task AddToFavorites()
+    {
+        if (MediaInfo is null)
+        {
+            ShowError(Localize?.PageNotFound);
+            return;
+        }
+
+        var favoriteItem = CreateFavoritePageItem(MediaInfo);
+        if (IsFavorite)
+        {
+            await _favoritesService.RemoveAsync(favoriteItem);
+            SetFavoriteState(false);
+            ShowSuccess(L.RemovedFromFavorites);
+            return;
+        }
+
+        await _favoritesService.AddOrUpdateAsync(favoriteItem);
+        SetFavoriteState(true);
+        ShowSuccess(L.AddedToFavorites);
+    }
+
+    private async Task UpdateFavoriteButtonVisibility(MediaInfoModel mediaInfo)
+    {
+        try
+        {
+            var favoriteItem = CreateFavoritePageItem(mediaInfo);
+            var exists = await _favoritesService.ExistsAsync(favoriteItem);
+            SetFavoriteState(exists);
+            IsFavoriteButtonVisible = true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Favorite status check failed: {ex}");
+            IsFavoriteButtonVisible = true;
+            SetFavoriteState(false);
+        }
+    }
+
+    private void SetFavoriteState(bool isFavorite)
+    {
+        IsFavorite = isFavorite;
+        FavoriteButtonText = isFavorite ? L.RemoveFromFavorites : L.AddToFavorites;
+    }
+
+    private void ShowSuccess(string message)
+    {
+        ToastManager?.Show(
+            new Toast(message),
+            type: NotificationType.Success,
+            showIcon: true,
+            classes: ["Light"]);
+    }
+
+    private PageItemModel CreateFavoritePageItem(MediaInfoModel mediaInfo)
+    {
+        var currentPlugin = _pluginService.CurrentPlugin;
+
+        return new PageItemModel
+        {
+            Title = mediaInfo.Title,
+            Url = mediaInfo.Url,
+            CategoryName = _sourcePageItem?.CategoryName,
+            Poster = mediaInfo.Poster ?? _sourcePageItem?.Poster,
+            Rating = mediaInfo.Rating ?? _sourcePageItem?.Rating,
+            Year = mediaInfo.Year ?? _sourcePageItem?.Year,
+            PluginId = _sourcePageItem?.PluginId ?? currentPlugin?.Manifest.Id,
+            PluginName = _sourcePageItem?.PluginName ?? currentPlugin?.Manifest.Name,
+            PluginFavicon = _sourcePageItem?.PluginFavicon ?? currentPlugin?.Config.Favicon
+        };
     }
 
     public async void Play(VideoSourceModel videoSource)
@@ -270,7 +361,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         {
             var pageItem = new PageItemModel
             {
-                Title = episode.Title ?? $"Episode {episode.EpisodeNumber}",
+                Title = episode.Title ?? $"{L.Episode} {episode.EpisodeNumber}",
                 Url = episode.Url
             };
 
@@ -352,7 +443,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
     private void ShowError(string? message)
     {
         ToastManager?.Show(
-                new Toast(message ?? "Error"),
+                new Toast(message ?? L.Error),
                 type: NotificationType.Error,
                 showIcon: true,
                 classes: ["Light"]);

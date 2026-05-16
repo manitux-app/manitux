@@ -26,6 +26,7 @@ using Manitux.Core.Services.Plugins;
 using Manitux.Models;
 using Manitux.Pages;
 using Manitux.Player;
+using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Notifications;
 using Manitux.Services.Plugins;
@@ -49,6 +50,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly IPluginService _pluginService;
     private readonly ILocalizationService _localizationService;
     private readonly IRemotePluginService _remotePluginService;
+    private readonly IFavoritesService _favoritesService;
 
     private PluginManager? _pluginManager;
 
@@ -74,15 +76,18 @@ public partial class MainViewModel : ViewModelBase
         INotificationService notificationService,
         IPluginService pluginService,
         ILocalizationService localizationService,
-        IRemotePluginService remotePluginService)
+        IRemotePluginService remotePluginService,
+        IFavoritesService favoritesService)
     {
         _toastService = toastService;
         _notificationService = notificationService;
         _pluginService = pluginService;
         _localizationService = localizationService;
         _remotePluginService = remotePluginService;
+        _favoritesService = favoritesService;
 
         L = _localizationService.Strings;
+        FooterText = L.Settings;
 
         WeakReferenceMessenger.Default.Register<MainViewModel, MenuItemChangedMessage>(this, OnNavigation);
         WeakReferenceMessenger.Default.Register<MainViewModel, PageItemChangedMessage>(this, OnNavigation);
@@ -99,7 +104,7 @@ public partial class MainViewModel : ViewModelBase
     {
         Content = s switch
         {
-            MenuKeys.MenuKeyEmptyPage => new EmptyPageViewModel(),
+            MenuKeys.MenuKeyEmptyPage => new EmptyPageViewModel(_localizationService),
             MenuKeys.MenuKeyAboutUs => new AboutUsViewModel(),
             MenuKeys.MenuKeyCategories => new CategoriesViewModel(),
             MenuKeys.MenuKeyPageItems => new PageItemsViewModel(null),
@@ -134,13 +139,17 @@ public partial class MainViewModel : ViewModelBase
         switch (key)
         {
             case MenuKeys.MenuKeyEmptyPage:
-                Content = new EmptyPageViewModel();
+                Content = new EmptyPageViewModel(_localizationService);
                 break;
             case MenuKeys.MenuKeyAboutUs:
                 Content = new AboutUsViewModel();
                 break;
             case MenuKeys.MenuKeySettings:
-                Content = new RemotePluginsViewModel(_remotePluginService);
+                Content = new RemotePluginsViewModel(_remotePluginService, _localizationService);
+                break;
+            case MenuKeys.MenuKeyFavorites:
+                _currentPageItemsViewModel = null;
+                Content = new FavoritesViewModel(_favoritesService, _pluginService, _localizationService, _remotePluginService);
                 break;
             case MenuKeys.MenuKeyPageItems:
                 message.Value.PageNumber = Math.Max(1, message.Value.PageNumber);
@@ -278,9 +287,14 @@ public partial class MainViewModel : ViewModelBase
 
     private async void ShowMediaInfo(PageItemModel pageItem)
     {
+        if (!string.IsNullOrWhiteSpace(pageItem.PluginId))
+        {
+            SetCurrentPlugin(pageItem.PluginId);
+        }
+
         if (CurrentPlugin is null)
         {
-            ShowToast("Plugin not selected", NotificationType.Warning);
+            ShowToast(L.PluginNotSelected, NotificationType.Warning);
             return;
         }
 
@@ -296,7 +310,7 @@ public partial class MainViewModel : ViewModelBase
             //OnDialogControlClosed = (object? _, object? _) => target.Focus()
         };
 
-        await OverlayDialog.ShowCustomModal<MediaInfo, MediaInfoViewModel, object>(new MediaInfoViewModel(_pluginService, _localizationService, pageItem), null, options: options);
+        await OverlayDialog.ShowCustomModal<MediaInfo, MediaInfoViewModel, object>(new MediaInfoViewModel(_pluginService, _localizationService, _favoritesService, pageItem), null, options: options);
         //OverlayDialog.Show<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(), null, options: options);
         //await OverlayDialog.ShowModal<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(mediaInfo), null, options: options);
     }
@@ -388,13 +402,13 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    [ObservableProperty] private string? _footerText = "Settings";
+    [ObservableProperty] private string? _footerText;
 
     [ObservableProperty] private bool _isCollapsed;
 
     partial void OnIsCollapsedChanged(bool value)
     {
-        FooterText = value ? null : "Settings";
+        FooterText = value ? null : L.Settings;
     }
 }
 

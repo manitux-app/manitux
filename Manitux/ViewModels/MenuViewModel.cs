@@ -15,6 +15,7 @@ namespace Manitux.ViewModels;
 public class MenuViewModel : ViewModelBase
 {
     public ObservableCollection<MenuItemViewModel> MenuItems { get; set; } = [];
+    public AppStrings L { get; private set; } = new();
    
     // public MenuViewModel()
     // {
@@ -65,10 +66,12 @@ public class MenuViewModel : ViewModelBase
 
     public void LoadDefaultMenu(AppStrings localize)
     {
+        L = localize;
         MenuItems = new ObservableCollection<MenuItemViewModel>
         {
-            new() { MenuHeader = localize.Settings, Key = MenuKeys.MenuKeySettings, IsSeparator = false, MenuIconName = "SemiIconSetting" },
-            new() { MenuHeader = localize.Plugins, IsSeparator = true, Status = "0" }
+            new() { MenuHeader = L.Settings, Key = MenuKeys.MenuKeySettings, IsSeparator = false, MenuIconName = "SemiIconSetting" },
+            new() { MenuHeader = L.Favorites, Key = MenuKeys.MenuKeyFavorites, IsSeparator = false, MenuIconName = "star" },
+            new() { MenuHeader = L.Plugins, IsSeparator = true, Status = "0" }
         };
 
         OnPropertyChanged(nameof(MenuItems));
@@ -105,11 +108,13 @@ public class MenuViewModel : ViewModelBase
 
     public void LoadMenus(List<PluginMenuModel> pluginMenus, AppStrings localize)
     {
+        L = localize;
         MenuItems = new ObservableCollection<MenuItemViewModel>
         {
             //new() { MenuHeader = localize.AboutUs, Key = MenuKeys.MenuKeyAboutUs, IsSeparator = false },
-            new() { MenuHeader = localize.Settings, Key = MenuKeys.MenuKeySettings, IsSeparator = false, MenuIconName = "settings" },
-            new() { MenuHeader = localize.Plugins, IsSeparator = true, Status = pluginMenus.Any() ? pluginMenus.Count.ToString(): "0" },
+            new() { MenuHeader = L.Settings, Key = MenuKeys.MenuKeySettings, IsSeparator = false, MenuIconName = "settings" },
+            new() { MenuHeader = L.Favorites, Key = MenuKeys.MenuKeyFavorites, IsSeparator = false, MenuIconName = "star" },
+            new() { MenuHeader = L.Plugins, IsSeparator = true, Status = pluginMenus.Any() ? pluginMenus.Count.ToString(): "0" },
         };
 
         foreach (var p in pluginMenus)
@@ -148,6 +153,7 @@ public static class MenuKeys
     public const string MenuKeySettings = "Settings";
     public const string MenuKeyCategories = "Categories";
     public const string MenuKeyPageItems = "PageItems";
+    public const string MenuKeyFavorites = "Favorites";
     public const string MenuKeyMediaInfo = "MediaInfo";
     public const string MenuKeySearch = "Search";
     public const string MenuKeyPlayer = "Player";

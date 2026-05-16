@@ -5,13 +5,16 @@ using System.Threading.Tasks;
 using Avalonia.Controls.Notifications;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Manitux.Core.Application;
 using Manitux.Core.Services.Plugins;
+using Manitux.Services.Localizations;
 
 namespace Manitux.ViewModels;
 
 public partial class RemotePluginsViewModel : ViewModelBase
 {
     private readonly IRemotePluginService _remotePluginService;
+    public AppStrings L { get; }
 
     [ObservableProperty] private string? _repositoryInput;
     [ObservableProperty] private string? _statusMessage;
@@ -21,9 +24,10 @@ public partial class RemotePluginsViewModel : ViewModelBase
     [ObservableProperty] private ObservableCollection<RemotePluginManifest> _availablePlugins = [];
     [ObservableProperty] private ObservableCollection<ManagedRemotePlugin> _installedPlugins = [];
 
-    public RemotePluginsViewModel(IRemotePluginService remotePluginService)
+    public RemotePluginsViewModel(IRemotePluginService remotePluginService, ILocalizationService localizationService)
     {
         _remotePluginService = remotePluginService;
+        L = localizationService.Strings;
         _ = Refresh();
     }
 
@@ -32,7 +36,7 @@ public partial class RemotePluginsViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(RepositoryInput))
         {
-            SetStatus("Repository URL or short code is required.", NotificationType.Warning);
+            SetStatus(L.RepositoryRequired, NotificationType.Warning);
             return;
         }
 
@@ -41,7 +45,7 @@ public partial class RemotePluginsViewModel : ViewModelBase
             var repository = await _remotePluginService.AddRepositoryAsync(RepositoryInput);
             await LoadRepositoryPlugins(repository.Url);
             await RefreshSettings();
-            SetStatus($"Repository added: {repository.Name}", NotificationType.Success);
+            SetStatus(string.Format(L.RepositoryAddedFormat, repository.Name), NotificationType.Success);
         });
     }
 
@@ -54,7 +58,7 @@ public partial class RemotePluginsViewModel : ViewModelBase
         await RunBusy(async () =>
         {
             await LoadRepositoryPlugins(repository.Url);
-            SetStatus($"Repository loaded: {repository.Name}", NotificationType.Success);
+            SetStatus(string.Format(L.RepositoryLoadedFormat, repository.Name), NotificationType.Success);
         });
     }
 
@@ -109,7 +113,7 @@ public partial class RemotePluginsViewModel : ViewModelBase
             var removed = await _remotePluginService.RemoveAsync(plugin.InternalName);
             await RefreshSettings();
             SetStatus(
-                removed ? $"Plugin removed: {plugin.Name}" : "Plugin was not found.",
+                removed ? string.Format(L.PluginRemovedFormat, plugin.Name) : L.PluginWasNotFound,
                 removed ? NotificationType.Success : NotificationType.Warning);
         });
     }
@@ -122,7 +126,7 @@ public partial class RemotePluginsViewModel : ViewModelBase
             var results = await _remotePluginService.UpdateAllAsync();
             await RefreshSettings();
             var updated = results.Count(x => x.Success);
-            SetStatus($"Update check completed. {updated}/{results.Count} plugins processed.", NotificationType.Success);
+            SetStatus(string.Format(L.UpdateCheckCompletedFormat, updated, results.Count), NotificationType.Success);
         });
     }
 

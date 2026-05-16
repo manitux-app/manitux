@@ -27,6 +27,11 @@ public partial class PluginTopBarViewModel : ViewModelBase
     [ObservableProperty] private string? _pluginName;
     [ObservableProperty] private string? _pluginFavicon;
     [ObservableProperty] private bool _isVisible = false;
+    [ObservableProperty] private bool _isPluginConfigVisible = true;
+    [ObservableProperty] private bool _isRefreshVisible = true;
+
+    private readonly string? _displayName;
+    private readonly string? _displayFavicon;
 
     public AppStrings L { get; }
 
@@ -35,13 +40,21 @@ public partial class PluginTopBarViewModel : ViewModelBase
         ILocalizationService localizationService,
         IRemotePluginService remotePluginService,
         Func<string?, Task<bool>> searchHandler,
-        Func<Task> refreshHandler)
+        Func<Task> refreshHandler,
+        string? displayName = null,
+        string? displayFavicon = null,
+        bool isPluginConfigVisible = true,
+        bool isRefreshVisible = true)
     {
         _pluginService = pluginService;
         _localizationService = localizationService;
         _remotePluginService = remotePluginService;
         _searchHandler = searchHandler;
         _refreshHandler = refreshHandler;
+        _displayName = displayName;
+        _displayFavicon = displayFavicon;
+        IsPluginConfigVisible = isPluginConfigVisible;
+        IsRefreshVisible = isRefreshVisible;
         L = _localizationService.Strings;
 
         UpdatePluginInfo();
@@ -84,11 +97,11 @@ public partial class PluginTopBarViewModel : ViewModelBase
             CanDragMove = false,
             CanResize = false,
             FullScreen = false,
-            Title = $"{_pluginService.CurrentPlugin.Manifest.Name} config.json"
+            Title = string.Format(L.PluginConfigTitleFormat, _pluginService.CurrentPlugin.Manifest.Name)
         };
 
         await OverlayDialog.ShowCustomModal<PluginConfigEditor, PluginConfigEditorViewModel, object>(
-            new PluginConfigEditorViewModel(_pluginService.CurrentPlugin),
+            new PluginConfigEditorViewModel(_pluginService.CurrentPlugin, _localizationService),
             null,
             options: options);
 
@@ -97,9 +110,9 @@ public partial class PluginTopBarViewModel : ViewModelBase
 
     public void UpdatePluginInfo()
     {
-        PluginName = _pluginService.CurrentPlugin?.Manifest.Name;
-        PluginFavicon = _pluginService.CurrentPlugin?.Config.Favicon;
-        IsVisible = _pluginService.CurrentPlugin is null? false: true;
+        PluginName = _displayName ?? _pluginService.CurrentPlugin?.Manifest.Name;
+        PluginFavicon = _displayFavicon ?? _pluginService.CurrentPlugin?.Config.Favicon;
+        IsVisible = !string.IsNullOrWhiteSpace(_displayName) || _pluginService.CurrentPlugin is not null;
     }
 
     private async Task UpdateCurrentPluginIfAvailable()

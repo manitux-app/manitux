@@ -38,6 +38,7 @@ namespace Manitux.ViewModels
 
         private AppStrings? _localize;
         private readonly SubtitleManager _subtitleManager = new();
+        public AppStrings L { get; }
 
         public event Action? OnRequestClose;
         public event Action<string>? OnErrorClose;
@@ -55,6 +56,7 @@ namespace Manitux.ViewModels
             _pluginService = pluginService;
             _localizationService = localizationService;
             _localize = _localizationService.Strings;
+            L = _localizationService.Strings;
 
             //var opt = new MPVMediaPlayerOptions();
             MediaPlayer = new MPVMediaPlayer();

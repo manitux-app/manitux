@@ -21,7 +21,7 @@
 			<u:Banner ShowIcon="True" Type="Error"
 				   Name="banner"
 				   Classes.Bordered="True"
-				   Header="Manitux Player"
+				   Header="{Binding L.ManituxPlayer}"
 				   Content="{Binding ErrorString}" />
 		</Grid>
    </Grid>

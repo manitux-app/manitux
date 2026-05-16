@@ -45,6 +45,8 @@ public partial class PageItemsViewModel :  ViewModelBase
     [ObservableProperty]
     private PluginTopBarViewModel? _topBar;
 
+    [ObservableProperty] private bool _isVisible = false;
+
     public event Action? OnDataRefreshed;
 
     public PageItemsViewModel(List<PageItemModel>? pageItems, int currentPage = 1, bool isPaginationVisible = true)
@@ -135,6 +137,8 @@ public partial class PageItemsViewModel :  ViewModelBase
             ? null
             : new ObservableCollection<PageItemModel>(pageItems);
 
+        IsVisible = PageItems is null? false: true;
+
         OnPropertyChanged(nameof(PageItems));
         OnDataRefreshed?.Invoke();
     }
@@ -157,6 +161,7 @@ public partial class PageItemsViewModel :  ViewModelBase
                 return false;
             }
 
+            EnrichWithCurrentPlugin(results);
             _navigation = null;
             IsPaginationVisible = false;
             UpdatePageItems(results);
@@ -211,11 +216,28 @@ public partial class PageItemsViewModel :  ViewModelBase
         {
             Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(plugin.Manifest)}" + Environment.NewLine);
             var pageItems = await plugin.GetPageItems(pageNumber, category);
+            EnrichWithCurrentPlugin(pageItems);
             UpdatePageItems(pageItems);
         }
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    private void EnrichWithCurrentPlugin(List<PageItemModel>? pageItems)
+    {
+        var plugin = _pluginService?.CurrentPlugin;
+        if (plugin is null || pageItems is null)
+        {
+            return;
+        }
+
+        foreach (var item in pageItems)
+        {
+            item.PluginId ??= plugin.Manifest.Id;
+            item.PluginName ??= plugin.Manifest.Name;
+            item.PluginFavicon ??= plugin.Config.Favicon;
         }
     }
 

@@ -13,7 +13,8 @@
         IsFullScreenButtonVisible="{OnPlatform {x:True}, macOS={x:False}}"
         IsManagedResizerVisible="{OnPlatform {x:False}, Linux={x:True}}"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:CompileBindings="True">
-        <views:MainView />
+	<!-- <views:TvView /> -->
+	<views:MainView />
         <u:UrsaWindow.RightContent>
         <views:TitleBarRightContent />
     </u:UrsaWindow.RightContent>

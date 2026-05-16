@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Irihi.Avalonia.Shared.Contracts;
+using Manitux.Core.Application;
 using Manitux.Core.Plugins;
+using Manitux.Services.Localizations;
 
 namespace Manitux.ViewModels;
 
@@ -28,10 +30,13 @@ public partial class PluginConfigEditorViewModel : ViewModelBase, IDialogContext
     [ObservableProperty] private string? _errorMessage;
     [ObservableProperty] private bool _hasError;
 
-    public PluginConfigEditorViewModel(PluginBase plugin)
+    public AppStrings L { get; }
+
+    public PluginConfigEditorViewModel(PluginBase plugin, ILocalizationService localizationService)
     {
         _plugin = plugin;
-        Title = $"{plugin.Manifest.Name} config.json";
+        L = localizationService.Strings;
+        Title = string.Format(L.PluginConfigTitleFormat, plugin.Manifest.Name);
         _configPath = GetPluginConfigPath(plugin.Manifest.Id);
         LoadConfig();
     }

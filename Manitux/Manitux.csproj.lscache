@@ -63,6 +63,7 @@ Converters/
  TimelineIconConverter.cs
 DataTemplates/ViewLocator.cs
 Models/
+ FavoriteItemModel.cs
  MessageModels.cs
  PluginMenuModels.cs
 obj/Debug/net10.0/
@@ -74,6 +75,7 @@ Pages/
  Categories.axaml.cs
  DialogPage.axaml.cs
  EmptyPage.axaml.cs
+ Favorites.axaml.cs
  MediaInfo.axaml.cs
  PageItems.axaml.cs
  PluginConfigEditor.axaml.cs
@@ -86,6 +88,9 @@ Player/
  PlayerView.axaml.cs
 Services/
  Applications/ApplicationServiceExtensions.cs
+ Favorites/
+  FavoritesService.cs
+  IFavoritesService.cs
  ImageLoaders/
   CustomWebImageLoader.cs
   LongLoader.cs
@@ -104,6 +109,7 @@ ViewModels/
  CategoriesViewModel.cs
  DialogPageViewModel.cs
  EmptyPageViewModel.cs
+ FavoritesViewModel.cs
  LocaleViewModel.cs
  MainViewModel.cs
  MediaInfoViewModel.cs
@@ -121,6 +127,7 @@ Views/
  MainWindow.axaml.cs
  SingleView.axaml.cs
  TitleBarRightContent.axaml.cs
+ TvView.axaml.cs
 
 [metadataReferences]
 ../
@@ -365,6 +372,7 @@ Pages/
  Categories.axaml
  DialogPage.axaml
  EmptyPage.axaml
+ Favorites.axaml
  MediaInfo.axaml
  PageItems.axaml
  PluginConfigEditor.axaml
@@ -382,3 +390,4 @@ Views/
  MainWindow.axaml
  SingleView.axaml
  TitleBarRightContent.axaml
+ TvView.axaml

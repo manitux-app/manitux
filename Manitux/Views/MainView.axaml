@@ -100,7 +100,7 @@
                             Icon="{StaticResource SemiIconSetting}"
                             Content="{Binding FooterText}"
                             RenderTransform="{x:Null}"
-                            ToolTip.Tip="Settings"
+                            ToolTip.Tip="{Binding L.Settings}"
                             FontWeight="Normal"
                             Theme="{DynamicResource BorderlessIconButton}">
                             <Button.Flyout>
@@ -108,7 +108,7 @@
                                     <u:Form LabelPosition="Left">
                                         <ComboBox
                                             Width="110"
-                                            u:FormItem.Label="Theme"
+                                            u:FormItem.Label="{Binding L.Theme}"
                                             DisplayMemberBinding="{Binding Name}"
                                             ItemsSource="{Binding Themes}"
                                             SelectedItem="{Binding SelectedTheme}" />

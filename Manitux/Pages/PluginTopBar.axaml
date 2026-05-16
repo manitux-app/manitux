@@ -28,7 +28,7 @@
                             ToolTip.Tip="{Binding L.Search}"
                             FontWeight="Normal" FontSize="16"
                             Theme="{DynamicResource BorderlessIconButton}"/>
-                    <u:IconButton IsVisible="True"
+                    <u:IconButton IsVisible="{Binding IsPluginConfigVisible}"
                             HorizontalAlignment="Stretch"
                             Classes="Tertiary"
                             Command="{Binding ShowPluginConfigCommand}"
@@ -37,7 +37,7 @@
                             ToolTip.Tip="{Binding L.Settings}"
                             FontWeight="Normal" FontSize="16"
                             Theme="{DynamicResource BorderlessIconButton}"/>
-                    <u:IconButton IsVisible="True"
+                    <u:IconButton IsVisible="{Binding IsRefreshVisible}"
                             HorizontalAlignment="Stretch"
                             Classes="Tertiary"
                             Command="{Binding RefreshCommand}"
@@ -48,7 +48,7 @@
                             Theme="{DynamicResource BorderlessIconButton}"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Image async:ImageLoader.Source="{Binding PluginFavicon}" Stretch="Fill" Width="32" Height="32" />
+                    <Image async:ImageLoader.Source="{Binding PluginFavicon}" Stretch="Fill" Width="32" Height="32" IsVisible="{Binding IsPluginConfigVisible}"/>
                     <TextBlock Text="{Binding PluginName}" FontSize="24"/>
                 </StackPanel>
             </DockPanel>
