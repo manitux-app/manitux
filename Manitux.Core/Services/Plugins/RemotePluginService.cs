@@ -331,9 +331,9 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
     private async Task<string> ResolveInputUrlAsync(string urlOrShortCode, CancellationToken cancellationToken)
     {
         var input = urlOrShortCode.Trim();
-        if (input.StartsWith("cloudstreamrepo://", StringComparison.OrdinalIgnoreCase))
+        if (input.StartsWith("manituxrepo://", StringComparison.OrdinalIgnoreCase))
         {
-            input = "https://" + input["cloudstreamrepo://".Length..].TrimStart('/');
+            input = "https://" + input["manituxrepo://".Length..].TrimStart('/');
         }
 
         if (Uri.TryCreate(input, UriKind.Absolute, out var uri))
@@ -480,8 +480,7 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
 
     private static bool IsPluginFileUrl(string url)
     {
-        return url.EndsWith(".cs3", StringComparison.OrdinalIgnoreCase)
-               || url.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+        return url.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
                || url.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
     }
 

@@ -56,7 +56,7 @@ public class ManituxFramework
             ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android /data/user/0/.../files/
             : AppContext.BaseDirectory;
 
-        string pluginsDir = Path.Combine(baseDir, "data/plugins");
+        string pluginsDir = Path.Combine(baseDir, "data", "plugins");
 
         //Debug.WriteLine(pluginsDir);
 

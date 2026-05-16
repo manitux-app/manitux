@@ -43,7 +43,7 @@ public sealed class PluginManager : IAsyncDisposable
         _options           = options ?? new PluginOptions();
         _loggingOptions    = loggingOptions ?? new LoggingOptions();
         _defaultCulture    = defaultCulture;
-        _supportedCultures = supportedCultures ?? ["en-US"];
+        _supportedCultures = supportedCultures ?? ["en-US", "tr-TR"];
 
         Directory.CreateDirectory(_options.PluginsDirectory);
 
