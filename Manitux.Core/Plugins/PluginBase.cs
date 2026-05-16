@@ -37,7 +37,7 @@ public abstract class PluginBase : HttpHelper, IPlugin
 
         //var path = context.Configuration.GetRegisteredFilePaths();
         //await context.Configuration.ReloadAsync<PluginConfig>();
-        await context.Configuration.SaveFirstTimeAsync<PluginConfig>(Config);
+        await SavePluginDefaultConfigAsync(context);
         await context.Configuration.LoadAsync<PluginConfig>();
 
         Config = context.Configuration.Get<PluginConfig>();
@@ -48,6 +48,37 @@ public abstract class PluginBase : HttpHelper, IPlugin
         State = PluginState.Initialized;
         await Task.CompletedTask;
     }
+
+    private async Task SavePluginDefaultConfigAsync(PluginContext context)
+    {
+        var configPath = context.Configuration.GetRegisteredFilePaths().FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(configPath) || !File.Exists(configPath))
+        {
+            await context.Configuration.SaveFirstTimeAsync(Config);
+            return;
+        }
+
+        try
+        {
+            await context.Configuration.LoadAsync<PluginConfig>(generateIfMissing: false);
+            var existingConfig = context.Configuration.Get<PluginConfig>();
+
+            if (IsEmptyDefaultConfig(existingConfig))
+                await context.Configuration.SaveAsync(Config);
+        }
+        catch
+        {
+            await context.Configuration.SaveAsync(Config);
+        }
+    }
+
+    private static bool IsEmptyDefaultConfig(PluginConfig config) =>
+        string.IsNullOrWhiteSpace(config.MainUrl)
+        && string.IsNullOrWhiteSpace(config.ApiKey)
+        && string.IsNullOrWhiteSpace(config.Favicon)
+        && string.IsNullOrWhiteSpace(config.Language)
+        && !config.UseProxy
+        && !config.IsAdult;
 
     public async Task OnStartAsync(PluginContext context)
     {

@@ -27,7 +27,7 @@ public class HdFilmCehennemi : PluginBase
 
     public override PluginConfig Config { get; set; } = new()
     {
-        MainUrl = "https://www.hdfilmcehennemi.com",
+        MainUrl = "https://www.hdfilmcehennemi.nl",
         Favicon = "https://www.google.com/s2/favicons?domain=hdfilmcehennemi.nl&sz=64",
         Language = "tr"
     };

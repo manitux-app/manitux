@@ -254,6 +254,7 @@ paket-files/
 # Local CLI/cache directories
 .dotnet/
 .localappdata/
+*.lscache
 
 # Local agent memory bank
 /AGENTS.md

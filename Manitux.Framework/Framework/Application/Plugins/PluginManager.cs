@@ -88,17 +88,23 @@ public sealed class PluginManager : IAsyncDisposable
 
     // ── Load ─────────────────────────────────────────────────────────────────
 
-    /// <summary>Loads and starts a single plugin from the specified assembly path.</summary>
+    /// <summary>Loads and starts all plugins from the specified assembly path.</summary>
     public async Task LoadPluginAsync(string pluginPath)
     {
+        pluginPath = Path.GetFullPath(pluginPath);
+
         if (!File.Exists(pluginPath))
             throw new FileNotFoundException($"Plugin not found: {pluginPath}");
+
+        AssemblyLoadContext? loadCtx = null;
+        var loadedIds = new List<string>();
+        var createdPlugins = new List<IPlugin>();
+        var disposedPlugins = new HashSet<IPlugin>(ReferenceEqualityComparer.Instance);
 
         try
         {
             // cross-platform
             Assembly assembly;
-            AssemblyLoadContext loadCtx;
 
             if (OperatingSystem.IsAndroid())
             {
@@ -119,46 +125,95 @@ public sealed class PluginManager : IAsyncDisposable
             //var loadCtx = new PluginLoadContext(pluginPath);
             //var assembly = loadCtx.LoadFromAssemblyPath(pluginPath);
 
-            var pluginType = FindPluginType(assembly)
-                    ?? throw new InvalidOperationException($"No IPlugin in {Path.GetFileName(pluginPath)}");
+            var pluginTypes = FindPluginTypes(assembly).ToList();
+            if (pluginTypes.Count == 0)
+                throw new InvalidOperationException($"No IPlugin in {Path.GetFileName(pluginPath)}");
 
-            var plugin   = (IPlugin)Activator.CreateInstance(pluginType)!;
-            var manifest = plugin.Manifest;
+            var pluginCandidates = new List<(Type Type, IPlugin Plugin, PluginManifest Manifest)>();
 
-            var ctx = CreateContext(manifest.Id, pluginPath);
-
-            // Full 4-phase lifecycle
-            await plugin.OnConfigureAsync(ctx);
-            await ctx.Configuration.GenerateAllDefaultsAsync();
-            await ctx.Configuration.LoadAllAsync();
-            await ctx.Localization.GenerateAllTemplatesAsync(_supportedCultures);
-            await ctx.Localization.LoadAllAsync(_supportedCultures);
-
-            await plugin.OnInitializeAsync(ctx);
-            await plugin.OnStartAsync(ctx);
-
-            var loaded = new LoadedPlugin
+            foreach (var pluginType in pluginTypes)
             {
-                Instance      = plugin,
-                Manifest      = manifest,
-                AssemblyPath  = pluginPath,
-                LoadContext   = loadCtx,
-                WeakReference = new WeakReference(loadCtx),
-                Context       = ctx,
-                State         = PluginState.Started
-            };
+                var plugin = (IPlugin)Activator.CreateInstance(pluginType)!;
+                createdPlugins.Add(plugin);
+                pluginCandidates.Add((pluginType, plugin, plugin.Manifest));
+            }
 
-            _plugins[manifest.Id] = loaded;
+            var duplicateInAssembly = pluginCandidates
+                .GroupBy(p => p.Manifest.Id, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault(g => g.Count() > 1);
 
-            _eventBus.Publish(new PluginLoadedEvent(manifest.Id, manifest.Name));
-            OnPluginLoaded?.Invoke(manifest.Id);
+            if (duplicateInAssembly != null)
+                throw new InvalidOperationException(
+                    $"Duplicate plugin id '{duplicateInAssembly.Key}' in {Path.GetFileName(pluginPath)}");
 
-            //Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"  + Plugin loaded: {manifest.Name} v{manifest.Version}");
-            //Console.ResetColor();
+            var alreadyLoaded = pluginCandidates
+                .FirstOrDefault(p => _plugins.ContainsKey(p.Manifest.Id));
+
+            if (alreadyLoaded.Plugin != null)
+                throw new InvalidOperationException(
+                    $"Plugin id '{alreadyLoaded.Manifest.Id}' is already loaded");
+
+            foreach (var (pluginType, plugin, manifest) in pluginCandidates)
+            {
+                try
+                {
+                    var ctx = CreateContext(manifest.Id, pluginPath);
+
+                    // Full 4-phase lifecycle
+                    await plugin.OnConfigureAsync(ctx);
+                    await ctx.Configuration.GenerateAllDefaultsAsync();
+                    await ctx.Configuration.LoadAllAsync();
+                    await ctx.Localization.GenerateAllTemplatesAsync(_supportedCultures);
+                    await ctx.Localization.LoadAllAsync(_supportedCultures);
+
+                    await plugin.OnInitializeAsync(ctx);
+                    await plugin.OnStartAsync(ctx);
+
+                    var loaded = new LoadedPlugin
+                    {
+                        Instance      = plugin,
+                        Manifest      = manifest,
+                        AssemblyPath  = pluginPath,
+                        LoadContext   = loadCtx,
+                        WeakReference = new WeakReference(loadCtx),
+                        Context       = ctx,
+                        State         = PluginState.Started
+                    };
+
+                    _plugins[manifest.Id] = loaded;
+                    loadedIds.Add(manifest.Id);
+
+                    _eventBus.Publish(new PluginLoadedEvent(manifest.Id, manifest.Name));
+                    OnPluginLoaded?.Invoke(manifest.Id);
+
+                    //Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"  + Plugin loaded: {manifest.Name} v{manifest.Version}");
+                    //Console.ResetColor();
+                }
+                catch (Exception ex)
+                {
+                    plugin.Dispose();
+                    disposedPlugins.Add(plugin);
+                    _eventBus.Publish(new PluginFailedEvent(pluginType.FullName ?? manifest.Id, manifest.Name, ex));
+                    OnPluginError?.Invoke(manifest.Id, ex);
+                    Console.WriteLine($"  x Plugin load failed {pluginType.FullName}: {ex.Message}");
+                }
+            }
+
+            if (loadedIds.Count == 0)
+                throw new InvalidOperationException($"No plugins loaded from {Path.GetFileName(pluginPath)}");
         }
         catch (Exception ex)
         {
+            foreach (var plugin in createdPlugins)
+            {
+                if (!loadedIds.Contains(plugin.Manifest.Id) && disposedPlugins.Add(plugin))
+                    plugin.Dispose();
+            }
+
+            if (loadedIds.Count == 0 && loadCtx?.IsCollectible == true)
+                loadCtx.Unload();
+
             _eventBus.Publish(new PluginFailedEvent(Path.GetFileName(pluginPath), pluginPath, ex));
             OnPluginError?.Invoke(pluginPath, ex);
             //Console.ForegroundColor = ConsoleColor.Red;
@@ -246,14 +301,18 @@ public sealed class PluginManager : IAsyncDisposable
             await loaded.Instance.OnUnloadAsync();
             loaded.Instance.Dispose();
 
-            if (loaded.LoadContext.IsCollectible)
-                loaded.LoadContext.Unload();
+            var loadContext = loaded.LoadContext;
+            var weakReference = loaded.WeakReference;
 
             loaded.State = PluginState.Stopped;
             _plugins.Remove(pluginId);
 
+            var unloadedContext = loadContext.IsCollectible && !_plugins.Values.Any(p => ReferenceEquals(p.LoadContext, loadContext));
+            if (unloadedContext)
+                loadContext.Unload();
+
             // Allow GC to collect the unloaded assembly
-            for (int i = 0; loaded.LoadContext.IsCollectible && i < 10 && (loaded.WeakReference?.IsAlive ?? false); i++)
+            for (int i = 0; unloadedContext && i < 10 && (weakReference?.IsAlive ?? false); i++)
             {
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
@@ -290,7 +349,7 @@ public sealed class PluginManager : IAsyncDisposable
             throw new InvalidOperationException($"Plugin '{pluginId}' not loaded");
 
         var path = loaded.AssemblyPath;
-        await UnloadPluginAsync(pluginId);
+        await UnloadPluginsByAssemblyPathAsync(path);
         await Task.Delay(200); // brief pause for file system
         await LoadPluginAsync(path);
     }
@@ -363,7 +422,9 @@ public sealed class PluginManager : IAsyncDisposable
 
         await Task.Delay(250); // wait for file write to complete
 
-        var plugin = _plugins.Values.FirstOrDefault(p => p.AssemblyPath == filePath);
+        filePath = Path.GetFullPath(filePath);
+
+        var plugin = _plugins.Values.FirstOrDefault(p => SameAssemblyPath(p.AssemblyPath, filePath));
         if (plugin == null) return;
 
         Console.WriteLine($"  ~ Hot-reload: {Path.GetFileName(filePath)}");
@@ -380,11 +441,13 @@ public sealed class PluginManager : IAsyncDisposable
 
     private PluginContext CreateContext(string pluginId, string pluginPath)
     {
-        var pluginDir = Path.GetDirectoryName(pluginPath)!;
-        var logsDir   = Path.Combine(pluginDir, "logs");
-        var dataDir   = Path.Combine(pluginDir, "data");
-        var locDir    = Path.Combine(pluginDir, "localization");
+        var assemblyDir = Path.GetDirectoryName(pluginPath)!;
+        var pluginDir   = Path.Combine(assemblyDir, ToSafeDirectoryName(pluginId));
+        var logsDir     = Path.Combine(pluginDir, "logs");
+        var dataDir     = Path.Combine(pluginDir, "data");
+        var locDir      = Path.Combine(pluginDir, "localization");
 
+        Directory.CreateDirectory(pluginDir);
         Directory.CreateDirectory(logsDir);
         Directory.CreateDirectory(dataDir);
         Directory.CreateDirectory(locDir);
@@ -406,8 +469,31 @@ public sealed class PluginManager : IAsyncDisposable
         };
     }
 
-    private static Type? FindPluginType(Assembly assembly) =>
-        assembly.GetTypes().FirstOrDefault(t =>
+    private static string ToSafeDirectoryName(string value)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        return string.Join("_", value.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    private async Task UnloadPluginsByAssemblyPathAsync(string assemblyPath)
+    {
+        var pluginIds = _plugins
+            .Where(p => SameAssemblyPath(p.Value.AssemblyPath, assemblyPath))
+            .Select(p => p.Key)
+            .ToList();
+
+        foreach (var pluginId in pluginIds)
+            await UnloadPluginAsync(pluginId);
+    }
+
+    private static bool SameAssemblyPath(string left, string right) =>
+        string.Equals(
+            Path.GetFullPath(left),
+            Path.GetFullPath(right),
+            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+
+    private static IEnumerable<Type> FindPluginTypes(Assembly assembly) =>
+        assembly.GetTypes().Where(t =>
             typeof(IPlugin).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
 
     // ── Disposal ─────────────────────────────────────────────────────────────

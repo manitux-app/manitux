@@ -8,6 +8,9 @@
     <Project Path="Misc/LibMPV/LibMPVSharp.Avalonia/LibMPVSharp.Avalonia.csproj" />
     <Project Path="Misc/LibMPV/LibMPVSharp/LibMPVSharp.csproj" />
   </Folder>
+  <Folder Name="/Misc/Plugins/">
+    <Project Path="Misc/Plugins/TurkishProviders/TurkishProviders.csproj" />
+  </Folder>
   <Folder Name="/Misc/TlsClient/">
     <Project Path="Misc/TlsClient.NET/TlsClient.Api/TlsClient.Api.csproj" />
     <Project Path="Misc/TlsClient.NET/TlsClient.Core/TlsClient.Core.csproj" />
