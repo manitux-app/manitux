@@ -43,7 +43,7 @@ public class YoutubeExtractor : ExtractorBase
             //var streamInfo = streamManifest.GetMuxedStreams().TryGetWithHighestVideoQuality();
 
             var streamInfo = streamManifest
-                .GetVideoOnlyStreams()
+                .GetMuxedStreams()
                 .Where(s => s.Container == Container.Mp4)
                 .GetWithHighestVideoQuality();
 

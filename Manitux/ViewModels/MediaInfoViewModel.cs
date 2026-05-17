@@ -213,7 +213,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         if(videoSource is not null)
         {
            Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(videoSource)}" + Environment.NewLine);
-           ShowPlayer(videoSource);
+           ShowPlayer(videoSource, MediaInfo?.VideoSources);
         }
         else
         {
@@ -249,7 +249,9 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
     public async void PlayEpisode(EpisodeModel episode)
     {
-        var source = await GetEpisodeVideoSource(episode);
+        var sources = await GetEpisodeVideoSources(episode);
+        var source = sources?.FirstOrDefault(x => !x.IsTrailer)
+                     ?? sources?.FirstOrDefault();
         if (source is null)
         {
             ShowError(Localize?.VideoNotInitialized);
@@ -257,7 +259,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         }
 
         Debug.WriteLine($"Episode VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
-        ShowPlayer(source);
+        ShowPlayer(source, sources);
     }
 
     public async void VlcPlayEpisode(EpisodeModel episode)
@@ -343,6 +345,13 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
     private async Task<VideoSourceModel?> GetEpisodeVideoSource(EpisodeModel episode)
     {
+        var sources = await GetEpisodeVideoSources(episode);
+        return sources?.FirstOrDefault(x => !x.IsTrailer)
+               ?? sources?.FirstOrDefault();
+    }
+
+    private async Task<List<VideoSourceModel>?> GetEpisodeVideoSources(EpisodeModel episode)
+    {
         if (_pluginService.CurrentPlugin is null)
         {
             ShowError(Localize?.PageNotFound);
@@ -366,15 +375,17 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             };
 
             var episodeInfo = await _pluginService.CurrentPlugin.GetMediaInfo(pageItem);
-            var source = episodeInfo?.VideoSources?.FirstOrDefault(x => !x.IsTrailer)
-                         ?? episodeInfo?.VideoSources?.FirstOrDefault();
+            var sources = episodeInfo?.VideoSources?
+                .Where(source => !string.IsNullOrWhiteSpace(source.Url))
+                .ToList();
 
-            if (source is null)
+            if (sources is null || sources.Count == 0)
             {
                 ShowError(Localize?.VideoNotInitialized);
+                return null;
             }
 
-            return source;
+            return sources;
         }
         catch (Exception ex)
         {
@@ -401,7 +412,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             .ToList();
     }
 
-    private async void ShowPlayer(VideoSourceModel? videoSource)
+    private async void ShowPlayer(VideoSourceModel? videoSource, IEnumerable<VideoSourceModel>? availableSources = null)
     {
         var options = new OverlayDialogOptions()
         {
@@ -412,7 +423,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             CanResize = false,
         };
 
-        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(_pluginService, _localizationService, videoSource), null, options: options);
+        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(_pluginService, _localizationService, videoSource, availableSources), null, options: options);
 
         //  ShowPlayer(new VideoSourceModel() { Name = "Test", Url = "https://server15700.contentdm.oclc.org/dmwebservices/index.php?q=dmGetStreamingFile/p15700coll2/15.mp4/byte/json", Subtitles = new() { new() { Name = "Test", Url = "https://cdmdemo.contentdm.oclc.org/utils/getfile/collection/p15700coll2/id/18/filename/video2.vtt" } } });
     }

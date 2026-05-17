@@ -75,12 +75,14 @@ public class ManituxFramework
         // await LoadInProcessPluginAsync(pluginMgr, new Invidious());
         // await LoadInProcessPluginAsync(pluginMgr, new OkruPlugin());
 
-        //await LoadInProcessPluginAsync(pluginMgr, new HdFilmCehennemi());
+        await LoadInProcessPluginAsync(pluginMgr, new HdFilmCehennemi());
         //await LoadInProcessPluginAsync(pluginMgr, new FilmMakinesi());
         // await LoadInProcessPluginAsync(pluginMgr, new FilmEkseni());
         // await LoadInProcessPluginAsync(pluginMgr, new FilmModu());
+        await LoadInProcessPluginAsync(pluginMgr, new DiziPal());
+        await LoadInProcessPluginAsync(pluginMgr, new DiziBox());
         
-        await pluginMgr.LoadAllAsync();
+        //await pluginMgr.LoadAllAsync();
 
         // Register with the runtime — health checks + graceful shutdown
         CodeLogic.CodeLogic.SetPluginManager(pluginMgr);

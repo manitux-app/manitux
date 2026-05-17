@@ -116,6 +116,8 @@ obj/Debug/net10.0/
  Manitux.Core.GlobalUsings.g.cs
 Plugins/
  Dailymotion.cs
+ DiziBox.cs
+ DiziPal.cs
  FilmEkseni.cs
  FilmMakinesi.cs
  FilmModu.cs
