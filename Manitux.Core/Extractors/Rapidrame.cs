@@ -6,6 +6,7 @@ using CodeLogic.Core.Logging;
 using Manitux.Core.Extractors.Helpers;
 using Manitux.Core.Extractors.Utils;
 using Manitux.Core.Models;
+using TlsClient.Core.Models.Entities;
 
 namespace Manitux.Core.Extractors;
 
@@ -566,7 +567,8 @@ public class Rapidrame : ExtractorBase
     {
         try
         {
-            //referer = "https://www.hdfilmcehennemi.nl/the-super-mario-galaxy-movie-2026/";
+            // url: https://www.hdfilmcehennemi.nl/rplayer/auar916v7wr3/ 
+            //referer: "https://www.hdfilmcehennemi.nl/the-super-mario-galaxy-movie-2026/";
             string userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 15.7; rv:135.0) Gecko/20100101 Firefox/135.0";
 
             var headers = new Dictionary<string, string>();
@@ -574,7 +576,7 @@ public class Rapidrame : ExtractorBase
             headers.Add("Content-Type", "application/json");
             headers.Add("User-Agent", userAgent);
             headers.Add("X-Requested-With", "XMLHttpRequest");
-            headers.Add("Referer", referer ?? "https://hdfilmcehennemi.nl/");
+            headers.Add("Referer", referer ?? $"{MainUrl}/");
 
             if (!videoSource.Url.EndsWith("/"))
             {
@@ -592,7 +594,7 @@ public class Rapidrame : ExtractorBase
                 new(){ Name = "User-Agent", Value = userAgent}
             };
 
-            string? html = await HttpGet(url: videoSource.Url, referer: referer, headers: headers, identifier: TlsClient.Core.Models.Entities.TlsClientIdentifier.Cloudscraper);
+            string? html = await HttpGet(url: videoSource.Url, referer: referer, headers: headers, identifier: TlsClientIdentifier.Chrome144);
             //Log(LogLevel.Debug, "html: " + html);
             if (html is null) return null;
 

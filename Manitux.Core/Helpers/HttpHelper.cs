@@ -196,25 +196,25 @@ public class HttpHelper : HtmlHelper
 
                 if (referer is null)
                 {
-                    client.DefaultRequestHeaders.Add("Referer", url);
+                    AddDefaultRequestHeader(client, "Referer", url);
                 }
                 else
                 {
-                    client.DefaultRequestHeaders.Add("Referer", referer);
+                    AddDefaultRequestHeader(client, "Referer", referer);
                 }
 
                 if (headers is null)
                 {
-                    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36");
+                    AddDefaultRequestHeader(client, "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36");
                     //client.DefaultRequestHeaders.Add("x-requested-with", "fetch");
-                    client.DefaultRequestHeaders.Add("authority", uri.Authority);
-                    client.DefaultRequestHeaders.Add("origin", url);
+                    AddDefaultRequestHeader(client, "authority", uri.Authority);
+                    AddDefaultRequestHeader(client, "origin", url);
                 }
                 else
                 {
                     foreach (var header in headers)
                     {
-                        client.DefaultRequestHeaders.Add(header.Key, header.Value);
+                        AddDefaultRequestHeader(client, header.Key, header.Value);
                     }
                 }
 
@@ -237,6 +237,23 @@ public class HttpHelper : HtmlHelper
         }
 
         return null;
+    }
+
+    private static void AddDefaultRequestHeader(HttpClient client, string name, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        if (name.Equals("Content-Type", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("Content-Length", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        client.DefaultRequestHeaders.Remove(name);
+        client.DefaultRequestHeaders.TryAddWithoutValidation(name, value);
     }
 
     private async Task<string?> HttpGetWithNativeTLS(string url, string? referer = null, string? proxyUrl = null, Dictionary<string, string>? headers = null, TlsClientIdentifier? identifier = null, bool useCookie = false, bool followRedirects = false, Dictionary<string, string>? cookieOutput = null)

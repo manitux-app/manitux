@@ -37,6 +37,8 @@ namespace Manitux.ViewModels
         private bool _hasStartedPlayback;
         private bool _isChangingSource;
         private bool _suppressSourceSelectionChanged;
+        private bool _isClosing;
+        private bool _isDisposed;
         private string? _currentSourceKey;
 
         public ObservableCollection<VideoSourceModel> VideoSources { get; } = new();
@@ -57,8 +59,7 @@ namespace Manitux.ViewModels
 
         public void Close()
         {
-            RequestClose?.Invoke(this, null);
-            OnRequestClose?.Invoke();
+            RequestCloseNavigation();
         }
 
         public PlayerViewModel(
@@ -92,8 +93,13 @@ namespace Manitux.ViewModels
 
                         case MpvEventId.MPV_EVENT_END_FILE:
                             var endFile = e.ReadData<MpvEventEndFile>();
-                            Dispatcher.UIThread.Post(async () =>
+                            Dispatcher.UIThread.Post(() =>
                             {
+                                if (_isClosing || _isDisposed)
+                                {
+                                    return;
+                                }
+
                                 //IsReady = false;
                                 //OnPropertyChanged(nameof(IsReady));
                                 if (_isChangingSource && endFile.reason != MpvEndFileReason.MPV_END_FILE_REASON_ERROR)
@@ -124,7 +130,10 @@ namespace Manitux.ViewModels
                                     //return;
                                 }
 
-                                //Close();
+                                if (endFile.reason == MpvEndFileReason.MPV_END_FILE_REASON_EOF)
+                                {
+                                    RequestCloseNavigation();
+                                }
                             });
                             break;
 
@@ -238,6 +247,11 @@ namespace Manitux.ViewModels
 
         private async void Play(VideoSourceModel source)
         {
+            if (_isClosing || _isDisposed)
+            {
+                return;
+            }
+
             if (MediaPlayer is null)
             {
                 SetError(_localize?.PlayerNotInitialized);
@@ -356,6 +370,11 @@ namespace Manitux.ViewModels
 
         private void SetError(string? message)
         {
+            if (_isClosing || _isDisposed)
+            {
+                return;
+            }
+
             _isChangingSource = false;
             ErrorString = message ?? "Error";
             HasError = true;
@@ -544,11 +563,41 @@ namespace Manitux.ViewModels
 
         public void Dispose()
         {
+            if (_isDisposed)
+            {
+                return;
+            }
+
+            _isDisposed = true;
             if (MediaPlayer is not null)
             {
-                MediaPlayer.ExecuteCommand(new[] { "stop" });
-                MediaPlayer.Dispose();
-                MediaPlayer = null;
+                var player = MediaPlayer;
+                Task.Run(() => DisposePlayer(player));
+            }
+        }
+
+        private void RequestCloseNavigation()
+        {
+            if (_isClosing || _isDisposed)
+            {
+                return;
+            }
+
+            _isClosing = true;
+            RequestClose?.Invoke(this, null);
+            OnRequestClose?.Invoke();
+        }
+
+        private static async Task DisposePlayer(MPVMediaPlayer player)
+        {
+            try
+            {
+                await Task.Delay(250);
+                player.Dispose(true);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PlayerViewModel] dispose failed: {ex}");
             }
         }
     }

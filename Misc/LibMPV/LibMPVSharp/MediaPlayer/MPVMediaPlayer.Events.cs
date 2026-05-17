@@ -56,6 +56,11 @@ namespace LibMPVSharp
 
         private void TryMPVEventReply(MpvEvent* mpvEvent)
         {
+            if (mpvEvent->reply_userdata == 0)
+            {
+                return;
+            }
+
             var handler = GCHandle.FromIntPtr((IntPtr)mpvEvent->reply_userdata);
             var tcs = handler.Target as TaskCompletionSource;
 

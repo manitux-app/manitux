@@ -10,7 +10,9 @@ public class ViewLocator: IDataTemplate
     {
         if (param is null) return null;
         var name = param.GetType().Name.Replace("ViewModel", "");
-        var type = Type.GetType("Manitux.Pages."+name);
+        var type = Type.GetType("Manitux.Pages." + name)
+                   ?? Type.GetType("Manitux.Player." + name)
+                   ?? Type.GetType("Manitux.Player." + name + "View");
         if (type != null)
         {
             return (Control)Activator.CreateInstance(type)!;

@@ -57,6 +57,7 @@ public partial class MainViewModel : ViewModelBase
     private AppConfig _config = new();
     public AppStrings L { get; }
     private ManituxFramework _framework = new ManituxFramework();
+    private readonly Stack<object> _navigationStack = new();
     
     private PageItemsViewModel? _currentPageItemsViewModel;
 
@@ -67,6 +68,7 @@ public partial class MainViewModel : ViewModelBase
     public LocaleViewModel Locales { get; }
 
     [ObservableProperty] private object? _content;
+    [ObservableProperty] private bool _isNavigationVisible = true;
     [ObservableProperty] private bool _isReady = false;
     [ObservableProperty] private bool _isInitialized = false;
     [ObservableProperty] private bool _isPluginsLoaded = false;
@@ -104,6 +106,7 @@ public partial class MainViewModel : ViewModelBase
 
     private void OnNavigation(MainViewModel vm, string s)
     {
+        ClearNavigationStack();
         Content = s switch
         {
             MenuKeys.MenuKeyEmptyPage => new EmptyPageViewModel(_localizationService),
@@ -112,6 +115,7 @@ public partial class MainViewModel : ViewModelBase
             MenuKeys.MenuKeyPageItems => new PageItemsViewModel(null),
             _ => null //throw new ArgumentOutOfRangeException(nameof(s), s, null)
         };
+        UpdateNavigationChrome();
 
         if (Content is null)
         {
@@ -133,6 +137,7 @@ public partial class MainViewModel : ViewModelBase
         //};
 
         Content = null;
+        ClearNavigationStack();
         if (key != MenuKeys.MenuKeyPageItems)
         {
             _currentPageItemsViewModel = null;
@@ -165,6 +170,8 @@ public partial class MainViewModel : ViewModelBase
         {
             ShowToast($"{L.PageNotFound}", NotificationType.Error);
         }
+
+        UpdateNavigationChrome();
     }
 
     private async void OnNavigation(MainViewModel vm, PageItemChangedMessage message)
@@ -302,7 +309,7 @@ public partial class MainViewModel : ViewModelBase
         CurrentPlugin = plugin;
     }
 
-    private async void ShowMediaInfo(PageItemModel pageItem)
+    private void ShowMediaInfo(PageItemModel pageItem)
     {
         if (!string.IsNullOrWhiteSpace(pageItem.PluginId))
         {
@@ -315,48 +322,87 @@ public partial class MainViewModel : ViewModelBase
             return;
         }
 
-        var options = new OverlayDialogOptions()
-        {
-            FullScreen = true,
-            Buttons = DialogButton.None,
-            Title = pageItem.Title,
-            Mode = DialogMode.None,
-            CanDragMove = false,
-            CanResize = false,
-            //TopLevelHashCode = this.GetHashCode(),
-            //OnDialogControlClosed = (object? _, object? _) => target.Focus()
-        };
-
-        await OverlayDialog.ShowCustomModal<MediaInfo, MediaInfoViewModel, object>(new MediaInfoViewModel(_pluginService, _localizationService, _favoritesService, pageItem), null, options: options);
-        //OverlayDialog.Show<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(), null, options: options);
-        //await OverlayDialog.ShowModal<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(mediaInfo), null, options: options);
+        PushContent(new MediaInfoViewModel(
+            _pluginService,
+            _localizationService,
+            _favoritesService,
+            pageItem,
+            NavigateToPlayer,
+            GoBack));
     }
 
-    private async void ShowPlayer(VideoSourceModel? videoSource)
+    private void NavigateToPlayer(PlayerViewModel playerViewModel)
     {
-        var options = new OverlayDialogOptions()
-        {
-            HorizontalAnchor = HorizontalPosition.Center,
-            VerticalAnchor = VerticalPosition.Center,
-            FullScreen = true,
-            Buttons = DialogButton.None,
-            Mode = DialogMode.None,
-            CanDragMove = false,
-            CanResize = false,
-        };
+        playerViewModel.OnRequestClose -= PlayerViewModelOnRequestClose;
+        playerViewModel.OnRequestClose += PlayerViewModelOnRequestClose;
+        PushContent(playerViewModel);
+    }
 
-        var content = new PlayerView
+    private void PlayerViewModelOnRequestClose()
+    {
+        if (Content is PlayerViewModel playerViewModel)
         {
-            DataContext = new PlayerViewModel(_pluginService, _localizationService, videoSource)
-        };
+            playerViewModel.OnRequestClose -= PlayerViewModelOnRequestClose;
+            GoBack();
+        }
+    }
 
-        await OverlayDialog.ShowCustomModal<RootPage, RootPageViewModel, object>(new RootPageViewModel(content), null, options: options);
+    [RelayCommand(CanExecute = nameof(CanGoBack))]
+    private void GoBack()
+    {
+        if (_navigationStack.Count == 0)
+        {
+            return;
+        }
+
+        if (Content is PlayerViewModel playerViewModel)
+        {
+            playerViewModel.OnRequestClose -= PlayerViewModelOnRequestClose;
+        }
+
+        Content = _navigationStack.Pop();
+        UpdateNavigationChrome();
+        GoBackCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool CanGoBack()
+    {
+        return _navigationStack.Count > 0;
+    }
+
+    private void PushContent(object viewModel)
+    {
+        if (Content is not null)
+        {
+            _navigationStack.Push(Content);
+        }
+
+        Content = viewModel;
+        UpdateNavigationChrome();
+        GoBackCommand.NotifyCanExecuteChanged();
+    }
+
+    private void ClearNavigationStack()
+    {
+        if (Content is PlayerViewModel playerViewModel)
+        {
+            playerViewModel.OnRequestClose -= PlayerViewModelOnRequestClose;
+        }
+
+        _navigationStack.Clear();
+        UpdateNavigationChrome();
+        GoBackCommand.NotifyCanExecuteChanged();
+    }
+
+    private void UpdateNavigationChrome()
+    {
+        IsNavigationVisible = Content is not PlayerViewModel;
     }
 
     private void ShowTestPlayer()
     {
         //ShowPlayer(null);
-        ShowPlayer(new VideoSourceModel() { Name = "Test", Url = "https://server15700.contentdm.oclc.org/dmwebservices/index.php?q=dmGetStreamingFile/p15700coll2/15.mp4/byte/json", Subtitles = new() { new() { Id = "1", Name = "Test", Url = "https://cdmdemo.contentdm.oclc.org/utils/getfile/collection/p15700coll2/id/18/filename/video2.vtt" } } });
+        NavigateToPlayer(new PlayerViewModel(_pluginService, _localizationService, new VideoSourceModel() { Name = "Test", Url = "https://server15700.contentdm.oclc.org/dmwebservices/index.php?q=dmGetStreamingFile/p15700coll2/15.mp4/byte/json", Subtitles = new() { new() { Id = "1", Name = "Test", Url = "https://cdmdemo.contentdm.oclc.org/utils/getfile/collection/p15700coll2/id/18/filename/video2.vtt" } } }));
     }
 
     private async void TestMessage()

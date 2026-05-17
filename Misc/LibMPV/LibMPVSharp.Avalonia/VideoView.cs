@@ -52,8 +52,6 @@ namespace LibMPVSharp.Avalonia
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
-            if (MediaPlayer == null) return;
-
             base.OnPropertyChanged(change);
 
             if (change.Property == MediaPlayerProperty)
@@ -64,9 +62,9 @@ namespace LibMPVSharp.Avalonia
                 {
                     oldNew.oldValue.Options.GetProcAddress = null;
                     oldNew.oldValue.Options.UpdateCallback = null;
-                    if (oldNew.newValue.Options.SharedPlayer != null)
+                    if (oldNew.oldValue.Options.SharedPlayer != null)
                     {
-                        oldNew.newValue.Options.SharedPlayer.Options.UpdateCallback -= OpenGLUpdateCallback;
+                        oldNew.oldValue.Options.SharedPlayer.Options.UpdateCallback -= OpenGLUpdateCallback;
                     }
                 }
 
