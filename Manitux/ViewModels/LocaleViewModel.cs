@@ -1,60 +1,85 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Input;
-using Avalonia;
-using CodeLogic.Framework.Application.Plugins;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
-using Manitux.Core.Application;
-using Manitux.Core.Models;
-using Manitux.Core.Plugins;
-using Manitux.Models;
+using Manitux.Services.Localizations;
 
 namespace Manitux.ViewModels;
 
 public partial class LocaleViewModel : ViewModelBase
 {
+    private readonly ILocalizationService _localizationService;
+
     public ObservableCollection<LocaleItemViewModel> MenuItems { get; set; }
-   
-    public LocaleViewModel()
+
+    [ObservableProperty]
+    private string? _selectedCultureName;
+
+    public LocaleViewModel(ILocalizationService localizationService)
     {
+        _localizationService = localizationService;
+        MenuItems = new ObservableCollection<LocaleItemViewModel>(
+            _localizationService.SupportedCultures.Select(CreateLocaleItem));
 
-        MenuItems = new ObservableCollection<LocaleItemViewModel>()
-        {
-            new LocaleItemViewModel
-                    {
-                        Header = "Türkçe",
-                        Command = SelectLocaleCommand,
-                        CommandParameter = new CultureInfo("tr-TR")
-                    },
-                    new LocaleItemViewModel
-                    {
-                        Header = "English",
-                        Command = SelectLocaleCommand,
-                        CommandParameter = new CultureInfo("en-US")
-                    }
-        };
-        
-
+        SelectedCultureName = _localizationService.CurrentCulture;
+        _localizationService.LanguageChanged += OnLanguageChanged;
+        UpdateSelectedLocale();
         OnPropertyChanged(nameof(MenuItems));
     }
 
     [RelayCommand]
-    private void SelectLocale(object? obj)
+    private async Task SelectLocale(object? obj)
     {
-        var app = Application.Current;
-        if (app is null) return;
-        //SemiTheme.OverrideLocaleResources(app, obj as CultureInfo);
-        Debug.WriteLine("SelectLocale");
+        if (obj is CultureInfo culture)
+        {
+            await _localizationService.ChangeLanguageAsync(culture.Name);
+        }
+    }
+
+    private LocaleItemViewModel CreateLocaleItem(CultureInfo culture)
+    {
+        return new LocaleItemViewModel
+        {
+            Header = culture.NativeName,
+            CultureName = culture.Name,
+            Command = SelectLocaleCommand,
+            CommandParameter = culture
+        };
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        SelectedCultureName = _localizationService.CurrentCulture;
+        UpdateSelectedLocale();
+    }
+
+    private void UpdateSelectedLocale()
+    {
+        foreach (var item in MenuItems)
+        {
+            item.IsSelected = string.Equals(item.CultureName, SelectedCultureName, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
 
-public class LocaleItemViewModel: ViewModelBase
+public partial class LocaleItemViewModel : ViewModelBase
 {
     public string? Header { get; set; }
+    public string? CultureName { get; set; }
+    public string DisplayHeader => IsSelected ? $"âœ“ {Header}" : Header ?? string.Empty;
+
+    [ObservableProperty]
+    private bool _isSelected;
+
+    partial void OnIsSelectedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(DisplayHeader));
+    }
+
     public ICommand? Command { get; set; }
     public object? CommandParameter { get; set; }
     public IList<LocaleItemViewModel>? Items { get; set; }

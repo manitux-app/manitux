@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>TurkishProviders</AssemblyName>
+    <RootNamespace>Manitux.TurkishProviders</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../Manitux.Core/Manitux.Core.csproj" />
+  </ItemGroup>
+
+</Project>

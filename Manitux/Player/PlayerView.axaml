@@ -3,9 +3,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 			 xmlns:u="https://irihi.tech/ursa"
-             xmlns:mpv="using:LibMPVSharp.Avalonia"
+			 xmlns:mpv="using:LibMPVSharp.Avalonia"
 			 xmlns:local="clr-namespace:Manitux.Player"
 			 xmlns:vm="clr-namespace:Manitux.ViewModels"
+			 xmlns:models="clr-namespace:Manitux.Core.Models;assembly=Manitux.Core"
+			 xmlns:converters="using:Avalonia.Data.Converters"
 			 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" Background="Black"
              x:DataType="vm:PlayerViewModel"
 			 x:Class="Manitux.Player.PlayerView">
@@ -21,8 +23,31 @@
 			<u:Banner ShowIcon="True" Type="Error"
 				   Name="banner"
 				   Classes.Bordered="True"
-				   Header="Manitux Player"
+				   Header="{Binding L.ManituxPlayer}"
 				   Content="{Binding ErrorString}" />
 		</Grid>
+		<Border HorizontalAlignment="Left"
+						VerticalAlignment="Top"
+						Margin="16"
+						Padding="8"
+						CornerRadius="6"
+						Background="#CC171717">
+					<Border.IsVisible>
+						<MultiBinding Converter="{x:Static converters:BoolConverters.And}">
+							<Binding Path="HasSourceOptions"/>
+							<Binding ElementName="MPView" Path="AreControlsVisible"/>
+						</MultiBinding>
+					</Border.IsVisible>
+					<ComboBox MinWidth="180"
+							  MaxWidth="280"
+							  ItemsSource="{Binding VideoSources}"
+							  SelectedItem="{Binding SelectedVideoSource}">
+						<ComboBox.ItemTemplate>
+							<DataTemplate x:DataType="models:VideoSourceModel">
+								<TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+							</DataTemplate>
+						</ComboBox.ItemTemplate>
+					</ComboBox>
+				</Border>
    </Grid>
 </UserControl>

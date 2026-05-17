@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using CodeLogic.Core.Logging;
 using CodeLogic.Framework.Application;
 
@@ -73,7 +74,7 @@ public class ManituxApplication : IApplication
 
         //context.Events.Publish(new LogEvent(LogLevel.None, "", "startup"));
 
-        System.Console.WriteLine(string.Format(_strings.Welcome, _config.AppTitle));
+        Debug.WriteLine(string.Format(_strings.Welcome, _config.AppTitle));
         context.Logger.Info($"{Manifest.Name} started");
 
         await Task.CompletedTask;
@@ -81,7 +82,7 @@ public class ManituxApplication : IApplication
 
     public async Task OnStopAsync()
     {
-        System.Console.WriteLine(_strings.Goodbye);
+        Debug.WriteLine(_strings.Goodbye);
         await Task.CompletedTask;
     }
 }

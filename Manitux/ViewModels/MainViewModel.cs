@@ -12,6 +12,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Notifications;
 using Avalonia.Data;
 using Avalonia.Styling;
+using Avalonia.Threading;
+using CodeLogic.Core.Localization;
 using CodeLogic.Framework.Application.Plugins;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -20,12 +22,18 @@ using Manitux.Core.Application;
 using Manitux.Core.Framework;
 using Manitux.Core.Models;
 using Manitux.Core.Plugins;
+using Manitux.Core.Services.Plugins;
 using Manitux.Models;
 using Manitux.Pages;
 using Manitux.Player;
+using Manitux.Services.Favorites;
+using Manitux.Services.Localizations;
 using Manitux.Services.Notifications;
+using Manitux.Services.Plugins;
 using Manitux.Views;
 using Semi.Avalonia;
+using TlsClient.Api;
+using TlsClient.Native;
 using Ursa.Controls;
 using static Manitux.Core.Helpers.LogHelper;
 using SemiTheme = Semi.Avalonia.SemiTheme;
@@ -39,83 +47,66 @@ public partial class MainViewModel : ViewModelBase
 
     private readonly IToastService _toastService;
     private readonly INotificationService _notificationService;
+    private readonly IPluginService _pluginService;
+    private readonly ILocalizationService _localizationService;
+    private readonly IRemotePluginService _remotePluginService;
+    private readonly IFavoritesService _favoritesService;
+
     private PluginManager? _pluginManager;
 
     private AppConfig _config = new();
-    [ObservableProperty] private AppStrings _localize = new();
+    public AppStrings L { get; }
     private ManituxFramework _framework = new ManituxFramework();
-    private MenuItemViewModel? _currentPageItemsNavigation;
+    
     private PageItemsViewModel? _currentPageItemsViewModel;
 
     [ObservableProperty] private PluginBase? _currentPlugin;
     private List<PluginMenuModel>? _pluginMenus;
 
     public MenuViewModel Menus { get; set; } = new MenuViewModel();
-    public LocaleViewModel Locales { get; set; } = new LocaleViewModel();
+    public LocaleViewModel Locales { get; }
 
     [ObservableProperty] private object? _content;
-    [ObservableProperty] private string? _searchText;
     [ObservableProperty] private bool _isReady = false;
     [ObservableProperty] private bool _isInitialized = false;
     [ObservableProperty] private bool _isPluginsLoaded = false;
 
-    public MainViewModel(IToastService toastService, INotificationService notificationService)
+    public MainViewModel(
+        IToastService toastService,
+        INotificationService notificationService,
+        IPluginService pluginService,
+        ILocalizationService localizationService,
+        IRemotePluginService remotePluginService,
+        IFavoritesService favoritesService)
     {
         _toastService = toastService;
         _notificationService = notificationService;
-        //_pluginManager = pluginManager;
+        _pluginService = pluginService;
+        _localizationService = localizationService;
+        _remotePluginService = remotePluginService;
+        _favoritesService = favoritesService;
+        Locales = new LocaleViewModel(localizationService);
+
+        L = _localizationService.Strings;
+        FooterText = L.Settings;
+        _localizationService.LanguageChanged += OnLanguageChanged;
 
         WeakReferenceMessenger.Default.Register<MainViewModel, MenuItemChangedMessage>(this, OnNavigation);
         WeakReferenceMessenger.Default.Register<MainViewModel, PageItemChangedMessage>(this, OnNavigation);
-        WeakReferenceMessenger.Default.Register<MainViewModel, PageChangedMessage>(this, OnNavigation);
         //WeakReferenceMessenger.Default.Register<MainViewModel, string, string>(this, "JumpTo", OnNavigation);
         //OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
 
         InitFramework();
+        InitTlsClient();
         //TestMessage();
         //TestPlugin();
     }
-
-    [RelayCommand]
-    private async Task Search()
-    {
-        if (CurrentPlugin is null)
-        {
-            ShowToast("Plugin not selected", NotificationType.Warning);
-            return;
-        }
-
-        var query = SearchText?.Trim();
-        if (string.IsNullOrWhiteSpace(query)) return;
-
-        var results = await CurrentPlugin.GetSearchResults(query);
-        if (results is null || !results.Any())
-        {
-            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
-            return;
-        }
-
-        _currentPageItemsNavigation = null;
-
-        if (_currentPageItemsViewModel is null)
-        {
-            _currentPageItemsViewModel = new PageItemsViewModel(results, isPaginationVisible: false);
-            Content = _currentPageItemsViewModel;
-        }
-        else
-        {
-            _currentPageItemsViewModel.IsPaginationVisible = false;
-            _currentPageItemsViewModel.UpdatePageItems(results);
-            Content = _currentPageItemsViewModel;
-        }
-    }
-
 
     private void OnNavigation(MainViewModel vm, string s)
     {
         Content = s switch
         {
-            MenuKeys.MenuKeyEmptyPage => new EmptyPageViewModel(),
+            MenuKeys.MenuKeyEmptyPage => new EmptyPageViewModel(_localizationService),
             MenuKeys.MenuKeyAboutUs => new AboutUsViewModel(),
             MenuKeys.MenuKeyCategories => new CategoriesViewModel(),
             MenuKeys.MenuKeyPageItems => new PageItemsViewModel(null),
@@ -124,11 +115,11 @@ public partial class MainViewModel : ViewModelBase
 
         if (Content is null)
         {
-            ShowToast($"{Localize.PageNotFound} {s}", NotificationType.Error);
+            ShowToast($"{L.PageNotFound} {s}", NotificationType.Error);
         }
     }
 
-    private async void OnNavigation(MainViewModel vm, MenuItemChangedMessage message)
+    private void OnNavigation(MainViewModel vm, MenuItemChangedMessage message)
     {
         string key = message.Value.Key ?? "";
 
@@ -144,71 +135,67 @@ public partial class MainViewModel : ViewModelBase
         Content = null;
         if (key != MenuKeys.MenuKeyPageItems)
         {
-            _currentPageItemsNavigation = null;
             _currentPageItemsViewModel = null;
         }
 
         switch (key)
         {
             case MenuKeys.MenuKeyEmptyPage:
-                Content = new EmptyPageViewModel();
+                Content = new EmptyPageViewModel(_localizationService);
                 break;
             case MenuKeys.MenuKeyAboutUs:
                 Content = new AboutUsViewModel();
                 break;
             case MenuKeys.MenuKeySettings:
-                ShowTestPlayer();
+                Content = new RemotePluginsViewModel(_remotePluginService, _localizationService);
+                break;
+            case MenuKeys.MenuKeyFavorites:
+                _currentPageItemsViewModel = null;
+                Content = new FavoritesViewModel(_favoritesService, _pluginService, _localizationService, _remotePluginService);
                 break;
             case MenuKeys.MenuKeyPageItems:
                 message.Value.PageNumber = Math.Max(1, message.Value.PageNumber);
-                _currentPageItemsNavigation = message.Value;
-                var items = await GetPageItems(message);
-                if(items is not null)
-                {
-                    _currentPageItemsViewModel = new PageItemsViewModel(items, message.Value.PageNumber);
-                    Content = _currentPageItemsViewModel;
-                }
+                SetCurrentPlugin(message.Value.PluginId);
+                _currentPageItemsViewModel = new PageItemsViewModel(_pluginService, _localizationService, _remotePluginService, message.Value);
+                Content = _currentPageItemsViewModel;
                 break;
         }
 
         if (Content is null)
         {
-            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
+            ShowToast($"{L.PageNotFound}", NotificationType.Error);
         }
     }
 
     private async void OnNavigation(MainViewModel vm, PageItemChangedMessage message)
     {
-        var mediaInfo = await GetMediaInfo(message);
-        if (mediaInfo is not null)
+        await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            ShowMediaInfo(mediaInfo);
-        }
-        else
-        {
-            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
-        }
+            if (message.Value is not null)
+            {
+                ShowMediaInfo(message.Value);
+            }
+            else
+            {
+                ShowToast($"{L.PageNotFound}", NotificationType.Error);
+            }
+        });
     }
 
-    private async void OnNavigation(MainViewModel vm, PageChangedMessage message)
+    private Task InitTlsClient()
     {
-        if (_currentPageItemsNavigation is null || _currentPageItemsViewModel is null)
+        if (!OperatingSystem.IsLinux())
         {
-            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
-            return;
-        }
-
-        _currentPageItemsNavigation.PageNumber = Math.Max(1, message.Value);
-        var items = await GetPageItems(new MenuItemChangedMessage(_currentPageItemsNavigation));
-
-        if (items is not null)
-        {
-            _currentPageItemsViewModel.UpdatePageItems(items);
+            // use native on non linux platforms
+            NativeTlsClient.Initialize(null);
         }
         else
         {
-            ShowToast($"{Localize.PageNotFound}", NotificationType.Error);
+            // use api on linux
+            ApiTlsClient.Initialize(null);
         }
+
+        return Task.CompletedTask;
     }
 
     private async void InitFramework()
@@ -219,7 +206,22 @@ public partial class MainViewModel : ViewModelBase
             if (IsInitialized) break;
 
             _pluginManager = await _framework.InitAsync();
+            await _localizationService.SelectSystemOrDefaultLanguageAsync();
             LoadPlugins();
+        }
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        FooterText = IsCollapsed ? null : L.Settings;
+
+        if (_pluginMenus?.Any() == true)
+        {
+            Menus.LoadMenus(_pluginMenus, L);
+        }
+        else
+        {
+            Menus.LoadDefaultMenu(L);
         }
     }
 
@@ -233,10 +235,6 @@ public partial class MainViewModel : ViewModelBase
 
         if (_pluginManager is not null)
         {
-            var strings = CodeLogic.CodeLogic.GetApplicationContext()?.Localization.Get<AppStrings>("tr-TR");
-            if (strings is not null) Localize = strings;
-            //Debug.WriteLine($"AppStrings: {JsonSerializer.Serialize(Localize)}" + Environment.NewLine);
-
             _pluginMenus = new List<PluginMenuModel>();
 
             var loadedPlugins = _pluginManager.GetLoadedPlugins();
@@ -265,13 +263,13 @@ public partial class MainViewModel : ViewModelBase
             if (_pluginMenus.Any())
             {
                 IsPluginsLoaded = true;
-                Menus.LoadMenus(_pluginMenus, Localize);
+                Menus.LoadMenus(_pluginMenus, L);
                 OnNavigation(this, MenuKeys.MenuKeyPageItems);
             }
             else
             {
                 IsPluginsLoaded = false;
-                Menus.LoadDefaultMenu(Localize);
+                Menus.LoadDefaultMenu(L);
                 OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
             }
 
@@ -283,65 +281,37 @@ public partial class MainViewModel : ViewModelBase
             // framework is not initialized!
             IsInitialized = false;
             IsReady = false;
-            ShowToast($"{Localize.AppNotInitialized}", NotificationType.Error);
+            ShowToast($"{L.AppNotInitialized}", NotificationType.Error);
         }
     }
 
-    private async Task<List<PageItemModel>?> GetPageItems(MenuItemChangedMessage message)
+    private void SetCurrentPlugin(string? pluginId)
     {
-        string key = message.Value.Key ?? "";
-        string? pluginId = message.Value.PluginId ?? null;
-        int pageNumber = message.Value.PageNumber;
-
-        if (pluginId is not null)
+        if (pluginId is null)
         {
-            var plugin = _pluginManager?.GetPlugin<PluginBase>(pluginId);
-
-            if (plugin is not null && plugin.State == PluginState.Started)
-            {
-                CurrentPlugin = plugin;
-
-                Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(plugin.Manifest)}" + Environment.NewLine);
-                var cat = message.Value.Category;
-                //Debug.WriteLine($"Category: {JsonSerializer.Serialize(cat)}" + Environment.NewLine);
-                if (cat is null) return null;
-                var pageItems = await plugin.GetPageItems(pageNumber, cat);
-                if (pageItems is null) return null;
-                //Debug.WriteLine($"PageItems: {JsonSerializer.Serialize(pageItems)}" + Environment.NewLine);
-                return pageItems;
-            }
+            return;
         }
 
-        return null;
-    }
-
-    private async Task<MediaInfoModel?> GetMediaInfo(PageItemChangedMessage message)
-    {
-        var pageItem = message.Value;
-
-        if (pageItem is null) return null;
-
-        var mediaInfo = new MediaInfoModel()
+        var plugin = _pluginManager?.GetPlugin<PluginBase>(pluginId);
+        if (plugin is null || plugin.State != PluginState.Started)
         {
-            Url = pageItem.Url,
-            Title = pageItem.Title,
-            Poster = pageItem.Poster
-        };
-
-        if (CurrentPlugin is not null)
-        {
-            //Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(CurrentPlugin.Manifest)}" + Environment.NewLine);
-            mediaInfo = await CurrentPlugin.GetMediaInfo(pageItem);
-            //Debug.WriteLine($"MediaInfo: {JsonSerializer.Serialize(mediaInfo)}" + Environment.NewLine);
+            return;
         }
 
-        return mediaInfo;
+        _pluginService.CurrentPlugin = plugin;
+        CurrentPlugin = plugin;
     }
-    private async void ShowMediaInfo(MediaInfoModel mediaInfo)
+
+    private async void ShowMediaInfo(PageItemModel pageItem)
     {
+        if (!string.IsNullOrWhiteSpace(pageItem.PluginId))
+        {
+            SetCurrentPlugin(pageItem.PluginId);
+        }
+
         if (CurrentPlugin is null)
         {
-            ShowToast("Plugin not selected", NotificationType.Warning);
+            ShowToast(L.PluginNotSelected, NotificationType.Warning);
             return;
         }
 
@@ -349,7 +319,7 @@ public partial class MainViewModel : ViewModelBase
         {
             FullScreen = true,
             Buttons = DialogButton.None,
-            Title = mediaInfo.Title,
+            Title = pageItem.Title,
             Mode = DialogMode.None,
             CanDragMove = false,
             CanResize = false,
@@ -357,7 +327,7 @@ public partial class MainViewModel : ViewModelBase
             //OnDialogControlClosed = (object? _, object? _) => target.Focus()
         };
 
-        await OverlayDialog.ShowCustomModal<MediaInfo, MediaInfoViewModel, object>(new MediaInfoViewModel(CurrentPlugin, mediaInfo, Localize), null, options: options);
+        await OverlayDialog.ShowCustomModal<MediaInfo, MediaInfoViewModel, object>(new MediaInfoViewModel(_pluginService, _localizationService, _favoritesService, pageItem), null, options: options);
         //OverlayDialog.Show<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(), null, options: options);
         //await OverlayDialog.ShowModal<MediaInfo, MediaInfoViewModel>(new MediaInfoViewModel(mediaInfo), null, options: options);
     }
@@ -377,7 +347,7 @@ public partial class MainViewModel : ViewModelBase
 
         var content = new PlayerView
         {
-            DataContext = new PlayerViewModel(videoSource, Localize)
+            DataContext = new PlayerViewModel(_pluginService, _localizationService, videoSource)
         };
 
         await OverlayDialog.ShowCustomModal<RootPage, RootPageViewModel, object>(new RootPageViewModel(content), null, options: options);
@@ -394,6 +364,8 @@ public partial class MainViewModel : ViewModelBase
         var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
         while (await timer.WaitForNextTickAsync())
         {
+            await _localizationService.ChangeLanguageAsync("tr-TR");
+            
             //ShowTestPlayer();
             //ShowMessage("test", "test 123");
             //ShowNotify("test", "test 123", NotificationType.Success);
@@ -447,13 +419,13 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    [ObservableProperty] private string? _footerText = "Settings";
+    [ObservableProperty] private string? _footerText;
 
     [ObservableProperty] private bool _isCollapsed;
 
     partial void OnIsCollapsedChanged(bool value)
     {
-        FooterText = value ? null : "Settings";
+        FooterText = value ? null : L.Settings;
     }
 }
 

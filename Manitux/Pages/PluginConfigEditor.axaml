@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:u="https://irihi.tech/ursa"
+             xmlns:vm="clr-namespace:Manitux.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="720"
+             d:DesignHeight="520"
+             x:DataType="vm:PluginConfigEditorViewModel"
+             x:Class="Manitux.Pages.PluginConfigEditor">
+    <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12" Margin="16" MinWidth="640" MinHeight="460">
+        <TextBlock Grid.Row="0"
+                   Text="{Binding Title}"
+                   Classes="Header H3"
+                   TextWrapping="Wrap" />
+
+        <u:Banner Grid.Row="1"
+                  ShowIcon="True"
+                  Type="Error"
+                  IsVisible="{Binding HasError}"
+                  Content="{Binding ErrorMessage}" />
+
+        <ScrollViewer Grid.Row="2">
+            <u:Form LabelPosition="Top">
+                <StackPanel Spacing="12">
+                <TextBox u:FormItem.Label="{Binding L.MainUrl}"
+                         Watermark="https://example.com"
+                         Text="{Binding MainUrl, Mode=TwoWay}" />
+
+                <TextBox u:FormItem.Label="{Binding L.ApiKey}"
+                         PasswordChar="*"
+                         Text="{Binding ApiKey, Mode=TwoWay}" />
+
+                <TextBox u:FormItem.Label="{Binding L.Favicon}"
+                         Watermark="https://example.com/favicon.ico"
+                         Text="{Binding Favicon, Mode=TwoWay}" />
+
+                <TextBox u:FormItem.Label="{Binding L.Language}"
+                         Watermark="tr"
+                         Text="{Binding Language, Mode=TwoWay}" />
+
+                <CheckBox Content="{Binding L.UseProxy}"
+                          IsChecked="{Binding UseProxy, Mode=TwoWay}" />
+
+                <CheckBox Content="{Binding L.AdultContent}"
+                          IsChecked="{Binding IsAdult, Mode=TwoWay}" />
+                </StackPanel>
+            </u:Form>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="3"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+            <Button Content="{Binding L.Cancel}"
+                    Command="{Binding CancelCommand}" />
+            <Button Content="{Binding L.Save}"
+                    Classes="Primary"
+                    Command="{Binding SaveCommand}" />
+        </StackPanel>
+    </Grid>
+</UserControl>

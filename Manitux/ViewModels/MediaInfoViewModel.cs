@@ -20,23 +20,39 @@ using Manitux.Core.Plugins;
 using Manitux.Models;
 using Manitux.Pages;
 using Manitux.Player;
+using Manitux.Services.Favorites;
+using Manitux.Services.Localizations;
+using Manitux.Services.Plugins;
 using Ursa.Controls;
-using Notification = Ursa.Controls.Notification;
 using WindowNotificationManager = Ursa.Controls.WindowNotificationManager;
 
 namespace Manitux.ViewModels;
 
 public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 {
+    private readonly IPluginService _pluginService;
+    private readonly ILocalizationService _localizationService;
+    private readonly IFavoritesService _favoritesService;
+    private readonly PageItemModel? _sourcePageItem;
+
     [ObservableProperty] private MediaInfoModel? _mediaInfo;
 
     [ObservableProperty] private AppStrings? _localize;
 
+    [ObservableProperty] private bool _isLoading;
+
+    [ObservableProperty] private string _favoriteButtonText;
+
+    [ObservableProperty] private bool _isFavoriteButtonVisible;
+
+    [ObservableProperty] private bool _isFavorite;
+
+    public AppStrings L { get; }
+
     public WindowNotificationManager? NotificationManager { get; set; }
     public WindowToastManager? ToastManager { get; set; }
 
-    private PluginBase? _plugin;
-    public List<SeasonModel>? Seasons { get; set; }
+    [ObservableProperty] private List<SeasonModel>? _seasons;
 
     public event Action? OnDataRefreshed;
     public event Action? OnRequestClose;
@@ -44,38 +60,164 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
     //public ICommand ActivateCommand { get; set; }
     // <!--Content="{Binding EpisodeNumber, StringFormat='{}{0}. B�l�m'}"-->
-    public MediaInfoViewModel(PluginBase plugin, MediaInfoModel? mediaInfo, AppStrings localize)
+    public MediaInfoViewModel(
+        IPluginService pluginService,
+        ILocalizationService localizationService,
+        IFavoritesService favoritesService,
+        PageItemModel? pageItem)
     {
         //ActivateCommand = new RelayCommand(OnActivate);
 
-        if (mediaInfo is null) return;
-        _plugin = plugin;
-        Localize = localize;
-        MediaInfo = mediaInfo;
+        _pluginService = pluginService;
+        _localizationService = localizationService;
+        _favoritesService = favoritesService;
+        _sourcePageItem = pageItem;
+        L = _localizationService.Strings;
+        Localize = L;
+        FavoriteButtonText = L.AddToFavorites;
 
-        if(mediaInfo.Episodes is not null)
+        if (pageItem is null) return;
+
+        MediaInfo = CreatePlaceholderMediaInfo(pageItem);
+        _ = LoadMediaInfo(pageItem);
+    }
+
+    private static MediaInfoModel CreatePlaceholderMediaInfo(PageItemModel pageItem)
+    {
+        return new MediaInfoModel
         {
-            CreateSeasonGroup(mediaInfo.Episodes);
+            Title = pageItem.Title,
+            Url = pageItem.Url,
+            Poster = pageItem.Poster,
+            Rating = pageItem.Rating,
+            Year = pageItem.Year,
+        };
+    }
+
+    private async Task LoadMediaInfo(PageItemModel pageItem)
+    {
+        if (_pluginService.CurrentPlugin is null)
+        {
+            ShowError(Localize?.PageNotFound);
+            return;
         }
-        
-        OnPropertyChanged(nameof(MediaInfo));
+
+        IsLoading = true;
+
+        try
+        {
+            var mediaInfo = await _pluginService.CurrentPlugin.GetMediaInfo(pageItem);
+            if (mediaInfo is null)
+            {
+                ShowError(Localize?.PageNotFound);
+                return;
+            }
+
+            SetMediaInfo(mediaInfo);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"MediaInfo load failed: {ex}");
+            ShowError(Localize?.PageNotFound);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void SetMediaInfo(MediaInfoModel mediaInfo)
+    {
+        IsFavoriteButtonVisible = false;
+        MediaInfo = mediaInfo;
+        Seasons = mediaInfo.Episodes is null ? null : CreateSeasonGroup(mediaInfo.Episodes);
+        OnDataRefreshed?.Invoke();
+        _ = UpdateFavoriteButtonVisibility(mediaInfo);
+    }
+
+    [RelayCommand]
+    private async Task AddToFavorites()
+    {
+        if (MediaInfo is null)
+        {
+            ShowError(Localize?.PageNotFound);
+            return;
+        }
+
+        var favoriteItem = CreateFavoritePageItem(MediaInfo);
+        if (IsFavorite)
+        {
+            await _favoritesService.RemoveAsync(favoriteItem);
+            SetFavoriteState(false);
+            ShowSuccess(L.RemovedFromFavorites);
+            return;
+        }
+
+        await _favoritesService.AddOrUpdateAsync(favoriteItem);
+        SetFavoriteState(true);
+        ShowSuccess(L.AddedToFavorites);
+    }
+
+    private async Task UpdateFavoriteButtonVisibility(MediaInfoModel mediaInfo)
+    {
+        try
+        {
+            var favoriteItem = CreateFavoritePageItem(mediaInfo);
+            var exists = await _favoritesService.ExistsAsync(favoriteItem);
+            SetFavoriteState(exists);
+            IsFavoriteButtonVisible = true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Favorite status check failed: {ex}");
+            IsFavoriteButtonVisible = true;
+            SetFavoriteState(false);
+        }
+    }
+
+    private void SetFavoriteState(bool isFavorite)
+    {
+        IsFavorite = isFavorite;
+        FavoriteButtonText = isFavorite ? L.RemoveFromFavorites : L.AddToFavorites;
+    }
+
+    private void ShowSuccess(string message)
+    {
+        ToastManager?.Show(
+            new Toast(message),
+            type: NotificationType.Success,
+            showIcon: true,
+            classes: ["Light"]);
+    }
+
+    private PageItemModel CreateFavoritePageItem(MediaInfoModel mediaInfo)
+    {
+        var currentPlugin = _pluginService.CurrentPlugin;
+
+        return new PageItemModel
+        {
+            Title = mediaInfo.Title,
+            Url = mediaInfo.Url,
+            CategoryName = _sourcePageItem?.CategoryName,
+            Poster = mediaInfo.Poster ?? _sourcePageItem?.Poster,
+            Rating = mediaInfo.Rating ?? _sourcePageItem?.Rating,
+            Year = mediaInfo.Year ?? _sourcePageItem?.Year,
+            PluginId = _sourcePageItem?.PluginId ?? currentPlugin?.Manifest.Id,
+            PluginName = _sourcePageItem?.PluginName ?? currentPlugin?.Manifest.Name,
+            PluginFavicon = _sourcePageItem?.PluginFavicon ?? currentPlugin?.Config.Favicon
+        };
     }
 
     public async void Play(VideoSourceModel videoSource)
     {
-        var source = await GetVideoSources(videoSource);
-
-        //Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
-        //ShowPlayer(source);
-
-        if(source is not null & IsValidUrlFormat(source?.Url ?? ""))
+        if(videoSource is not null)
         {
-           Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
-           ShowPlayer(source);
+           Debug.WriteLine($"VideoSource: {JsonSerializer.Serialize(videoSource)}" + Environment.NewLine);
+           ShowPlayer(videoSource, MediaInfo?.VideoSources);
         }
         else
         {
-           ShowError(Localize?.VideoNotInitialized ?? "Error");
+           ShowError(Localize?.VideoNotInitialized);
         }
     }
 
@@ -84,7 +226,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         var source = await GetVideoSources(videoSource);
         if(source is null)
         {
-            ShowError(Localize?.VideoNotInitialized ?? "Error"); 
+            ShowError(Localize?.VideoNotInitialized); 
             return;
         } 
         var playerManager = new ExternalPlayerManager();
@@ -97,7 +239,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         var source = await GetVideoSources(videoSource);
         if(source is null)
         {
-            ShowError(Localize?.VideoNotInitialized ?? "Error"); 
+            ShowError(Localize?.VideoNotInitialized); 
             return;
         } 
         var playerManager = new ExternalPlayerManager();
@@ -105,34 +247,84 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         //Debug.WriteLine(source.Url);
     }
 
+    public async void PlayEpisode(EpisodeModel episode)
+    {
+        var sources = await GetEpisodeVideoSources(episode);
+        var source = sources?.FirstOrDefault(x => !x.IsTrailer)
+                     ?? sources?.FirstOrDefault();
+        if (source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        Debug.WriteLine($"Episode VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
+        ShowPlayer(source, sources);
+    }
+
+    public async void VlcPlayEpisode(EpisodeModel episode)
+    {
+        var source = await GetEpisodeVideoSource(episode);
+        if (source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var resolvedSource = await GetVideoSources(source);
+        if (resolvedSource is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var playerManager = new ExternalPlayerManager();
+        playerManager.VlcPlay(resolvedSource);
+    }
+
+    public async void MpvPlayEpisode(EpisodeModel episode)
+    {
+        var source = await GetEpisodeVideoSource(episode);
+        if (source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var resolvedSource = await GetVideoSources(source);
+        if (resolvedSource is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var playerManager = new ExternalPlayerManager();
+        playerManager.MpvPlay(resolvedSource);
+    }
+
     public async void GetMediaInfo(RelatedVideoModel relatedVideo)
     {
-        if (_plugin is not null)
+        if (relatedVideo is null)
         {
-            var pageItem = new PageItemModel() { Title = relatedVideo.Title, Url = relatedVideo.Url };
-            var mediaInfo = await _plugin.GetMediaInfo(pageItem);
-            if(mediaInfo is not null)
-            {
-                MediaInfo = mediaInfo;
-                OnPropertyChanged(nameof(MediaInfo));
-                OnDataRefreshed?.Invoke();
-            }
-            else
-            {
-                ShowError(Localize?.PageNotFound ?? "Page not found");
-            }
+            ShowError(Localize?.PageNotFound);
+            return;
         }
-        else
+
+        var pageItem = new PageItemModel()
         {
-            ShowError(Localize?.PageNotFound ?? "Page not found");
-        }
+            Title = relatedVideo.Title,
+            Url = relatedVideo.Url,
+            Poster = relatedVideo.Poster
+        };
+
+        await LoadMediaInfo(pageItem);
     }
 
     private async Task<VideoSourceModel?> GetVideoSources(VideoSourceModel videoSource)
     {
-        if (_plugin is not null)
+        if (_pluginService.CurrentPlugin is not null)
         {
-            var source = await _plugin.GetVideoSources(videoSource);
+            var source = await _pluginService.CurrentPlugin.GetVideoSources(videoSource);
             
             if (source is not null)
             {
@@ -140,20 +332,76 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             }
             else
             {
-                ShowError(Localize?.PageNotFound ?? "Page not found");
+                ShowError(Localize?.PageNotFound);
             }
         }
         else
         {
-            ShowError(Localize?.PageNotFound ?? "Page not found");
+            ShowError(Localize?.PageNotFound);
         }
 
         return null;
     }
 
-    public void CreateSeasonGroup(List<EpisodeModel> episodes)
+    private async Task<VideoSourceModel?> GetEpisodeVideoSource(EpisodeModel episode)
     {
-        Seasons = episodes
+        var sources = await GetEpisodeVideoSources(episode);
+        return sources?.FirstOrDefault(x => !x.IsTrailer)
+               ?? sources?.FirstOrDefault();
+    }
+
+    private async Task<List<VideoSourceModel>?> GetEpisodeVideoSources(EpisodeModel episode)
+    {
+        if (_pluginService.CurrentPlugin is null)
+        {
+            ShowError(Localize?.PageNotFound);
+            return null;
+        }
+
+        if (episode is null || string.IsNullOrWhiteSpace(episode.Url))
+        {
+            ShowError(Localize?.PageNotFound);
+            return null;
+        }
+
+        IsLoading = true;
+
+        try
+        {
+            var pageItem = new PageItemModel
+            {
+                Title = episode.Title ?? $"{L.Episode} {episode.EpisodeNumber}",
+                Url = episode.Url
+            };
+
+            var episodeInfo = await _pluginService.CurrentPlugin.GetMediaInfo(pageItem);
+            var sources = episodeInfo?.VideoSources?
+                .Where(source => !string.IsNullOrWhiteSpace(source.Url))
+                .ToList();
+
+            if (sources is null || sources.Count == 0)
+            {
+                ShowError(Localize?.VideoNotInitialized);
+                return null;
+            }
+
+            return sources;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Episode source load failed: {ex}");
+            ShowError(Localize?.VideoNotInitialized);
+            return null;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    public List<SeasonModel> CreateSeasonGroup(List<EpisodeModel> episodes)
+    {
+        return episodes
             .GroupBy(e => e.SeasonNumber)
             .OrderBy(g => g.Key)
             .Select(g => new SeasonModel
@@ -164,7 +412,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             .ToList();
     }
 
-    private async void ShowPlayer(VideoSourceModel? videoSource)
+    private async void ShowPlayer(VideoSourceModel? videoSource, IEnumerable<VideoSourceModel>? availableSources = null)
     {
         var options = new OverlayDialogOptions()
         {
@@ -175,7 +423,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             CanResize = false,
         };
 
-        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(videoSource, Localize), null, options: options);
+        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(_pluginService, _localizationService, videoSource, availableSources), null, options: options);
 
         //  ShowPlayer(new VideoSourceModel() { Name = "Test", Url = "https://server15700.contentdm.oclc.org/dmwebservices/index.php?q=dmGetStreamingFile/p15700coll2/15.mp4/byte/json", Subtitles = new() { new() { Name = "Test", Url = "https://cdmdemo.contentdm.oclc.org/utils/getfile/collection/p15700coll2/id/18/filename/video2.vtt" } } });
     }
@@ -203,10 +451,10 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
     }
 
-    private void ShowError(string message)
+    private void ShowError(string? message)
     {
         ToastManager?.Show(
-                new Toast(message),
+                new Toast(message ?? L.Error),
                 type: NotificationType.Error,
                 showIcon: true,
                 classes: ["Light"]);

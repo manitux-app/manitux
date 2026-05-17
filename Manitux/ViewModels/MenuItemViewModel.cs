@@ -21,6 +21,7 @@ public class MenuItemViewModel: ViewModelBase
 {
     public string? MenuHeader { get; set; }
     public string? MenuIconName { get; set; }
+    public string? PluginFavicon { get; set; }
     public string? Key { get; set; }
     public string? PluginId { get; set; }
     public CategoryModel? Category { get; set; }
@@ -28,6 +29,9 @@ public class MenuItemViewModel: ViewModelBase
     public int PageNumber { get; set; } = 1;
     public bool IsSeparator { get; set; }
     public ObservableCollection<MenuItemViewModel> Children { get; set; } = new();
+    public bool IsActionItem => !IsSeparator && Key is not null;
+    public bool IsGroupHeader => !IsSeparator && Key is null;
+    public bool HasChildren => Children.Count > 0;
     
     public ICommand ActivateCommand { get; set; }
 

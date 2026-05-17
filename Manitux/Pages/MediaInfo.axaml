@@ -59,22 +59,23 @@
 		</Style>
 	</Control.Styles> -->
 
-	<Grid>
-		<Grid IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-			<async:AdvancedImage Source="{Binding MediaInfo.Backdrop}"
-								 Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
-								 Stretch="UniformToFill"/>
-		</Grid>
+	<u:LoadingContainer IsLoading="{Binding IsLoading}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Background="#111111">
+		<Grid>
+			<Grid IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+				<async:AdvancedImage Source="{Binding MediaInfo.Backdrop}"
+									 Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
+									 Stretch="UniformToFill"/>
+			</Grid>
 
-		<Border Background="Black" Opacity="0.7" IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-		
-		<Grid RowDefinitions="Auto, *" Width="{Binding $parent.Bounds.Width}" Height="{Binding $parent.Bounds.Height}">
+			<Border Background="Black" Opacity="0.7" IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+			
+			<Grid RowDefinitions="Auto, *" Width="{Binding $parent.Bounds.Width}" Height="{Binding $parent.Bounds.Height}">
 
 
 
-			<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="20,15" Spacing="10">
+			<DockPanel Grid.Row="0" Margin="20,15">
 				<TextBlock Text="{Binding MediaInfo.Title}" VerticalAlignment="Center" FontSize="16" Opacity="0.7"/>
-			</StackPanel>
+			</DockPanel>
 
 			<!-- poster-name-desc-tags-rating-year-country-duration -->
 			<ScrollViewer Name="MainScrollViewer" Grid.Row="1">
@@ -101,7 +102,7 @@
 									Icon="{StaticResource SemiIconStar}"
 									Content="{Binding MediaInfo.Rating}"
 									RenderTransform="{x:Null}"
-									ToolTip.Tip="IMDB"
+									ToolTip.Tip="{Binding L.Imdb}"
 									FontWeight="Normal" FontSize="16"
 									Theme="{DynamicResource BorderlessIconButton}"/>
 								<u:IconButton IsVisible="True"
@@ -110,7 +111,7 @@
 									Icon="{StaticResource SemiIconCalendar}"
 									Content="{Binding MediaInfo.Year}"
 									RenderTransform="{x:Null}"
-									ToolTip.Tip="{Binding Localize.Year}"
+									ToolTip.Tip="{Binding L.Year}"
 									FontWeight="Normal" FontSize="16"
 									Theme="{DynamicResource BorderlessIconButton}"/>
 								<u:IconButton IsVisible="True"
@@ -119,7 +120,7 @@
 									Icon="{StaticResource SemiIconGlobe}"
 									Content="{Binding MediaInfo.Country}"
 									RenderTransform="{x:Null}"
-									ToolTip.Tip="{Binding Localize.Country}"
+									ToolTip.Tip="{Binding L.Country}"
 									FontWeight="Normal" FontSize="16"
 									Theme="{DynamicResource BorderlessIconButton}"/>
 								<u:IconButton IsVisible="True"
@@ -128,9 +129,22 @@
 									Icon="{StaticResource SemiIconClock}"
 									Content="{Binding MediaInfo.Duration}"
 									RenderTransform="{x:Null}"
-									ToolTip.Tip="{Binding Localize.Duration}"
+									ToolTip.Tip="{Binding L.Duration}"
 									FontWeight="Normal" FontSize="16"
 									Theme="{DynamicResource BorderlessIconButton}"/>
+							</StackPanel>
+							<StackPanel Orientation="Horizontal" Spacing="10">
+								<u:IconButton IsVisible="{Binding IsFavoriteButtonVisible}"
+									HorizontalAlignment="Left"
+									Classes.Success="{Binding !IsFavorite}"
+									Classes.Danger="{Binding IsFavorite}"
+									Command="{Binding AddToFavoritesCommand}"
+									Icon="❤︎"
+									Content="{Binding FavoriteButtonText}"
+									RenderTransform="{x:Null}"
+									ToolTip.Tip="{Binding FavoriteButtonText}"
+									FontWeight="Normal" FontSize="16"
+									Theme="{DynamicResource SolidIconButton}"/>
 							</StackPanel>
 						</StackPanel>
 					</Grid>
@@ -183,15 +197,15 @@
 											Theme="{DynamicResource SolidIconDropDownButton}">
 													<Button.Flyout>
 														<MenuFlyout Placement="BottomEdgeAlignedRight">
-															<MenuItem Header="Manitux Player" 
+															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.ManituxPlayer}" 
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).Play}" 
 																	CommandParameter="{Binding}"/>
 															
-															<MenuItem Header="VLC Player" 
+															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.VlcPlayer}" 
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).VlcPlay}" 
 																	CommandParameter="{Binding}"/>
 															
-															<MenuItem Header="MPV Player" 
+															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.MpvPlayer}" 
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).MpvPlay}" 
 																	CommandParameter="{Binding}"/>
 														</MenuFlyout>
@@ -235,16 +249,16 @@
 													Theme="{DynamicResource SolidIconDropDownButton}">
 													<Button.Flyout>
 														<MenuFlyout Placement="BottomEdgeAlignedRight">
-															<MenuItem Header="Manitux Player" 
-																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).ShowToast}" 
+															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.ManituxPlayer}" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).PlayEpisode}" 
 																	CommandParameter="{Binding}"/>
 															
-															<MenuItem Header="VLC Player" 
-																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).VlcPlay}" 
+															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.VlcPlayer}" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).VlcPlayEpisode}" 
 																	CommandParameter="{Binding}"/>
 															
-															<MenuItem Header="MPV Player" 
-																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).MpvPlay}" 
+															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.MpvPlayer}" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).MpvPlayEpisode}" 
 																	CommandParameter="{Binding}"/>
 														</MenuFlyout>
 													</Button.Flyout>
@@ -311,9 +325,10 @@
 
 				</StackPanel>
 			</ScrollViewer>
-		</Grid>
+			</Grid>
 
-	</Grid>
+		</Grid>
+	</u:LoadingContainer>
 	
 	
 </UserControl>

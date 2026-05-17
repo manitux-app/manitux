@@ -90,8 +90,7 @@ public sealed class CodeLogicOptions
     /// using System.Runtime.InteropServices;
     public string GetFrameworkPath()
     {
-        // Android için güvenli bir başlangıç dizini seçiyoruz
-        string baseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
+        string baseDir = OperatingSystem.IsAndroid()
             ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android /data/user/0/.../files/
             : AppContext.BaseDirectory; // Windows, Linux and macOS standard directory
 
@@ -138,7 +137,7 @@ public sealed class CodeLogicOptions
     /// </summary>
     public string GetApplicationPath()
     {
-        string baseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
+        string baseDir = OperatingSystem.IsAndroid()
             ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
             : AppContext.BaseDirectory;
 

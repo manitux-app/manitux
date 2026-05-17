@@ -16,8 +16,8 @@
              <u:Banner
                 Name="banner"
                 Classes.Bordered="True"
-                Header="Henüz bir eklenti yüklü değil!"
-                Content="Manitux uygulaması hiç bir eklnetiye sahip değildir. Kullanıcılar kendileri yükler.." />
+                Header="{Binding L.NoPluginsLoadedTitle}"
+                Content="{Binding L.NoPluginsLoadedMessage}" />
         </ScrollViewer>
     </Grid>
 </UserControl>

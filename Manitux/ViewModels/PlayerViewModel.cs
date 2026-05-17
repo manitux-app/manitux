@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using AngleSharp.Dom.Events;
 using Avalonia;
-using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Irihi.Avalonia.Shared.Contracts;
@@ -15,11 +14,16 @@ using LibMPVSharp.Extensions;
 using Manitux.Core.Application;
 using Manitux.Core.Helpers;
 using Manitux.Core.Models;
+using Manitux.Services.Localizations;
+using Manitux.Services.Plugins;
 
 namespace Manitux.ViewModels
 {
-    public partial class PlayerViewModel : ViewModelBase, IDisposable
+    public partial class PlayerViewModel : ViewModelBase, IDialogContext, IDisposable
     {
+        private readonly IPluginService _pluginService;
+        private readonly ILocalizationService _localizationService;
+
         [ObservableProperty]
         private MPVMediaPlayer? _mediaPlayer;
 
@@ -30,28 +34,43 @@ namespace Manitux.ViewModels
         public bool HasError { get; set; }
         public string? ErrorString { get; set; }
         private bool _fileLoaded;
+        private bool _hasStartedPlayback;
+        private bool _isChangingSource;
+        private bool _suppressSourceSelectionChanged;
+        private string? _currentSourceKey;
+
+        public ObservableCollection<VideoSourceModel> VideoSources { get; } = new();
+
+        [ObservableProperty]
+        private VideoSourceModel? _selectedVideoSource;
+
+        public bool HasSourceOptions => VideoSources.Count > 1;
 
         private AppStrings? _localize;
         private readonly SubtitleManager _subtitleManager = new();
+        public AppStrings L { get; }
 
         public event Action? OnRequestClose;
         public event Action<string>? OnErrorClose;
         public event Action<List<SubtitleModel>>? OnAddSubtitleRequested;
+        public event EventHandler<object?>? RequestClose;
 
-        public void RequestClose()
+        public void Close()
         {
+            RequestClose?.Invoke(this, null);
             OnRequestClose?.Invoke();
         }
 
-        public PlayerViewModel(VideoSourceModel? videoSource, AppStrings? localize)
+        public PlayerViewModel(
+            IPluginService pluginService,
+            ILocalizationService localizationService,
+            VideoSourceModel? videoSource,
+            IEnumerable<VideoSourceModel>? availableSources = null)
         {
-            if (videoSource is null || string.IsNullOrEmpty(videoSource?.Url) || !IsValidUrlFormat(videoSource?.Url ?? ""))
-            {
-                _localize = localize;
-                ErrorString = _localize?.VideoNotInitialized;
-                HasError = true;
-                return;
-            }
+            _pluginService = pluginService;
+            _localizationService = localizationService;
+            _localize = _localizationService.Strings;
+            L = _localizationService.Strings;
 
             //var opt = new MPVMediaPlayerOptions();
             MediaPlayer = new MPVMediaPlayer();
@@ -64,6 +83,8 @@ namespace Manitux.ViewModels
                             Dispatcher.UIThread.Post(() =>
                             {
                                 _fileLoaded = true;
+                                _hasStartedPlayback = true;
+                                _isChangingSource = false;
                                 IsReady = true;
                                 OnPropertyChanged(nameof(IsReady));
                             });
@@ -75,14 +96,20 @@ namespace Manitux.ViewModels
                             {
                                 //IsReady = false;
                                 //OnPropertyChanged(nameof(IsReady));
+                                if (_isChangingSource && endFile.reason != MpvEndFileReason.MPV_END_FILE_REASON_ERROR)
+                                {
+                                    return;
+                                }
+
                                 if (endFile.reason == MpvEndFileReason.MPV_END_FILE_REASON_ERROR)
                                 {
+                                    _isChangingSource = false;
                                     ErrorString = $"Player Error: {endFile.error}";
                                     HasError = true;
                                     OnPropertyChanged(nameof(ErrorString));
                                     OnPropertyChanged(nameof(HasError));
-                                    await Task.Delay(500);
-                                    OnErrorClose?.Invoke(ErrorString);
+                                    //await Task.Delay(500);
+                                    //OnErrorClose?.Invoke(ErrorString);
                                     //return;
                                 }
 
@@ -92,12 +119,12 @@ namespace Manitux.ViewModels
                                     HasError = true;
                                     OnPropertyChanged(nameof(ErrorString));
                                     OnPropertyChanged(nameof(HasError));
-                                    await Task.Delay(500);
-                                    OnErrorClose?.Invoke(ErrorString);
+                                    //await Task.Delay(500);
+                                    //OnErrorClose?.Invoke(ErrorString);
                                     //return;
                                 }
 
-                                OnRequestClose?.Invoke();
+                                //Close();
                             });
                             break;
 
@@ -112,13 +139,27 @@ namespace Manitux.ViewModels
                     }
                 };
 
-            if (videoSource is not null)
+            if (videoSource is null)
             {
-                Dispatcher.UIThread.Post(() =>
-                {
-                    Play(videoSource);
-                });
+                SetError(_localize?.VideoNotInitialized);
+                return;
             }
+
+            foreach (var source in CreateSourceList(videoSource, availableSources))
+            {
+                VideoSources.Add(source);
+            }
+
+            OnPropertyChanged(nameof(HasSourceOptions));
+
+            _suppressSourceSelectionChanged = true;
+            SelectedVideoSource = VideoSources.FirstOrDefault(source => SameSource(source, videoSource)) ?? videoSource;
+            _suppressSourceSelectionChanged = false;
+
+            Dispatcher.UIThread.Post(async () =>
+            {
+                await LoadAndPlaySelectedSource(SelectedVideoSource ?? videoSource);
+            });
                
 
             //Task.Run(() => Play(videoSource));
@@ -128,12 +169,78 @@ namespace Manitux.ViewModels
             //HasError = true;
         }
 
+        partial void OnSelectedVideoSourceChanged(VideoSourceModel? value)
+        {
+            if (_suppressSourceSelectionChanged || value is null)
+            {
+                return;
+            }
+
+            Dispatcher.UIThread.Post(async () => await LoadAndPlaySelectedSource(value));
+        }
+
+        private async Task LoadAndPlaySelectedSource(VideoSourceModel videoSource)
+        {
+            var sourceKey = GetSourceKey(videoSource);
+            if (_currentSourceKey == sourceKey && (_fileLoaded || _isChangingSource))
+            {
+                return;
+            }
+
+            _currentSourceKey = sourceKey;
+            HasError = false;
+            ErrorString = null;
+            IsReady = false;
+            OnPropertyChanged(nameof(HasError));
+            OnPropertyChanged(nameof(ErrorString));
+            OnPropertyChanged(nameof(IsReady));
+
+            await LoadAndPlay(videoSource);
+        }
+
+        private async Task LoadAndPlay(VideoSourceModel videoSource)
+        {
+            var source = await GetVideoSources(videoSource);
+            if (source is null || string.IsNullOrEmpty(source.Url) || !IsValidUrlFormat(source.Url))
+            {
+                SetError(_localize?.VideoNotInitialized);
+                return;
+            }
+
+            Play(source);
+        }
+
+        private async Task<VideoSourceModel?> GetVideoSources(VideoSourceModel videoSource)
+        {
+            try
+            {
+                if (_pluginService.CurrentPlugin is not null)
+                {
+                    var source = await _pluginService.CurrentPlugin.GetVideoSources(videoSource);
+                    if (source is not null)
+                    {
+                        return source;
+                    }
+
+                    SetError(_localize?.PageNotFound);
+                    return null;
+                }
+
+                return IsValidUrlFormat(videoSource.Url) ? videoSource : null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PlayerViewModel] Video source resolve failed. Url: {videoSource.Url} Error: {ex}");
+                SetError(_localize?.VideoNotInitialized);
+                return null;
+            }
+        }
+
         private async void Play(VideoSourceModel source)
         {
             if (MediaPlayer is null)
             {
-                ErrorString = _localize?.PlayerNotInitialized;
-                HasError = true;
+                SetError(_localize?.PlayerNotInitialized);
                 return;
             }
 
@@ -193,6 +300,7 @@ namespace Manitux.ViewModels
                     }
                 }
 
+                _isChangingSource = _hasStartedPlayback;
                 _fileLoaded = false;
                 var resolvedSubtitles = await ResolveSubtitlesAsync(source.Subtitles);
                 var loadFileCommand = CreateLoadFileCommand(source.Url, resolvedSubtitles);
@@ -234,10 +342,7 @@ namespace Manitux.ViewModels
             }
             catch (Exception ex)
             {
-                ErrorString = ex.Message;
-                HasError = true;
-                OnPropertyChanged(nameof(ErrorString));
-                OnPropertyChanged(nameof(HasError));
+                SetError(ex.Message);
             }
             finally
             {
@@ -247,6 +352,17 @@ namespace Manitux.ViewModels
 
             //await Task.Delay(10000);
             //Dispose();
+        }
+
+        private void SetError(string? message)
+        {
+            _isChangingSource = false;
+            ErrorString = message ?? "Error";
+            HasError = true;
+            IsReady = true;
+            OnPropertyChanged(nameof(ErrorString));
+            OnPropertyChanged(nameof(HasError));
+            OnPropertyChanged(nameof(IsReady));
         }
 
         private bool IsValidUrlFormat(string url)
@@ -361,6 +477,44 @@ namespace Manitux.ViewModels
             return string.IsNullOrWhiteSpace(options)
                 ? [MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, url]
                 : [MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, url, "replace", "-1", options];
+        }
+
+        private static List<VideoSourceModel> CreateSourceList(VideoSourceModel selectedSource, IEnumerable<VideoSourceModel>? availableSources)
+        {
+            var sources = new List<VideoSourceModel>();
+            AddDistinct(sources, selectedSource);
+
+            if (availableSources is not null)
+            {
+                foreach (var source in availableSources)
+                {
+                    AddDistinct(sources, source);
+                }
+            }
+
+            return sources;
+        }
+
+        private static void AddDistinct(List<VideoSourceModel> sources, VideoSourceModel source)
+        {
+            if (string.IsNullOrWhiteSpace(source.Url)
+                || sources.Any(existing => SameSource(existing, source)))
+            {
+                return;
+            }
+
+            sources.Add(source);
+        }
+
+        private static bool SameSource(VideoSourceModel left, VideoSourceModel right)
+        {
+            return string.Equals(left.Url, right.Url, StringComparison.OrdinalIgnoreCase)
+                   && string.Equals(left.Name, right.Name, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string GetSourceKey(VideoSourceModel source)
+        {
+            return $"{source.Name}|{source.Url}".ToLowerInvariant();
         }
 
         private static string EscapeLoadFileOptionValue(string value)

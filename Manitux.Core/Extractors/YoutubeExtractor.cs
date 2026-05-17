@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Web;
+using CodeLogic.Core.Logging;
 using Manitux.Core.Extractors;
 using Manitux.Core.Extractors.Utils;
 using Manitux.Core.Models;
@@ -33,23 +34,40 @@ public class YoutubeExtractor : ExtractorBase
 
     public override async Task<VideoSourceModel?> ExtractAsync(VideoSourceModel videoSource, string? referer = null)
     {
-        using var youtube = new YoutubeClient();
-        var videoId = VideoId.Parse(videoSource.Url);
-        var streamManifest = await youtube.Videos.Streams.GetManifestAsync(videoId);
-        var streamInfo = streamManifest.GetMuxedStreams().TryGetWithHighestVideoQuality();
-        if (streamInfo is null)
+        try
         {
-            Debug.WriteLine("Youtube video has no muxed streams.");
-            return null;
+            using var youtube = new YoutubeClient();
+            var videoId = VideoId.Parse(videoSource.Url);
+            var streamManifest = await youtube.Videos.Streams.GetManifestAsync(videoId);
+
+            //var streamInfo = streamManifest.GetMuxedStreams().TryGetWithHighestVideoQuality();
+
+            var streamInfo = streamManifest
+                .GetMuxedStreams()
+                .Where(s => s.Container == Container.Mp4)
+                .GetWithHighestVideoQuality();
+
+            if (streamInfo is null)
+            {
+                Debug.WriteLine("Youtube streamInfo is null");
+                return null;
+            }
+
+            //var fileName = $"{videoId}.{streamInfo.Container.Name}";
+            //var url = streamInfo.Url;
+            //Debug.WriteLine($"File: {fileName} Url: {url}");
+
+            videoSource.Url = streamInfo.Url;
+
+            return videoSource;
+        }
+        catch (Exception ex)
+        {
+            Log(LogLevel.Error, ex.ToString());
         }
 
-        var fileName = $"{videoId}.{streamInfo.Container.Name}";
-        var url = streamInfo.Url;
-        //Debug.WriteLine($"File: {fileName} Url: {url}");
-
-        videoSource.Url = url;
+        return null;
         
-        return videoSource;
     }
 
 }

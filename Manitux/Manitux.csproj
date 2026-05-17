@@ -12,6 +12,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Localization\*.json"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
+          TargetPath="data\app\localization\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AsyncImageLoader.Avalonia" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Labs.CommandManager" />

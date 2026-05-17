@@ -24,7 +24,7 @@ public class FilmMakinesi : PluginBase
 
     public override PluginConfig Config { get; set; } = new()
     {
-        MainUrl = "https://filmmakinesi.to",
+        MainUrl = "https://filmmakinesi.net",
         Favicon = "https://www.google.com/s2/favicons?domain=filmmakinesi.to&sz=64",
         Language = "tr"
     };

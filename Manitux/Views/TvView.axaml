@@ -1,0 +1,343 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:async="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             xmlns:converters="clr-namespace:Manitux.Converters"
+             xmlns:loaders="clr-namespace:Manitux.Services.ImageLoaders"
+             xmlns:vm="clr-namespace:Manitux.ViewModels"
+             xmlns:u="https://irihi.tech/ursa"
+             mc:Ignorable="d"
+             d:DesignWidth="1920"
+             d:DesignHeight="1080"
+             x:CompileBindings="True"
+             x:DataType="vm:MainViewModel"
+             x:Class="Manitux.Views.TvView">
+    <UserControl.Resources>
+        <converters:ViewLocator x:Key="PageViewLocator" />
+    </UserControl.Resources>
+
+    <UserControl.DataTemplates>
+        <DataTemplate DataType="{x:Type vm:PageItemsViewModel}" x:DataType="vm:PageItemsViewModel">
+            <u:LoadingContainer IsLoading="{Binding IsLoading}"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalContentAlignment="Stretch">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <Grid Grid.Row="0"
+                          Height="58"
+                          Margin="0,0,0,12"
+                          ColumnDefinitions="*,Auto"
+                          IsVisible="{Binding TopBar.IsVisible}">
+                        <StackPanel Grid.Column="0"
+                                    Orientation="Horizontal"
+                                    Spacing="10"
+                                    VerticalAlignment="Center">
+                            <async:AdvancedImage Width="32"
+                                                 Height="32"
+                                                 Source="{Binding TopBar.PluginFavicon}"
+                                                 Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
+                                                 Stretch="UniformToFill" />
+                            <TextBlock Text="{Binding TopBar.PluginName}"
+                                       FontSize="24"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    Spacing="8"
+                                    VerticalAlignment="Center">
+                            <TextBox Width="300"
+                                     Height="42"
+                                     FontSize="16"
+                                     CornerRadius="8"
+                                     InnerLeftContent="{Binding TopBar.L.Search}"
+                                     Text="{Binding TopBar.SearchText, Mode=TwoWay}" />
+                            <Button Classes="TvIconCommand"
+                                    Command="{Binding TopBar.SearchCommand}">
+                                <PathIcon Width="20"
+                                          Height="20"
+                                          Data="{StaticResource SemiIconSearch}" />
+                            </Button>
+                            <Button Classes="TvIconCommand"
+                                    Command="{Binding TopBar.ShowPluginConfigCommand}">
+                                <PathIcon Width="20"
+                                          Height="20"
+                                          Data="{StaticResource SemiIconSetting}" />
+                            </Button>
+                            <Button Classes="TvIconCommand"
+                                    Command="{Binding TopBar.RefreshCommand}">
+                                <PathIcon Width="20"
+                                          Height="20"
+                                          Data="{StaticResource SemiIconRefresh}" />
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding PageItems}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Width="168"
+                                                Margin="0,0,20,22">
+                                        <Button Classes="TvPosterButton"
+                                                Command="{Binding $parent[ItemsControl].((vm:PageItemsViewModel)DataContext).OnActivate}"
+                                                CommandParameter="{Binding}">
+                                            <Grid>
+                                                <async:AdvancedImage Width="168"
+                                                                     Height="248"
+                                                                     Source="{Binding Poster}"
+                                                                     Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
+                                                                     Stretch="UniformToFill" />
+                                                <Border Background="#D0000000"
+                                                        CornerRadius="5"
+                                                        Padding="7,3"
+                                                        Margin="8"
+                                                        HorizontalAlignment="Left"
+                                                        VerticalAlignment="Top">
+                                                    <TextBlock Text="{Binding Year}"
+                                                               Foreground="White"
+                                                               FontSize="13"
+                                                               FontWeight="SemiBold" />
+                                                </Border>
+                                                <Border Background="#D0000000"
+                                                        CornerRadius="5"
+                                                        Padding="7,3"
+                                                        Margin="8"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Top">
+                                                    <TextBlock Text="{Binding Rating}"
+                                                               Foreground="White"
+                                                               FontSize="13"
+                                                               FontWeight="SemiBold" />
+                                                </Border>
+                                            </Grid>
+                                        </Button>
+
+                                        <TextBlock Text="{Binding Title}"
+                                                   Margin="0,10,0,0"
+                                                   MinHeight="44"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"
+                                                   TextAlignment="Center"
+                                                   TextWrapping="Wrap"
+                                                   MaxLines="2" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <Grid Grid.Row="2"
+                          Height="52"
+                          Margin="0,10,0,0"
+                          HorizontalAlignment="Center"
+                          ColumnDefinitions="50,50,86,50"
+                          IsVisible="{Binding IsVisible}">
+                        <Button Grid.Column="0"
+                                Classes="TvPagerButton"
+                                Command="{Binding GoFirstPageCommand}"
+                                Content="1" />
+                        <Button Grid.Column="1"
+                                Classes="TvPagerButton"
+                                Command="{Binding GoPreviousPageCommand}"
+                                Content="&lt;" />
+                        <Border Grid.Column="2"
+                                Height="42"
+                                Margin="7,0"
+                                VerticalAlignment="Center"
+                                Background="#CC101014"
+                                BorderBrush="#66FFFFFF"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                            <TextBlock Text="{Binding CurrentPage}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontSize="17"
+                                       FontWeight="SemiBold"
+                                       Foreground="White" />
+                        </Border>
+                        <Button Grid.Column="3"
+                                Classes="TvPagerButton"
+                                Command="{Binding GoNextPageCommand}"
+                                Content="&gt;" />
+                    </Grid>
+                </Grid>
+            </u:LoadingContainer>
+        </DataTemplate>
+    </UserControl.DataTemplates>
+
+    <UserControl.Styles>
+        <Style Selector="Button.TvRailButton, Button.TvChildButton, Button.TvPosterButton, Button.TvIconCommand, Button.TvPagerButton">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.16" Easing="CubicEaseOut" />
+                    <BrushTransition Property="Background" Duration="0:0:0.16" />
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.16" />
+                </Transitions>
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.TvRailButton">
+            <Setter Property="MinHeight" Value="48" />
+            <Setter Property="Margin" Value="0,0,0,7" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="#171A20" />
+            <Setter Property="BorderBrush" Value="#26313A" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+
+        <Style Selector="Button.TvChildButton">
+            <Setter Property="MinHeight" Value="42" />
+            <Setter Property="Margin" Value="14,0,0,6" />
+            <Setter Property="Padding" Value="11,7" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="#101318" />
+            <Setter Property="BorderBrush" Value="#25303A" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+
+        <Style Selector="Button.TvPosterButton">
+            <Setter Property="Width" Value="168" />
+            <Setter Property="Height" Value="248" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="ClipToBounds" Value="True" />
+            <Setter Property="Background" Value="#101318" />
+            <Setter Property="BorderBrush" Value="#26313A" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+
+        <Style Selector="Button.TvIconCommand, Button.TvPagerButton">
+            <Setter Property="Width" Value="42" />
+            <Setter Property="Height" Value="42" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Background" Value="#171A20" />
+            <Setter Property="BorderBrush" Value="#34404A" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+
+        <Style Selector="Button.TvRailButton:focus, Button.TvRailButton:pointerover, Button.TvChildButton:focus, Button.TvChildButton:pointerover, Button.TvPosterButton:focus, Button.TvPosterButton:pointerover, Button.TvIconCommand:focus, Button.TvIconCommand:pointerover, Button.TvPagerButton:focus, Button.TvPagerButton:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.04)" />
+            <Setter Property="Background" Value="#263949" />
+            <Setter Property="BorderBrush" Value="#5BD6FF" />
+            <Setter Property="ZIndex" Value="5" />
+        </Style>
+
+        <Style Selector="TextBlock.TvSectionLabel">
+            <Setter Property="Margin" Value="3,16,0,8" />
+            <Setter Property="Foreground" Value="#A8B3BD" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <Style Selector="TextBlock.TvGroupHeader">
+            <Setter Property="Margin" Value="3,10,0,7" />
+            <Setter Property="Foreground" Value="#D7E0E7" />
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </UserControl.Styles>
+
+    <u:LoadingContainer IsLoading="{Binding !IsReady}"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalContentAlignment="Stretch">
+        <Grid Background="#080A0E"
+              ColumnDefinitions="280,*">
+            <Border Grid.Column="0"
+                    Padding="20,22"
+                    Background="#11151B"
+                    BorderBrush="#1F2B34"
+                    BorderThickness="0,0,1,0">
+                <Grid RowDefinitions="Auto,*">
+                    <StackPanel Grid.Row="0"
+                                Orientation="Horizontal"
+                                Spacing="10"
+                                Margin="0,0,0,20">
+                        <Image Source="avares://Manitux/Assets/logo_trans.png"
+                               Width="40"
+                               Height="40"
+                               Stretch="Uniform" />
+                        <TextBlock Text="manitux"
+                                   VerticalAlignment="Center"
+                                   FontSize="26"
+                                   FontWeight="SemiBold" />
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Menus.MenuItems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:MenuItemViewModel">
+                                    <StackPanel>
+                                        <TextBlock Classes="TvSectionLabel"
+                                                   Text="{Binding MenuHeader}"
+                                                   IsVisible="{Binding IsSeparator}" />
+
+                                        <Button Classes="TvRailButton"
+                                                Command="{Binding ActivateCommand}"
+                                                IsVisible="{Binding IsActionItem}">
+                                            <StackPanel Orientation="Horizontal"
+                                                        Spacing="8">
+                                                <async:AdvancedImage Width="22"
+                                                                     Height="22"
+                                                                     Source="{Binding PluginFavicon}"
+                                                                     Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
+                                                                     Stretch="UniformToFill"
+                                                                     IsVisible="{Binding PluginFavicon, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                                <TextBlock Text="{Binding MenuHeader}"
+                                                           FontSize="17"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </Button>
+
+                                        <TextBlock Classes="TvGroupHeader"
+                                                   Text="{Binding MenuHeader}"
+                                                   IsVisible="{Binding IsGroupHeader}" />
+
+                                        <ItemsControl ItemsSource="{Binding Children}"
+                                                      IsVisible="{Binding HasChildren}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:MenuItemViewModel">
+                                                    <Button Classes="TvChildButton"
+                                                            Command="{Binding ActivateCommand}">
+                                                        <TextBlock Text="{Binding MenuHeader}"
+                                                                   FontSize="15"
+                                                                   FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Padding="24,22,22,18"
+                    Background="#0D1117">
+                <ContentControl Content="{Binding Content}" />
+            </Border>
+        </Grid>
+    </u:LoadingContainer>
+</UserControl>

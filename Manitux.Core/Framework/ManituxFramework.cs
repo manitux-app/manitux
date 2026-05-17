@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using CodeLogic.Framework.Application;
 using CodeLogic.Framework.Application.Plugins;
 using Manitux.Core.Application;
@@ -12,6 +14,8 @@ public class ManituxFramework
 {
     public async Task<PluginManager> InitAsync()
     {
+        EnsureLocalizationCulturesConfigured();
+
         // ── Step 1: Initialize ────────────────────────────────────────────────────
         var initResult = await CodeLogic.CodeLogic.InitializeAsync(opts =>
         {
@@ -52,11 +56,11 @@ public class ManituxFramework
         // with the rest of the app. It is registered with the runtime for health
         // checks and graceful shutdown.
 
-        string baseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
+        string baseDir = OperatingSystem.IsAndroid()
             ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android /data/user/0/.../files/
             : AppContext.BaseDirectory;
 
-        string pluginsDir = Path.Combine(baseDir, "data/plugins");
+        string pluginsDir = Path.Combine(baseDir, "data", "plugins");
 
         //Debug.WriteLine(pluginsDir);
 
@@ -65,18 +69,19 @@ public class ManituxFramework
             new PluginOptions { PluginsDirectory = pluginsDir, EnableHotReload = false });
 
         // Load our demo plugins directly (no separate DLL needed for in-process plugins)
-        await LoadInProcessPluginAsync(pluginMgr, new TmdbPlugin());
-        await LoadInProcessPluginAsync(pluginMgr, new RareFilm());
-        await LoadInProcessPluginAsync(pluginMgr, new Dailymotion());
-        await LoadInProcessPluginAsync(pluginMgr, new Invidious());
-        await LoadInProcessPluginAsync(pluginMgr, new OkruPlugin());
+        // await LoadInProcessPluginAsync(pluginMgr, new TmdbPlugin());
+        // await LoadInProcessPluginAsync(pluginMgr, new RareFilm());
+        // await LoadInProcessPluginAsync(pluginMgr, new Dailymotion());
+        // await LoadInProcessPluginAsync(pluginMgr, new Invidious());
+        // await LoadInProcessPluginAsync(pluginMgr, new OkruPlugin());
 
         await LoadInProcessPluginAsync(pluginMgr, new HdFilmCehennemi());
-        await LoadInProcessPluginAsync(pluginMgr, new FilmMakinesi());
-        await LoadInProcessPluginAsync(pluginMgr, new FilmEkseni());
-        await LoadInProcessPluginAsync(pluginMgr, new FilmModu());
+        //await LoadInProcessPluginAsync(pluginMgr, new FilmMakinesi());
+        // await LoadInProcessPluginAsync(pluginMgr, new FilmEkseni());
+        // await LoadInProcessPluginAsync(pluginMgr, new FilmModu());
+        await LoadInProcessPluginAsync(pluginMgr, new DiziPal());
+        await LoadInProcessPluginAsync(pluginMgr, new DiziBox());
         
-
         //await pluginMgr.LoadAllAsync();
 
         // Register with the runtime — health checks + graceful shutdown
@@ -94,6 +99,8 @@ public class ManituxFramework
     
     public async Task Init()
     {
+        EnsureLocalizationCulturesConfigured();
+
         // ── Step 1: Initialize ────────────────────────────────────────────────────
         var initResult = await CodeLogic.CodeLogic.InitializeAsync(opts =>
         {
@@ -168,8 +175,8 @@ public class ManituxFramework
         // Build a PluginContext that reuses the app's paths/services
         //var pluginDir = Path.Combine("data/plugins", plugin.Manifest.Id);
 
-        string baseDir = RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
-           ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android /data/user/0/.../files/
+        string baseDir = OperatingSystem.IsAndroid()
+           ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android: /data/user/0/.../files/
            : AppContext.BaseDirectory;
 
         string pluginsDir = Path.Combine(baseDir, "data/plugins");
@@ -208,5 +215,48 @@ public class ManituxFramework
         Console.WriteLine($"  [Plugins] {plugin.Manifest.Id} loaded and started");
 
         //await CodeLogic.CodeLogic.StopAsync();
+    }
+
+    private static void EnsureLocalizationCulturesConfigured()
+    {
+        try
+        {
+            var baseDir = OperatingSystem.IsAndroid()
+                ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+                : AppContext.BaseDirectory;
+
+            var configPath = Path.Combine(baseDir, "data", "codelogic", "Framework", "CodeLogic.json");
+            if (!File.Exists(configPath))
+            {
+                return;
+            }
+
+            var root = JsonNode.Parse(File.ReadAllText(configPath))?.AsObject();
+            if (root is null)
+            {
+                return;
+            }
+
+            var localization = root["localization"] as JsonObject ?? new JsonObject();
+            root["localization"] = localization;
+            localization["defaultCulture"] = "tr-TR";
+
+            var cultures = localization["supportedCultures"] as JsonArray ?? new JsonArray();
+            localization["supportedCultures"] = cultures;
+
+            foreach (var culture in new[] { "tr-TR", "en-US", "de-DE", "fr-FR" })
+            {
+                if (!cultures.Any(x => string.Equals(x?.GetValue<string>(), culture, StringComparison.OrdinalIgnoreCase)))
+                {
+                    cultures.Add(culture);
+                }
+            }
+
+            File.WriteAllText(configPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Localization culture config update failed: {ex}");
+        }
     }
 }
