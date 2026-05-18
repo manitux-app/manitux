@@ -15,15 +15,10 @@ public class VidMoly : ExtractorBase
     public override List<string> SupportedDomains => new()
     {
         "vidmoly.to",
-        "www.vidmoly.to",
         "vidmoly.me",
-        "www.vidmoly.me",
         "vidmoly.net",
-        "www.vidmoly.net",
         "vidmoly.biz",
-        "www.vidmoly.biz",
-        "videobin.co",
-        "www.videobin.co"
+        "videobin.co"
     };
 
     public override async Task<VideoSourceModel?> ExtractAsync(VideoSourceModel videoSource, string? referer = null)

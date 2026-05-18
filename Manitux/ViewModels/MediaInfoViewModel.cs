@@ -34,6 +34,8 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
     private readonly ILocalizationService _localizationService;
     private readonly IFavoritesService _favoritesService;
     private readonly PageItemModel? _sourcePageItem;
+    private readonly Action<PlayerViewModel>? _showPlayer;
+    private readonly Action? _goBack;
 
     [ObservableProperty] private MediaInfoModel? _mediaInfo;
 
@@ -64,7 +66,9 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         IPluginService pluginService,
         ILocalizationService localizationService,
         IFavoritesService favoritesService,
-        PageItemModel? pageItem)
+        PageItemModel? pageItem,
+        Action<PlayerViewModel>? showPlayer = null,
+        Action? goBack = null)
     {
         //ActivateCommand = new RelayCommand(OnActivate);
 
@@ -72,6 +76,8 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         _localizationService = localizationService;
         _favoritesService = favoritesService;
         _sourcePageItem = pageItem;
+        _showPlayer = showPlayer;
+        _goBack = goBack;
         L = _localizationService.Strings;
         Localize = L;
         FavoriteButtonText = L.AddToFavorites;
@@ -80,6 +86,12 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
         MediaInfo = CreatePlaceholderMediaInfo(pageItem);
         _ = LoadMediaInfo(pageItem);
+    }
+
+    [RelayCommand]
+    private void GoBack()
+    {
+        _goBack?.Invoke();
     }
 
     private static MediaInfoModel CreatePlaceholderMediaInfo(PageItemModel pageItem)
@@ -412,18 +424,9 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             .ToList();
     }
 
-    private async void ShowPlayer(VideoSourceModel? videoSource, IEnumerable<VideoSourceModel>? availableSources = null)
+    private void ShowPlayer(VideoSourceModel? videoSource, IEnumerable<VideoSourceModel>? availableSources = null)
     {
-        var options = new OverlayDialogOptions()
-        {
-            FullScreen = true,
-            Buttons = DialogButton.None,
-            Mode = DialogMode.None,
-            CanDragMove = false,
-            CanResize = false,
-        };
-
-        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(new PlayerViewModel(_pluginService, _localizationService, videoSource, availableSources), null, options: options);
+        _showPlayer?.Invoke(new PlayerViewModel(_pluginService, _localizationService, videoSource, availableSources));
 
         //  ShowPlayer(new VideoSourceModel() { Name = "Test", Url = "https://server15700.contentdm.oclc.org/dmwebservices/index.php?q=dmGetStreamingFile/p15700coll2/15.mp4/byte/json", Subtitles = new() { new() { Name = "Test", Url = "https://cdmdemo.contentdm.oclc.org/utils/getfile/collection/p15700coll2/id/18/filename/video2.vtt" } } });
     }

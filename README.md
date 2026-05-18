@@ -28,3 +28,7 @@ Manitux, video izleme desteğine sahip eklenti tabanlı bir multimedya oynatıc�
 + Yer imleri, favoriler oluşturma
 + Windows, Linux ve Macos desteği (İleride Android TV)
 + Kişisel özelleştirme için eklenti sistemi
+
+![image1](/images/manitux1.png)
+
+![image2](/images/manitux2.png)

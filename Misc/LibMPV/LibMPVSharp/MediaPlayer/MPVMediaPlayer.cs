@@ -12,6 +12,7 @@ namespace LibMPVSharp
     public unsafe partial class MPVMediaPlayer : IDisposable
     {
         private readonly MPVMediaPlayerOptions _options;
+        private readonly object _disposeLock = new();
         private MpvSetWakeupCallback_cbCallback? _wakeupCallback;
         private MpvHandle* _clientHandle;
         private bool _disposed;
@@ -391,20 +392,28 @@ namespace LibMPVSharp
 
         public void Dispose(bool terminate)
         {
-            _disposed = true;
-
-            ReleaseRenderContext();
-
-            if (_clientHandle == null) return;
-            if (terminate)
+            lock (_disposeLock)
             {
-                Client.MpvTerminateDestroy(_clientHandle);
-                _clientHandle = null;
-            }
-            else
-            {
-                Client.MpvDestroy(_clientHandle);
-                _clientHandle = null;
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _disposed = true;
+
+                ReleaseRenderContext();
+
+                if (_clientHandle == null) return;
+                if (terminate)
+                {
+                    Client.MpvTerminateDestroy(_clientHandle);
+                    _clientHandle = null;
+                }
+                else
+                {
+                    Client.MpvDestroy(_clientHandle);
+                    _clientHandle = null;
+                }
             }
         }
 

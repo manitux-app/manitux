@@ -15,6 +15,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Labs.Input;
+using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using LibMPVSharp;
@@ -808,12 +809,19 @@ namespace Manitux.Player
                 window.WindowState = _restoreWindowState == WindowState.FullScreen
                     ? WindowState.Normal
                     : _restoreWindowState;
+                
+                //window.SystemDecorations = SystemDecorations.Full;
                 SetCurrentValue(IsFullScreenProperty, false);
                 return;
             }
 
             _restoreWindowState = window.WindowState;
             window.WindowState = WindowState.FullScreen;
+
+            // window.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome;
+            // window.ExtendClientAreaTitleBarHeightHint = -1;
+            // window.ExtendClientAreaToDecorationsHint = false;
+            // window.SystemDecorations = SystemDecorations.None;
             SetCurrentValue(IsFullScreenProperty, true);
         }
 
