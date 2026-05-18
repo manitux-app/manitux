@@ -11,7 +11,7 @@ namespace Manitux.Core.Services.Plugins;
 
 public sealed class RemotePluginService : IRemotePluginService, IDisposable
 {
-    private const string SettingsFileName = "remote-plugins.json";
+    private const string SettingsFileName = "plugins.json";
     private readonly HttpClient _httpClient;
     private readonly bool _disposeHttpClient;
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
@@ -23,7 +23,7 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
     {
         PluginsRootPath = pluginsRootPath ?? GetDefaultPluginsRootPath();
         SettingsPath = Path.Combine(PluginsRootPath, SettingsFileName);
-        DownloadsPath = Path.Combine(PluginsRootPath, "remote");
+        DownloadsPath = PluginsRootPath; //Path.Combine(PluginsRootPath, "remote");
         _httpClient = httpClient ?? new HttpClient(new HttpClientHandler
         {
             AllowAutoRedirect = true
@@ -375,7 +375,7 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
         return new RemotePluginManifest
         {
             Name = name ?? "Remote Plugin",
-            InternalName = name ?? "remote-plugin",
+            InternalName = name ?? "plugin.remote",
             Url = url,
             Version = 1,
             ApiVersion = 1,
@@ -411,7 +411,7 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
             ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
             : AppContext.BaseDirectory;
 
-        return Path.Combine(baseDir, "data/plugins");
+        return Path.Combine(baseDir, "data", "plugins");
     }
 
     private static string NormalizeGitHubUrl(string url)

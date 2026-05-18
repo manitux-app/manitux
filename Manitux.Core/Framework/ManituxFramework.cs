@@ -66,7 +66,7 @@ public class ManituxFramework
 
         var pluginMgr = new PluginManager(
             CodeLogic.CodeLogic.GetEventBus(),
-            new PluginOptions { PluginsDirectory = pluginsDir, EnableHotReload = false });
+            new PluginOptions { PluginsDirectory = pluginsDir, EnableHotReload = true });
 
         // Load our demo plugins directly (no separate DLL needed for in-process plugins)
         // await LoadInProcessPluginAsync(pluginMgr, new TmdbPlugin());
