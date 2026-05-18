@@ -112,8 +112,10 @@ namespace Manitux.ViewModels
                                     _isChangingSource = false;
                                     ErrorString = $"Player Error: {endFile.error}";
                                     HasError = true;
+                                    IsReady = true;
                                     OnPropertyChanged(nameof(ErrorString));
                                     OnPropertyChanged(nameof(HasError));
+                                    OnPropertyChanged(nameof(IsReady));
                                     //await Task.Delay(500);
                                     //OnErrorClose?.Invoke(ErrorString);
                                     //return;
@@ -123,8 +125,10 @@ namespace Manitux.ViewModels
                                 {
                                     ErrorString = $"Player Error: reason={endFile.reason} error={endFile.error}";
                                     HasError = true;
+                                    IsReady = true;
                                     OnPropertyChanged(nameof(ErrorString));
                                     OnPropertyChanged(nameof(HasError));
+                                    OnPropertyChanged(nameof(IsReady));
                                     //await Task.Delay(500);
                                     //OnErrorClose?.Invoke(ErrorString);
                                     //return;

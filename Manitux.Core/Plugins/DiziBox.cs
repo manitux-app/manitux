@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using AngleSharp.Dom;
 using CodeLogic.Core.Logging;
 using CodeLogic.Framework.Application.Plugins;
+using Manitux.Core.Extractors;
 using Manitux.Core.Extractors.Helpers;
 using Manitux.Core.Models;
 using Manitux.Core.Plugins;
@@ -160,7 +161,8 @@ public class DiziBox : PluginBase
                 return await ExtractAsync(videoSource, "https://youtube.com/");
             }
 
-            var html = await HttpGet(videoSource.Url, referer: Config.MainUrl, headers: GetHeaders(), identifier: TlsClientIdentifier.Chrome144);
+            var sourcePageUrl = FixUrl(videoSource.Url, Config.MainUrl);
+            var html = await HttpGet(sourcePageUrl, referer: videoSource.Referer ?? Config.MainUrl, headers: GetHeaders(), identifier: TlsClientIdentifier.Chrome144);
             if (html is null) return await ExtractAsync(videoSource, Config.MainUrl);
 
             using var document = await HtmlParse(html);
@@ -168,27 +170,12 @@ public class DiziBox : PluginBase
 
             var selectedName = document.QuerySelector("div.video-toolbar option[selected]")?.TextContent?.Trim();
             var mainIframe = document.QuerySelector("div#video-area iframe")?.GetAttribute("src");
-            var decoded = await DecodeIframeAsync(string.IsNullOrWhiteSpace(selectedName) ? Manifest.Name : selectedName, mainIframe, videoSource.Url);
-            var source = await ExtractFirstAsync(decoded, string.IsNullOrWhiteSpace(selectedName) ? Manifest.Name : selectedName, videoSource.Url);
-            if (source is not null) return source;
+            var sourceName = string.IsNullOrWhiteSpace(videoSource.Name)
+                ? string.IsNullOrWhiteSpace(selectedName) ? Manifest.Name : selectedName
+                : videoSource.Name;
 
-            foreach (var option in document.QuerySelectorAll("div.video-toolbar option[value]"))
-            {
-                var altName = option.TextContent?.Trim();
-                var altLink = option.GetAttribute("value");
-                if (string.IsNullOrWhiteSpace(altLink)) continue;
-
-                var altHtml = await HttpGet(FixUrl(altLink, Config.MainUrl), referer: videoSource.Url, headers: GetHeaders(), identifier: TlsClientIdentifier.Chrome144);
-                if (altHtml is null) continue;
-
-                using var altDocument = await HtmlParse(altHtml);
-                var altIframe = altDocument?.QuerySelector("div#video-area iframe")?.GetAttribute("src");
-                decoded = await DecodeIframeAsync(string.IsNullOrWhiteSpace(altName) ? Manifest.Name : altName, altIframe, videoSource.Url);
-                source = await ExtractFirstAsync(decoded, string.IsNullOrWhiteSpace(altName) ? Manifest.Name : altName, videoSource.Url);
-                if (source is not null) return source;
-            }
-
-            return null;
+            var decoded = await DecodeIframeAsync(sourceName, mainIframe, sourcePageUrl);
+            return await ExtractFirstAsync(decoded, sourceName, sourcePageUrl, GetForcedExtractorName(sourceName, mainIframe));
         }
         catch (Exception ex)
         {
@@ -277,35 +264,35 @@ public class DiziBox : PluginBase
             });
         }
 
-        if (HasPlayableIframe(document))
+        var toolbarOptions = document.QuerySelectorAll("div.video-toolbar option[value]")
+            .Where(option => !string.IsNullOrWhiteSpace(option.GetAttribute("value")))
+            .ToList();
+
+        foreach (var option in toolbarOptions)
         {
-            var selectedName = document.QuerySelector("div.video-toolbar option[selected]")?.TextContent?.Trim();
-            sources.Add(new VideoSourceModel
-            {
-                Name = string.IsNullOrWhiteSpace(selectedName) ? Manifest.Name : selectedName,
-                Url = pageUrl,
-                Referer = Config.MainUrl
-            });
-        }
+            var sourceUrl = FixUrl(option.GetAttribute("value")!, Config.MainUrl);
+            var sourceName = option.TextContent?.Trim();
 
-        foreach (var option in document.QuerySelectorAll("div.video-toolbar option[value]"))
-        {
-            var altLink = option.GetAttribute("value");
-            if (string.IsNullOrWhiteSpace(altLink)) continue;
-
-            var altUrl = FixUrl(altLink, Config.MainUrl);
-            var altName = option.TextContent?.Trim();
-
-            if (sources.Any(source => string.Equals(source.Url, altUrl, StringComparison.OrdinalIgnoreCase)))
+            if (sources.Any(source => string.Equals(source.Url, sourceUrl, StringComparison.OrdinalIgnoreCase)))
             {
                 continue;
             }
 
             sources.Add(new VideoSourceModel
             {
-                Name = string.IsNullOrWhiteSpace(altName) ? Manifest.Name : altName,
-                Url = altUrl,
+                Name = string.IsNullOrWhiteSpace(sourceName) ? Manifest.Name : sourceName,
+                Url = sourceUrl,
                 Referer = pageUrl
+            });
+        }
+
+        if (toolbarOptions.Count == 0 && HasPlayableIframe(document))
+        {
+            sources.Add(new VideoSourceModel
+            {
+                Name = Manifest.Name,
+                Url = pageUrl,
+                Referer = Config.MainUrl
             });
         }
 
@@ -370,6 +357,10 @@ public class DiziBox : PluginBase
             if (!string.IsNullOrWhiteSpace(nestedIframe))
                 results.Add(FixUrl(nestedIframe, Config.MainUrl));
         }
+        else if (iframeLink.Contains("/player/debx", StringComparison.OrdinalIgnoreCase))
+        {
+            results.AddRange(await DecodeGenericPlayerPageAsync(iframeLink, referer));
+        }
         else if (iframeLink.Contains("/player/haydi.php", StringComparison.OrdinalIgnoreCase))
         {
             var encoded = iframeLink.Split("?v=").LastOrDefault();
@@ -384,12 +375,47 @@ public class DiziBox : PluginBase
         return results;
     }
 
-    private async Task<VideoSourceModel?> ExtractFirstAsync(List<string> urls, string name, string referer)
+    private async Task<List<string>> DecodeGenericPlayerPageAsync(string playerUrl, string referer)
+    {
+        var results = new List<string>();
+        var html = await HttpGet(playerUrl, referer: referer, headers: GetHeaders(), identifier: TlsClientIdentifier.Chrome144);
+        if (string.IsNullOrWhiteSpace(html)) return results;
+
+        var decodedHtml = TryDecodeEmbeddedBase64Html(html);
+        if (!string.IsNullOrWhiteSpace(decodedHtml))
+            html = decodedHtml;
+
+        using var document = await HtmlParse(html);
+        var nestedIframe = document?.QuerySelector("div#Player iframe")?.GetAttribute("src")
+            ?? document?.QuerySelector("iframe[src]")?.GetAttribute("src")
+            ?? document?.QuerySelector("iframe[data-src]")?.GetAttribute("data-src");
+
+        if (!string.IsNullOrWhiteSpace(nestedIframe))
+            results.Add(FixUrl(nestedIframe, Config.MainUrl));
+
+        var direct = ExtractDirectMediaUrl(html);
+        if (!string.IsNullOrWhiteSpace(direct))
+            results.Add(FixUrl(direct, Config.MainUrl));
+
+        return results
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private async Task<VideoSourceModel?> ExtractFirstAsync(List<string> urls, string name, string referer, string? forcedExtractorName = null)
     {
         foreach (var url in urls.Where(item => !string.IsNullOrWhiteSpace(item)))
         {
             var source = new VideoSourceModel { Name = name, Url = FixUrl(url, Config.MainUrl), Referer = referer };
-            var extracted = await ExtractAsync(source, referer);
+            var extractor = string.IsNullOrWhiteSpace(forcedExtractorName)
+                ? null
+                : ExtractorManager.GetExtractorByName(forcedExtractorName);
+            var extracted = extractor is null
+                ? await ExtractAsync(source, referer)
+                : await extractor.ExtractAsync(source, referer);
+            extracted ??= await ExtractAsync(source, referer);
+
             if (extracted is not null)
             {
                 if (string.IsNullOrWhiteSpace(extracted.Name)) extracted.Name = name;
@@ -400,6 +426,52 @@ public class DiziBox : PluginBase
         }
 
         return null;
+    }
+
+    private static string? GetForcedExtractorName(string? sourceName, string? iframeLink)
+    {
+        if ((sourceName?.Contains("moly", StringComparison.OrdinalIgnoreCase) == true
+             || iframeLink?.Contains("/player/moly/", StringComparison.OrdinalIgnoreCase) == true))
+        {
+            return "Molystream";
+        }
+
+        return null;
+    }
+
+    private static string? TryDecodeEmbeddedBase64Html(string html)
+    {
+        var escaped = Regex.Match(html, "unescape\\([\"'](?<value>.*?)[\"']\\)", RegexOptions.Singleline).Groups["value"].Value;
+        var encoded = string.IsNullOrWhiteSpace(escaped)
+            ? Regex.Match(html, "atob\\([\"'](?<value>[A-Za-z0-9+/=_-]+)[\"']\\)", RegexOptions.Singleline).Groups["value"].Value
+            : Uri.UnescapeDataString(escaped);
+
+        if (string.IsNullOrWhiteSpace(encoded)) return null;
+
+        try
+        {
+            return Encoding.UTF8.GetString(Convert.FromBase64String(NormalizeBase64(encoded)));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string? ExtractDirectMediaUrl(string html)
+    {
+        var jwResult = JwPlayerHelper.ExtractStreamLinks(html, "DiziBox", "https://www.dizibox.live");
+        var jwSource = jwResult.VideoSources.FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(jwSource?.Url)) return jwSource.Url;
+
+        var direct = Regex.Match(
+            html,
+            @"https?://[^\s""'<>]+?(?:\.m3u8|\.mp4|master\.txt)[^\s""'<>]*",
+            RegexOptions.IgnoreCase).Value;
+
+        return string.IsNullOrWhiteSpace(direct)
+            ? null
+            : direct.Replace("\\/", "/", StringComparison.Ordinal);
     }
 
     private static (int Season, int Episode) ExtractSeasonEpisode(string value)
@@ -430,7 +502,8 @@ public class DiziBox : PluginBase
     {
         ["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
         ["User-Agent"] = UserAgent,
-        ["Cookie"] = $"isTrustedUser=true; dbxu={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}"
+        ["Cookie"] = $"isTrustedUser=true; dbxu={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
+        ["Referer"] = $"{Config.MainUrl}/",
     };
 
     private static string NormalizeBase64(string value)

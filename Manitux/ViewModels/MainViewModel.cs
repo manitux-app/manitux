@@ -331,20 +331,23 @@ public partial class MainViewModel : ViewModelBase
             GoBack));
     }
 
-    private void NavigateToPlayer(PlayerViewModel playerViewModel)
+    private async void NavigateToPlayer(PlayerViewModel playerViewModel)
     {
-        playerViewModel.OnRequestClose -= PlayerViewModelOnRequestClose;
-        playerViewModel.OnRequestClose += PlayerViewModelOnRequestClose;
-        PushContent(playerViewModel);
-    }
-
-    private void PlayerViewModelOnRequestClose()
-    {
-        if (Content is PlayerViewModel playerViewModel)
+        var options = new OverlayDialogOptions
         {
-            playerViewModel.OnRequestClose -= PlayerViewModelOnRequestClose;
-            GoBack();
-        }
+            HorizontalAnchor = HorizontalPosition.Center,
+            VerticalAnchor = VerticalPosition.Center,
+            FullScreen = true,
+            Buttons = DialogButton.None,
+            Mode = DialogMode.None,
+            CanDragMove = false,
+            CanResize = false,
+        };
+
+        await OverlayDialog.ShowCustomModal<PlayerView, PlayerViewModel, object>(
+            playerViewModel,
+            null,
+            options: options);
     }
 
     [RelayCommand(CanExecute = nameof(CanGoBack))]
@@ -353,11 +356,6 @@ public partial class MainViewModel : ViewModelBase
         if (_navigationStack.Count == 0)
         {
             return;
-        }
-
-        if (Content is PlayerViewModel playerViewModel)
-        {
-            playerViewModel.OnRequestClose -= PlayerViewModelOnRequestClose;
         }
 
         Content = _navigationStack.Pop();
@@ -384,11 +382,6 @@ public partial class MainViewModel : ViewModelBase
 
     private void ClearNavigationStack()
     {
-        if (Content is PlayerViewModel playerViewModel)
-        {
-            playerViewModel.OnRequestClose -= PlayerViewModelOnRequestClose;
-        }
-
         _navigationStack.Clear();
         UpdateNavigationChrome();
         GoBackCommand.NotifyCanExecuteChanged();

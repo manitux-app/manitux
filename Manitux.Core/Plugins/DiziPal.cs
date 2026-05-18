@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using AngleSharp.Dom;
 using CodeLogic.Core.Logging;
@@ -174,18 +175,23 @@ public class DiziPal : PluginBase
             if (iframeHtml is null)
                 return await ExtractAsync(new VideoSourceModel { Name = videoSource.Name, Url = iframe, Referer = Config.MainUrl }, Config.MainUrl);
 
-            var m3u8 = Regex.Match(iframeHtml, "file:\\s*\"([^\"]+)\"").Groups[1].Value;
+            var iframeBaseUrl = GetBaseUrl(iframe);
+            var m3u8 = ExtractDirectStreamUrl(iframeHtml, iframeBaseUrl)
+                ?? await ResolveFetchedStreamUrl(iframeHtml, iframe, iframeBaseUrl);
+
             if (string.IsNullOrWhiteSpace(m3u8))
                 return await ExtractAsync(new VideoSourceModel { Name = videoSource.Name, Url = iframe, Referer = Config.MainUrl }, Config.MainUrl);
 
+            var playbackReferer = iframe;
             return new VideoSourceModel
             {
                 Name = string.IsNullOrWhiteSpace(videoSource.Name) ? "DiziPal" : videoSource.Name,
-                Url = FixUrl(m3u8, Config.MainUrl),
-                Referer = $"{Config.MainUrl.TrimEnd('/')}/",
+                Url = FixUrl(m3u8, iframeBaseUrl),
+                Referer = playbackReferer,
                 Headers =
                 [
-                    new HeaderModel { Name = "Referer", Value = $"{Config.MainUrl.TrimEnd('/')}/" },
+                    new HeaderModel { Name = "Referer", Value = playbackReferer },
+                    new HeaderModel { Name = "Origin", Value = iframeBaseUrl },
                     new HeaderModel { Name = "User-Agent", Value = UserAgent }
                 ],
                 Subtitles = ParseSubtitles(iframeHtml)
@@ -196,6 +202,91 @@ public class DiziPal : PluginBase
             Log(LogLevel.Error, ex.ToString());
             return null;
         }
+    }
+
+    private string? ExtractDirectStreamUrl(string iframeHtml, string iframeBaseUrl)
+    {
+        var direct = Regex.Match(
+            iframeHtml,
+            @"file\s*:\s*[""'](?<url>[^""']+(?:\.m3u8|\.mp4|master\.txt)[^""']*)[""']",
+            RegexOptions.IgnoreCase).Groups["url"].Value;
+
+        if (!string.IsNullOrWhiteSpace(direct))
+            return FixUrl(direct.Replace("\\/", "/", StringComparison.Ordinal), iframeBaseUrl);
+
+        var loose = Regex.Match(
+            iframeHtml,
+            @"https?://[^\s""'<>]+?(?:\.m3u8|\.mp4|master\.txt)[^\s""'<>]*",
+            RegexOptions.IgnoreCase).Value;
+
+        return string.IsNullOrWhiteSpace(loose)
+            ? null
+            : loose.Replace("\\/", "/", StringComparison.Ordinal);
+    }
+
+    private async Task<string?> ResolveFetchedStreamUrl(string iframeHtml, string iframeUrl, string iframeBaseUrl)
+    {
+        var streamPath = Regex.Match(
+            iframeHtml,
+            @"fetch\(\s*[""'](?<url>[^""']*op=get_stream[^""']*)[""']",
+            RegexOptions.IgnoreCase).Groups["url"].Value;
+
+        if (string.IsNullOrWhiteSpace(streamPath)) return null;
+
+        var streamUrl = FixUrl(streamPath, iframeBaseUrl);
+        var headers = GetHeaders();
+        headers["Accept"] = "application/json,text/plain,*/*";
+        headers["Referer"] = iframeUrl;
+        headers["Sec-Fetch-Dest"] = "empty";
+        headers["Sec-Fetch-Mode"] = "cors";
+        headers["Sec-Fetch-Site"] = "same-origin";
+
+        var cookie = BuildEmbedCookieHeader(iframeHtml);
+        if (!string.IsNullOrWhiteSpace(cookie))
+            headers["Cookie"] = cookie;
+
+        var json = await HttpGet(streamUrl, referer: iframeUrl, headers: headers, identifier: TlsClientIdentifier.Cloudscraper);
+        if (string.IsNullOrWhiteSpace(json)) return null;
+
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            if (document.RootElement.TryGetProperty("url", out var urlElement))
+            {
+                var url = urlElement.GetString();
+                return string.IsNullOrWhiteSpace(url) ? null : FixUrl(url, iframeBaseUrl);
+            }
+        }
+        catch (JsonException ex)
+        {
+            Log(LogLevel.Warning, ex.ToString());
+        }
+
+        return null;
+    }
+
+    private string BuildEmbedCookieHeader(string iframeHtml)
+    {
+        var cookies = Regex.Matches(
+                iframeHtml,
+                @"\$\s*\.\s*cookie\(\s*[""'](?<name>[^""']+)[""']\s*,\s*[""'](?<value>[^""']*)[""']",
+                RegexOptions.IgnoreCase)
+            .Select(match => $"{match.Groups["name"].Value}={match.Groups["value"].Value}")
+            .ToList();
+
+        var host = new Uri(Config.MainUrl).Host;
+        var refHost = host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? host[4..] : host;
+
+        if (!cookies.Any(cookie => cookie.StartsWith("ref_url=", StringComparison.OrdinalIgnoreCase)))
+            cookies.Add($"ref_url={refHost}");
+
+        return string.Join("; ", cookies.Distinct(StringComparer.OrdinalIgnoreCase));
+    }
+
+    private static string GetBaseUrl(string url)
+    {
+        var uri = new Uri(url);
+        return $"{uri.Scheme}://{uri.Host}";
     }
 
     private List<PageItemModel> ParseLatestEpisodes(IParentNode document, string categoryName)
@@ -421,7 +512,7 @@ public class DiziPal : PluginBase
     private async Task<List<PageItemModel>?> SearchByQueryPage(string query)
     {
         var mainUrl = Config.MainUrl.TrimEnd('/');
-        var html = await HttpGet($"{mainUrl}/?s={Uri.EscapeDataString(query)}", referer: mainUrl, headers: GetHeaders(), identifier: TlsClientIdentifier.Cloudscraper);
+        var html = await HttpGet($"{mainUrl}/?s={Uri.EscapeDataString(query)}", referer: mainUrl, headers: GetHeaders(), identifier: TlsClientIdentifier.Chrome144, followRedirects: true);
         if (html is null) return null;
 
         using var document = await HtmlParse(html);
@@ -439,6 +530,7 @@ public class DiziPal : PluginBase
     private Dictionary<string, string> GetHeaders() => new()
     {
         ["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        ["User-Agent"] = UserAgent
+        ["User-Agent"] = UserAgent,
+        ["Referer"] = $"{Config.MainUrl}/"
     };
 }
