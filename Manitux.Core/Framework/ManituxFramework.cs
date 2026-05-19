@@ -69,20 +69,20 @@ public class ManituxFramework
             new PluginOptions { PluginsDirectory = pluginsDir, EnableHotReload = false });
 
         // Load our demo plugins directly (no separate DLL needed for in-process plugins)
-        // await LoadInProcessPluginAsync(pluginMgr, new TmdbPlugin());
+         //await LoadInProcessPluginAsync(pluginMgr, new TmdbPlugin());
         // await LoadInProcessPluginAsync(pluginMgr, new RareFilm());
         // await LoadInProcessPluginAsync(pluginMgr, new Dailymotion());
         // await LoadInProcessPluginAsync(pluginMgr, new Invidious());
         // await LoadInProcessPluginAsync(pluginMgr, new OkruPlugin());
 
-        //await LoadInProcessPluginAsync(pluginMgr, new HdFilmCehennemi());
-        //await LoadInProcessPluginAsync(pluginMgr, new FilmMakinesi());
-        // await LoadInProcessPluginAsync(pluginMgr, new FilmEkseni());
-        // await LoadInProcessPluginAsync(pluginMgr, new FilmModu());
-        //await LoadInProcessPluginAsync(pluginMgr, new DiziPal());
-        //await LoadInProcessPluginAsync(pluginMgr, new DiziBox());
+        await LoadInProcessPluginAsync(pluginMgr, new HdFilmCehennemi());
+        await LoadInProcessPluginAsync(pluginMgr, new FilmMakinesi());
+        await LoadInProcessPluginAsync(pluginMgr, new FilmEkseni());
+        await LoadInProcessPluginAsync(pluginMgr, new FilmModu());
+        await LoadInProcessPluginAsync(pluginMgr, new DiziPal());
+        await LoadInProcessPluginAsync(pluginMgr, new DiziBox());
         
-        await pluginMgr.LoadAllAsync();
+        //await pluginMgr.LoadAllAsync();
 
         // Register with the runtime — health checks + graceful shutdown
         CodeLogic.CodeLogic.SetPluginManager(pluginMgr);

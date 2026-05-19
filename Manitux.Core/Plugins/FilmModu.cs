@@ -38,7 +38,7 @@ public class FilmModu : PluginBase
         new() { Title = "4K", Url = $"{mainUrl}/hd-film-kategori/4k-film-izle?page=[pageNumber]" },
         new() { Title = "Aksiyon", Url = $"{mainUrl}/film-tur/aksiyon?page=[pageNumber]" },
         new() { Title = "Animasyon", Url = $"{mainUrl}/hd-film-kategori/animasyon?page=[pageNumber]" },
-        new() { Title = "Bilim-Kurgu", Url = $"{mainUrl}/hd-film-kategori/bilim-kurgu-filmleri?page=[pageNumber]" },
+        new() { Title = "Bilim-Kurgu", Url = $"{mainUrl}/film-tur/bilim-kurgu-filmleri?page=[pageNumber]" },
         new() { Title = "Dram", Url = $"{mainUrl}/hd-film-kategori/dram-filmleri?page=[pageNumber]" },
         new() { Title = "Korku", Url = $"{mainUrl}/hd-film-kategori/korku-filmleri?page=[pageNumber]" },
         new() { Title = "Oscar Ödüllü", Url = $"{mainUrl}/hd-film-kategori/odullu-filmler-izle?page=[pageNumber]" }
@@ -136,6 +136,11 @@ public class FilmModu : PluginBase
         {
             var results = new List<PageItemModel>();
             string targetUrl = category.Url.Replace("[pageNumber]", pageNumber.ToString());
+            if(pageNumber is 1)
+            {
+                Uri uri = new Uri(targetUrl);
+                targetUrl = uri.GetLeftPart(UriPartial.Path); // ? işaretinden öncesi
+            }
             Debug.WriteLine(targetUrl);
 
              var headers = new Dictionary<string, string>();
