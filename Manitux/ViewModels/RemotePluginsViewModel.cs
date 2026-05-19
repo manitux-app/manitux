@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls.Notifications;
+using CodeLogic.Framework.Application.Plugins;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Manitux.Core.Application;
@@ -16,6 +17,8 @@ public partial class RemotePluginsViewModel : ViewModelBase
     private readonly IRemotePluginService _remotePluginService;
     public AppStrings L { get; }
 
+    private PluginManager? _pluginManager;
+
     [ObservableProperty] private string? _repositoryInput;
     [ObservableProperty] private string? _statusMessage;
     [ObservableProperty] private NotificationType _statusType = NotificationType.Information;
@@ -28,6 +31,7 @@ public partial class RemotePluginsViewModel : ViewModelBase
     {
         _remotePluginService = remotePluginService;
         L = localizationService.Strings;
+        _pluginManager = CodeLogic.CodeLogic.GetPluginManager();
         _ = Refresh();
     }
 

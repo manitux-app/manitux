@@ -59,13 +59,9 @@ public sealed class PluginManager : IAsyncDisposable
         var paths = new List<string>();
         if (!Directory.Exists(_options.PluginsDirectory)) return Task.FromResult(paths);
 
-        foreach (var dir in Directory.GetDirectories(_options.PluginsDirectory, "*.Plugin"))
+        foreach (var file in Directory.GetFiles(_options.PluginsDirectory, "*.dll", searchOption: SearchOption.AllDirectories))
         {
-           string[] files = Directory.GetFiles(dir, "*.dll");
-            
-            var dll  = files[0];
-            
-            if (File.Exists(dll)) paths.Add(dll);
+           if (File.Exists(file)) paths.Add(file);
         }
         return Task.FromResult(paths);
     }
