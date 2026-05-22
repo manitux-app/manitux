@@ -63,7 +63,8 @@ public sealed class PluginManager : IAsyncDisposable
         {
            if (File.Exists(file)) paths.Add(file);
         }
-        return Task.FromResult(paths);
+
+        return Task.FromResult(SelectLatestVersionPaths(paths).ToList());
     }
 
     public Task<List<string>> DiscoverAsync_Old()
@@ -115,7 +116,7 @@ public sealed class PluginManager : IAsyncDisposable
             {
                 // Desktop (Windows/Linux/MacOS)
                 loadCtx = new PluginLoadContext(pluginPath);
-                assembly = loadCtx.LoadFromAssemblyPath(pluginPath);
+                assembly = ((PluginLoadContext)loadCtx).LoadMainAssembly();
             }
 
             //var loadCtx = new PluginLoadContext(pluginPath);
@@ -307,13 +308,8 @@ public sealed class PluginManager : IAsyncDisposable
             if (unloadedContext)
                 loadContext.Unload();
 
-            // Allow GC to collect the unloaded assembly
-            for (int i = 0; unloadedContext && i < 10 && (weakReference?.IsAlive ?? false); i++)
-            {
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                await Task.Delay(10);
-            }
+            if (unloadedContext)
+                await WaitForLoadContextUnloadAsync(weakReference);
 
             _eventBus.Publish(new PluginUnloadedEvent(pluginId, loaded.Manifest.Name));
             OnPluginUnloaded?.Invoke(pluginId);
@@ -334,8 +330,20 @@ public sealed class PluginManager : IAsyncDisposable
     /// <summary>Unloads all currently loaded plugins.</summary>
     public async Task UnloadAllAsync()
     {
+        var weakReferences = _plugins.Values
+            .Select(x => x.WeakReference)
+            .Where(x => x is not null)
+            .ToList();
+
         foreach (var id in _plugins.Keys.ToList())
             await UnloadPluginAsync(id);
+
+        foreach (var weakReference in weakReferences)
+        {
+            await WaitForLoadContextUnloadAsync(weakReference);
+        }
+
+        await ForceFullCollectionAsync();
     }
 
     /// <summary>Unloads and reloads a plugin from disk.</summary>
@@ -488,9 +496,78 @@ public sealed class PluginManager : IAsyncDisposable
             Path.GetFullPath(right),
             OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
+    private IEnumerable<string> SelectLatestVersionPaths(IEnumerable<string> paths)
+    {
+        var root = Path.GetFullPath(_options.PluginsDirectory);
+        var comparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+
+        return paths
+            .GroupBy(path => GetPluginFileGroupKey(root, path), comparer)
+            .Select(group => group
+                .OrderByDescending(path => GetVersionDirectoryNumber(root, path))
+                .ThenByDescending(File.GetLastWriteTimeUtc)
+                .First());
+    }
+
+    private static string GetPluginFileGroupKey(string root, string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var relativePath = Path.GetRelativePath(root, fullPath);
+        var parts = relativePath.Split(
+            [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+            StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length >= 2)
+        {
+            return $"{parts[0]}|{Path.GetFileName(fullPath)}";
+        }
+
+        return Path.GetFileName(fullPath);
+    }
+
+    private static int GetVersionDirectoryNumber(string root, string path)
+    {
+        var relativePath = Path.GetRelativePath(root, Path.GetFullPath(path));
+        var parts = relativePath.Split(
+            [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+            StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var part in parts)
+        {
+            if (part.Length > 1
+                && (part[0] == 'v' || part[0] == 'V')
+                && int.TryParse(part[1..], out var version))
+            {
+                return version;
+            }
+        }
+
+        return 0;
+    }
+
     private static IEnumerable<Type> FindPluginTypes(Assembly assembly) =>
         assembly.GetTypes().Where(t =>
             typeof(IPlugin).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
+
+    private static async Task ForceFullCollectionAsync()
+    {
+        for (var i = 0; i < 3; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(50);
+        }
+    }
+
+    private static async Task WaitForLoadContextUnloadAsync(WeakReference? weakReference)
+    {
+        for (var i = 0; i < 30 && (weakReference?.IsAlive ?? false); i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(50);
+        }
+    }
 
     // ── Disposal ─────────────────────────────────────────────────────────────
 

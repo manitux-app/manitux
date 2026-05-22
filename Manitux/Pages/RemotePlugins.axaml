@@ -5,6 +5,8 @@
              xmlns:u="https://irihi.tech/ursa"
              xmlns:vm="clr-namespace:Manitux.ViewModels"
              xmlns:plugins="clr-namespace:Manitux.Core.Services.Plugins;assembly=Manitux.Core"
+             xmlns:async="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             xmlns:loaders="clr-namespace:Manitux.Services.ImageLoaders"
              mc:Ignorable="d"
              d:DesignWidth="1000"
              d:DesignHeight="700"
@@ -34,119 +36,153 @@
                       IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                       Content="{Binding StatusMessage}" />
 
-            <Grid Grid.Row="2" ColumnDefinitions="280,*,360" ColumnSpacing="14">
-                <Grid Grid.Column="0" RowDefinitions="Auto,*" RowSpacing="10">
-                    <TextBlock Text="{Binding L.Repositories}" Classes="Header H3" />
-                    <ScrollViewer Grid.Row="1">
-                        <ItemsControl ItemsSource="{Binding Repositories}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="plugins:ManagedRemoteRepository">
-                                    <Border Margin="0,0,0,8"
-                                            Padding="10"
-                                            Theme="{DynamicResource CardBorder}">
-                                        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                            <TextBlock Grid.Row="1"
-                                                       Text="{Binding Description}"
-                                                       Opacity="0.75"
+            <ScrollViewer Grid.Row="2">
+                <ItemsControl ItemsSource="{Binding RepositoryPluginGroups}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:RemotePluginRepositoryGroup">
+                            <Border Margin="0,0,0,12"
+                                    Padding="12"
+                                    Theme="{DynamicResource CardBorder}">
+                                <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                                    <Grid ColumnDefinitions="56,*,Auto,Auto" ColumnSpacing="12">
+                                        <Border Width="48"
+                                                Height="48"
+                                                ClipToBounds="True"
+                                                Theme="{DynamicResource CardBorder}">
+                                            <Image async:ImageLoader.Source="{Binding Repository.IconUrl}" Stretch="Fill" Width="48" Height="48"/>
+                                        </Border>
+
+                                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Repository.Name}"
+                                                       FontSize="20"
+                                                       FontWeight="SemiBold"
+                                                       TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding Repository.Description}"
+                                                       FontSize="12"
+                                                       Opacity="0.72"
                                                        TextWrapping="Wrap"
                                                        MaxLines="2" />
-                                            <u:IconButton Grid.Row="2"
-                                                          HorizontalAlignment="Left"
-                                                          Classes="Tertiary"
-                                                          Command="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).LoadRepositoryCommand}"
-                                                          CommandParameter="{Binding}"
-                                                          Content="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).L.Open}"
-                                                          Icon="{StaticResource SemiIconFolderOpen}" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </Grid>
+                                        </StackPanel>
 
-                <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="10">
-                    <TextBlock Text="{Binding L.AvailablePlugins}" Classes="Header H3" />
-                    <ScrollViewer Grid.Row="1">
-                        <ItemsControl ItemsSource="{Binding AvailablePlugins}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="plugins:RemotePluginManifest">
-                                    <Border Margin="0,0,0,8"
-                                            Padding="10"
-                                            Theme="{DynamicResource CardBorder}">
-                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-                                            <StackPanel Spacing="4">
-                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                                <TextBlock Text="{Binding Description}" Opacity="0.75" TextWrapping="Wrap" MaxLines="2" />
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <TextBlock Text="{Binding InternalName}" Opacity="0.65" />
-                                                    <TextBlock Text="{Binding Version, StringFormat='v{0}'}" Opacity="0.65" />
-                                                    <TextBlock Text="{Binding Language}" Opacity="0.65" />
-                                                </StackPanel>
-                                            </StackPanel>
-                                            <u:IconButton Grid.Column="1"
-                                                          Classes="Primary"
-                                                          Command="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).InstallCommand}"
-                                                          CommandParameter="{Binding}"
-                                                          Icon="{StaticResource SemiIconDownload}"
-                                                          ToolTip.Tip="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).L.Install}" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </Grid>
+                                        <u:IconButton Grid.Column="2"
+                                                      Classes="Tertiary"
+                                                      Command="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).LoadRepositoryCommand}"
+                                                      CommandParameter="{Binding Repository}"
+                                                      Icon="{StaticResource SemiIconFolderOpen}"
+                                                      ToolTip.Tip="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).L.Open}" />
+                                        <u:IconButton Grid.Column="3"
+                                                      Classes="Tertiary"
+                                                      Command="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).RemoveRepositoryCommand}"
+                                                      CommandParameter="{Binding Repository}"
+                                                      Icon="{StaticResource SemiIconDelete}"
+                                                      ToolTip.Tip="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).L.Remove}" />
+                                    </Grid>
 
-                <Grid Grid.Column="2" RowDefinitions="Auto,*" RowSpacing="10">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <TextBlock Text="{Binding L.InstalledPlugins}" Classes="Header H3" />
-                        <u:IconButton Grid.Column="1"
-                                      Classes="Tertiary"
-                                      Command="{Binding UpdateAllCommand}"
-                                      Icon="{StaticResource SemiIconSync}"
-                                      ToolTip.Tip="{Binding L.UpdateAll}" />
-                    </Grid>
-                    <ScrollViewer Grid.Row="1">
-                        <ItemsControl ItemsSource="{Binding InstalledPlugins}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="plugins:ManagedRemotePlugin">
-                                    <Border Margin="0,0,0,8"
-                                            Padding="10"
-                                            Theme="{DynamicResource CardBorder}">
-                                        <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                            <TextBlock Grid.Row="1"
-                                                       Text="{Binding FilePath}"
-                                                       Opacity="0.65"
-                                                       TextWrapping="Wrap"
-                                                       MaxLines="2" />
-                                            <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                                <TextBlock VerticalAlignment="Center"
-                                                           Text="{Binding Version, StringFormat='v{0}'}"
-                                                           Opacity="0.7" />
-                                                <u:IconButton Grid.Column="1"
-                                                              Classes="Tertiary"
-                                                              Command="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).UpdateCommand}"
-                                                              CommandParameter="{Binding}"
-                                                              Icon="{StaticResource SemiIconRefresh}"
-                                                              ToolTip.Tip="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).L.Update}" />
-                                                <u:IconButton Grid.Column="2"
-                                                              Classes="Tertiary"
-                                                              Command="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).RemoveCommand}"
-                                                              CommandParameter="{Binding}"
-                                                              Icon="{StaticResource SemiIconDelete}"
-                                                              ToolTip.Tip="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).L.Remove}" />
-                                            </Grid>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </Grid>
-            </Grid>
+                                    <ItemsControl Grid.Row="1"
+                                                  Margin="56,0,0,0"
+                                                  ItemsSource="{Binding PluginGroups}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:RemotePluginPackageGroup">
+                                                <Border Margin="0,0,0,8"
+                                                        Padding="10"
+                                                        Theme="{DynamicResource CardBorder}">
+                                                    <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                                                        <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                                                            <Grid RowDefinitions="Auto,Auto" RowSpacing="3">
+                                                                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                                                                    <TextBlock Text="{Binding Name}"
+                                                                               FontWeight="SemiBold"
+                                                                               TextWrapping="Wrap" />
+                                                                    <TextBlock Grid.Column="1"
+                                                                               Text="{Binding Version, StringFormat='v{0}'}"
+                                                                               Opacity="0.65" />
+                                                                    <TextBlock Grid.Column="2"
+                                                                               Text="{Binding Plugins.Count, StringFormat='{}{0} plugins'}"
+                                                                               Opacity="0.65" />
+                                                                    <TextBlock Grid.Column="3"
+                                                                               Text="{Binding InstalledStatus}"
+                                                                               Opacity="0.65" />
+                                                                </Grid>
+                                                            </Grid>
+
+                                                            <u:IconButton Grid.Column="1"
+                                                                          Classes="Primary"
+                                                                          Command="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).InstallGroupCommand}"
+                                                                          CommandParameter="{Binding}"
+                                                                          IsEnabled="{Binding !IsInstalled}"
+                                                                          Icon="{StaticResource SemiIconDownload}"
+                                                                          ToolTip.Tip="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).L.Install}" />
+                                                            <u:IconButton Grid.Column="2"
+                                                                          Classes="Tertiary"
+                                                                          Command="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).UpdateGroupCommand}"
+                                                                          CommandParameter="{Binding}"
+                                                                          IsEnabled="{Binding IsInstalled}"
+                                                                          Icon="{StaticResource SemiIconRefresh}"
+                                                                          ToolTip.Tip="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).L.Update}" />
+                                                            <u:IconButton Grid.Column="3"
+                                                                          Classes="Tertiary"
+                                                                          Command="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).RemoveGroupCommand}"
+                                                                          CommandParameter="{Binding}"
+                                                                          IsEnabled="{Binding IsInstalled}"
+                                                                          Icon="{StaticResource SemiIconDelete}"
+                                                                          ToolTip.Tip="{Binding $parent[UserControl].((vm:RemotePluginsViewModel)DataContext).L.Remove}" />
+                                                        </Grid>
+
+                                                        <ItemsControl Grid.Row="1"
+                                                                      ItemsSource="{Binding Plugins}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate x:DataType="plugins:RemotePluginManifest">
+                                                                    <Grid Margin="0,6,0,0"
+                                                                          ColumnDefinitions="36,*,Auto,Auto,Auto"
+                                                                          ColumnSpacing="8">
+                                                                        <Border Width="32"
+                                                                                Height="32"
+                                                                                ClipToBounds="True"
+                                                                                Theme="{DynamicResource CardBorder}">
+                                                                            <Image async:ImageLoader.Source="{Binding IconUrl}" Stretch="Fill" Width="32" Height="32"/>
+                                                                        </Border>
+
+                                                                        <Grid Grid.Column="1"
+                                                                              RowDefinitions="Auto,Auto"
+                                                                              RowSpacing="2">
+                                                                            <TextBlock Text="{Binding Name}"
+                                                                                       TextWrapping="Wrap" />
+                                                                            <TextBlock Grid.Row="1"
+                                                                                       Text="{Binding Description}"
+                                                                                       FontSize="12"
+                                                                                       Opacity="0.72"
+                                                                                       TextWrapping="Wrap"
+                                                                                       MaxLines="2" />
+                                                                        </Grid>
+
+                                                                        <TextBlock Grid.Column="2"
+                                                                                   Text="Installed"
+                                                                                   FontSize="12"
+                                                                                   Opacity="0.78"
+                                                                                   IsVisible="{Binding IsInstalled}" />
+                                                                        <TextBlock Grid.Column="3"
+                                                                                   Text="{Binding Language}"
+                                                                                   FontSize="12"
+                                                                                   Opacity="0.65" />
+                                                                        <TextBlock Grid.Column="4"
+                                                                                   Text="{Binding TvTypes.Count, StringFormat='{}{0} types'}"
+                                                                                   FontSize="12"
+                                                                                   Opacity="0.65" />
+                                                                    </Grid>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </Grid>
     </u:LoadingContainer>
 </UserControl>

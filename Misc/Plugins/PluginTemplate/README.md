@@ -22,12 +22,20 @@ Then point your remote `plugins.json` entry to that DLL:
   "status": 1,
   "version": 1,
   "apiVersion": 1,
-  "name": "Plugin Template",
-  "internalName": "plugin.template",
+  "name": "Plugin Template Package",
+  "internalName": "PluginTemplate",
   "authors": ["Your Name"],
-  "description": "A starter Manitux plugin.",
-  "language": "en",
-  "isAdult": false
+  "description": "A starter Manitux plugin DLL.",
+  "plugins": [
+    {
+      "name": "Plugin Template",
+      "internalName": "plugin.template",
+      "description": "A starter Manitux plugin.",
+      "language": "en",
+      "iconUrl": "https://raw.githubusercontent.com/YOUR_GITHUB_USER/YOUR_PLUGIN_REPOSITORY/builds/icons/plugin-template.png",
+      "isAdult": false
+    }
+  ]
 }
 ```
 

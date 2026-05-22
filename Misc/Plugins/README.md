@@ -8,14 +8,52 @@ Expected GitHub layout:
 repo.json
 plugins.json
 plugins/
-  ExamplePlugin.dll
+  TurkishProviders.dll
 icons/
-  example.png
+  repository.png
+  turkish-providers.png
 ```
 
 `repo.json` points to one or more plugin list files through `pluginLists`.
-`plugins.json` contains plugin entries and direct URLs to downloadable plugin files.
-Manitux plugins are published as compiled `.dll` files.
+It can also include an `iconUrl` for the repository row shown in Manitux.
+`plugins.json` contains downloadable DLL package entries. Each DLL package can expose
+one or more Manitux plugins through its `plugins` array.
+
+Example:
+
+```json
+[
+  {
+    "url": "plugins/TurkishProviders.dll",
+    "status": 1,
+    "version": 1,
+    "apiVersion": 1,
+    "name": "Turkish Providers",
+    "internalName": "TurkishProviders",
+    "plugins": [
+      {
+        "name": "DiziBox",
+        "internalName": "plugin.dizibox",
+        "description": "DiziBox series provider.",
+        "language": "tr",
+        "iconUrl": "icons/dizibox.png",
+        "isAdult": false
+      },
+      {
+        "name": "DiziPal",
+        "internalName": "plugin.dizipal",
+        "description": "DiziPal series provider.",
+        "language": "tr",
+        "iconUrl": "icons/dizipal.png",
+        "isAdult": false
+      }
+    ]
+  }
+]
+```
+
+For backward compatibility, a DLL package without a `plugins` array is treated as a
+single plugin entry.
 
 Status values follow the Cloudstream-style convention:
 

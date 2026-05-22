@@ -148,7 +148,7 @@
 									RenderTransform="{x:Null}"
 									ToolTip.Tip="{Binding FavoriteButtonText}"
 									FontWeight="Normal" FontSize="16"
-									Theme="{DynamicResource SolidIconButton}"/>
+									Theme="{DynamicResource OutlineIconButton}"/>
 							</StackPanel>
 						</StackPanel>
 					</Grid>
@@ -198,7 +198,7 @@
 											Content="{Binding Name}"
 											Classes.Secondary="{Binding IsTrailer}"
 											Classes.Tertiary="{Binding !IsTrailer}"
-											Theme="{DynamicResource SolidIconDropDownButton}">
+											Theme="{DynamicResource OutlineIconDropDownButton}">
 													<Button.Flyout>
 														<MenuFlyout Placement="BottomEdgeAlignedRight">
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.ManituxPlayer}" 
@@ -250,7 +250,7 @@
 													Icon="{StaticResource SemiIconCamera}"
 													Content="{Binding Title}"
 													Classes="Tertiary"
-													Theme="{DynamicResource SolidIconDropDownButton}">
+													Theme="{DynamicResource OutlineIconDropDownButton}">
 													<Button.Flyout>
 														<MenuFlyout Placement="BottomEdgeAlignedRight">
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.ManituxPlayer}" 

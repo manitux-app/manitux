@@ -31,3 +31,17 @@ public class PageChangedMessage : ValueChangedMessage<int>
     {
     }
 }
+
+public class PluginCatalogChangedMessage : ValueChangedMessage<bool>
+{
+    public PluginCatalogChangedMessage(bool value) : base(value)
+    {
+    }
+}
+
+public class PluginCatalogReloadingMessage : ValueChangedMessage<bool>
+{
+    public PluginCatalogReloadingMessage(bool value) : base(value)
+    {
+    }
+}
