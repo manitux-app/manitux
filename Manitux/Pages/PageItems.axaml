@@ -164,7 +164,7 @@
 				<TextBlock HorizontalAlignment="Center"
 						   VerticalAlignment="Center"
 						   FontSize="18"
-						   Text="&lt;"/>
+						   Text="&#x276E;"/>
 			</Button>
 			<Border Grid.Column="2"
 					MinWidth="64"
@@ -190,7 +190,7 @@
 				<TextBlock HorizontalAlignment="Center"
 						   VerticalAlignment="Center"
 						   FontSize="18"
-						   Text="&gt;"/>
+						   Text="&#x276F;"/>
 			</Button>
 		</Grid>
 			</Grid>

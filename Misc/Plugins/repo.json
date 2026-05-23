@@ -1,6 +1,7 @@
 {
   "name": "Manitux Example Plugin Repository",
   "description": "Example repository manifest for Manitux remote plugins.",
+  "iconUrl": "https://raw.githubusercontent.com/YOUR_GITHUB_USER/YOUR_PLUGIN_REPOSITORY/builds/icons/repository.png",
   "manifestVersion": 1,
   "pluginLists": [
     "https://raw.githubusercontent.com/YOUR_GITHUB_USER/YOUR_PLUGIN_REPOSITORY/builds/plugins.json"

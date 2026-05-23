@@ -124,7 +124,7 @@ public class TmdbPlugin : PluginBase
 
     public override async Task<VideoSourceModel?> GetVideoSources(VideoSourceModel videoSource)
     {
-        return await Task.FromResult(videoSource);
+        return await ExtractAsync(videoSource);
     }
 
     private async Task<TMDbClient?> GetClientAsync()

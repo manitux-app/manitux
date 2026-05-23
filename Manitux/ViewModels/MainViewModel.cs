@@ -95,6 +95,8 @@ public partial class MainViewModel : ViewModelBase
 
         WeakReferenceMessenger.Default.Register<MainViewModel, MenuItemChangedMessage>(this, OnNavigation);
         WeakReferenceMessenger.Default.Register<MainViewModel, PageItemChangedMessage>(this, OnNavigation);
+        WeakReferenceMessenger.Default.Register<MainViewModel, PluginCatalogReloadingMessage>(this, OnPluginCatalogReloading);
+        WeakReferenceMessenger.Default.Register<MainViewModel, PluginCatalogChangedMessage>(this, OnPluginCatalogChanged);
         //WeakReferenceMessenger.Default.Register<MainViewModel, string, string>(this, "JumpTo", OnNavigation);
         //OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
 
@@ -152,7 +154,7 @@ public partial class MainViewModel : ViewModelBase
                 Content = new AboutUsViewModel();
                 break;
             case MenuKeys.MenuKeySettings:
-                Content = new RemotePluginsViewModel(_remotePluginService, _localizationService);
+                Content = new RemotePluginsViewModel(_remotePluginService, _localizationService, _pluginService);
                 break;
             case MenuKeys.MenuKeyFavorites:
                 _currentPageItemsViewModel = null;
@@ -187,6 +189,21 @@ public partial class MainViewModel : ViewModelBase
                 ShowToast($"{L.PageNotFound}", NotificationType.Error);
             }
         });
+    }
+
+    private void OnPluginCatalogChanged(MainViewModel vm, PluginCatalogChangedMessage message)
+    {
+        LoadPlugins(navigateToFirstPlugin: false);
+    }
+
+    private void OnPluginCatalogReloading(MainViewModel vm, PluginCatalogReloadingMessage message)
+    {
+        _pluginService.CurrentPlugin = null;
+        CurrentPlugin = null;
+        _pluginMenus = null;
+        _currentPageItemsViewModel = null;
+        ClearNavigationStack();
+        Menus.LoadDefaultMenu(L);
     }
 
     private Task InitTlsClient()
@@ -232,7 +249,7 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    private async void LoadPlugins()
+    private async void LoadPlugins(bool navigateToFirstPlugin = true)
     {
         if (_pluginManager is null)
         {
@@ -271,13 +288,19 @@ public partial class MainViewModel : ViewModelBase
             {
                 IsPluginsLoaded = true;
                 Menus.LoadMenus(_pluginMenus, L);
-                OnNavigation(this, MenuKeys.MenuKeyPageItems);
+                if (navigateToFirstPlugin)
+                {
+                    OnNavigation(this, MenuKeys.MenuKeyPageItems);
+                }
             }
             else
             {
                 IsPluginsLoaded = false;
                 Menus.LoadDefaultMenu(L);
-                OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
+                if (navigateToFirstPlugin)
+                {
+                    OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
+                }
             }
 
             IsInitialized = true;

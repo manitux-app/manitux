@@ -18,6 +18,7 @@ using Avalonia.Labs.Input;
 using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using LibMPVSharp;
 using LibMPVSharp.Extensions;
 using Manitux.Core.Models;
@@ -178,6 +179,7 @@ namespace Manitux.Player
         public static readonly RoutedCommand FullScreenCmd = new RoutedCommand(nameof(FullScreenCmd));
         public static readonly RoutedCommand StopCmd = new RoutedCommand(nameof(StopCmd));
 
+        private const double KeyboardSeekStepSeconds = 5d;
         private static Queue<string> _aspectRatio = new Queue<string>();
         private Slider? _timeSlider;
         private DispatcherTimer? _seekDebounceTimer;
@@ -185,6 +187,7 @@ namespace Manitux.Player
         private bool _isScrubbing;
         private bool _isUpdatingTimeFromPlayer;
         private WindowState _restoreWindowState = WindowState.Normal;
+        private TopLevel? _topLevel;
         private readonly DispatcherTimer _controlsIdleTimer;
 
         static MediaPlayerView()
@@ -203,6 +206,8 @@ namespace Manitux.Player
 
         public MediaPlayerView()
         {
+            Focusable = true;
+
             _controlsIdleTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromSeconds(5)
@@ -226,6 +231,15 @@ namespace Manitux.Player
             CommandManager.SetCommandBindings(this, binds);
         }
 
+        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            base.OnAttachedToVisualTree(e);
+
+            _topLevel = TopLevel.GetTopLevel(this);
+            _topLevel?.AddHandler(KeyDownEvent, OnPlaybackKeyDown, RoutingStrategies.Tunnel, true);
+            Focus();
+        }
+
         protected override void OnPointerMoved(PointerEventArgs e)
         {
             base.OnPointerMoved(e);
@@ -235,7 +249,21 @@ namespace Manitux.Player
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);
+
+            Focus();
             ShowTransientControls();
+
+            if (MediaPlayer == null || IsPlaybackChromeSource(e.Source))
+            {
+                return;
+            }
+
+            var point = e.GetCurrentPoint(this);
+            if (point.Properties.IsLeftButtonPressed)
+            {
+                TryPlayPause();
+                e.Handled = true;
+            }
         }
 
         private void OnPointerActivity(object? sender, PointerEventArgs e)
@@ -245,6 +273,8 @@ namespace Manitux.Player
 
         protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
         {
+            _topLevel?.RemoveHandler(KeyDownEvent, OnPlaybackKeyDown);
+            _topLevel = null;
             _controlsIdleTimer.Stop();
             Cursor = null;
             base.OnDetachedFromVisualTree(e);
@@ -265,8 +295,45 @@ namespace Manitux.Player
             _timeSlider.PointerPressed += TimeSliderPointerPressed;
             _timeSlider.PointerReleased += TimeSliderPointerReleased;
             _timeSlider.PointerCaptureLost += TimeSliderPointerCaptureLost;
-            _timeSlider.Focus();
+            Focus();
             ShowTransientControls();
+        }
+
+        private void OnPlaybackKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (MediaPlayer == null || IsPlaybackChromeSource(e.Source))
+            {
+                return;
+            }
+
+            switch (e.Key)
+            {
+                case Key.Left:
+                    TrySeekRelative(-KeyboardSeekStepSeconds);
+                    e.Handled = true;
+                    break;
+                case Key.Right:
+                    TrySeekRelative(KeyboardSeekStepSeconds);
+                    e.Handled = true;
+                    break;
+                case Key.Space:
+                    TryPlayPause();
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        private static bool IsPlaybackChromeSource(object? source)
+        {
+            for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
+            {
+                if (visual is Button or Slider or ComboBox or ComboBoxItem or ListBoxItem or MenuItem or TextBox)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -597,6 +664,34 @@ namespace Manitux.Player
             if (MediaPlayer == null) return;
             var pause = MediaPlayer.GetPropertyBoolean(MPVMediaPlayer.PlaybackControlOpts.Pause);
             MediaPlayer.SetProperty(MPVMediaPlayer.PlaybackControlOpts.Pause, !pause);
+        }
+
+        private void TrySeekRelative(double seconds)
+        {
+            if (MediaPlayer == null) return;
+
+            var target = Time + TimeSpan.FromSeconds(seconds);
+
+            if (target < TimeSpan.Zero)
+            {
+                target = TimeSpan.Zero;
+            }
+            else if (Duration > TimeSpan.Zero && target > Duration)
+            {
+                target = Duration;
+            }
+
+            _isUpdatingTimeFromPlayer = true;
+            try
+            {
+                SetCurrentValue(TimeProperty, target);
+            }
+            finally
+            {
+                _isUpdatingTimeFromPlayer = false;
+            }
+
+            RequestSeek(target);
         }
 
         private void TrySwitchSpeed()

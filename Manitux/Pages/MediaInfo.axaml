@@ -61,25 +61,22 @@
 
 	<u:LoadingContainer IsLoading="{Binding IsLoading}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Background="#111111">
 		<Grid>
-			<Grid IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+			<Border CornerRadius="10" ClipToBounds="True" IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
 				<async:AdvancedImage Source="{Binding MediaInfo.Backdrop}"
 									 Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
 									 Stretch="UniformToFill"/>
-			</Grid>
+			</Border>
 
-			<Border Background="Black" Opacity="0.7" IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+			<Border CornerRadius="10" ClipToBounds="True" Background="Black" Opacity="0.7" IsVisible="{Binding MediaInfo.Backdrop, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
 			
 			<Grid RowDefinitions="Auto, *" Width="{Binding $parent.Bounds.Width}" Height="{Binding $parent.Bounds.Height}">
-
-
-
 			<DockPanel Grid.Row="0" Margin="20,15">
 				<Button DockPanel.Dock="Left"
 				        Width="36"
 				        Height="36"
 				        Margin="0,0,12,0"
 				        Padding="0"
-				        Content="&lt;"
+				        Content="&#x276E;"
 				        Command="{Binding GoBackCommand}"/>
 				<TextBlock Text="{Binding MediaInfo.Title}" VerticalAlignment="Center" FontSize="16" Opacity="0.7"/>
 			</DockPanel>
@@ -151,7 +148,7 @@
 									RenderTransform="{x:Null}"
 									ToolTip.Tip="{Binding FavoriteButtonText}"
 									FontWeight="Normal" FontSize="16"
-									Theme="{DynamicResource SolidIconButton}"/>
+									Theme="{DynamicResource OutlineIconButton}"/>
 							</StackPanel>
 						</StackPanel>
 					</Grid>
@@ -201,7 +198,7 @@
 											Content="{Binding Name}"
 											Classes.Secondary="{Binding IsTrailer}"
 											Classes.Tertiary="{Binding !IsTrailer}"
-											Theme="{DynamicResource SolidIconDropDownButton}">
+											Theme="{DynamicResource OutlineIconDropDownButton}">
 													<Button.Flyout>
 														<MenuFlyout Placement="BottomEdgeAlignedRight">
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.ManituxPlayer}" 
@@ -253,7 +250,7 @@
 													Icon="{StaticResource SemiIconCamera}"
 													Content="{Binding Title}"
 													Classes="Tertiary"
-													Theme="{DynamicResource SolidIconDropDownButton}">
+													Theme="{DynamicResource OutlineIconDropDownButton}">
 													<Button.Flyout>
 														<MenuFlyout Placement="BottomEdgeAlignedRight">
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.ManituxPlayer}" 

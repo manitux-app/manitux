@@ -11,7 +11,7 @@ namespace Manitux.Core.Services.Plugins;
 
 public sealed class RemotePluginService : IRemotePluginService, IDisposable
 {
-    private const string SettingsFileName = "remote-plugins.json";
+    private const string SettingsFileName = "plugins.json";
     private readonly HttpClient _httpClient;
     private readonly bool _disposeHttpClient;
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
@@ -23,7 +23,7 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
     {
         PluginsRootPath = pluginsRootPath ?? GetDefaultPluginsRootPath();
         SettingsPath = Path.Combine(PluginsRootPath, SettingsFileName);
-        DownloadsPath = Path.Combine(PluginsRootPath, "remote");
+        DownloadsPath = PluginsRootPath; //Path.Combine(PluginsRootPath, "remote");
         _httpClient = httpClient ?? new HttpClient(new HttpClientHandler
         {
             AllowAutoRedirect = true
@@ -55,8 +55,11 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
 
         existing.Name = repository.Name;
         existing.Description = repository.Description;
+        existing.IconUrl = string.IsNullOrWhiteSpace(repository.IconUrl)
+            ? null
+            : FixUrl(repository.IconUrl, repositoryUrl);
         existing.ManifestVersion = repository.ManifestVersion;
-        existing.PluginLists = repository.PluginLists.Select(x => FixUrl(x, repositoryUrl)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        existing.PluginLists = await FetchManagedPluginListsAsync(repository.PluginLists, repositoryUrl, now, cancellationToken);
         existing.Url = repositoryUrl;
         existing.UpdatedAt = now;
 
@@ -69,22 +72,46 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
         var repository = await AddRepositoryAsync(repositoryUrlOrShortCode, cancellationToken);
         var plugins = new List<RemotePluginManifest>();
 
-        foreach (var pluginListUrl in repository.PluginLists)
+        foreach (var pluginList in repository.PluginLists)
         {
-            var list = await FetchPluginListAsync(pluginListUrl, cancellationToken);
+            var pluginListUrl = pluginList.Url;
+            var list = FlattenPluginList(pluginList.Packages);
             foreach (var plugin in list)
             {
                 plugin.Url = FixUrl(plugin.Url, pluginListUrl);
                 plugin.RepositoryUrl ??= repository.Url;
+                plugin.PluginListUrl = pluginListUrl;
                 plugins.Add(plugin);
             }
         }
 
         return plugins
-            .GroupBy(x => GetPluginKey(x))
-            .Select(x => x.OrderByDescending(p => p.Version).First())
-            .OrderBy(x => x.Name)
+            .OrderBy(x => GetPackageKey(x))
+            .ThenBy(x => x.Name)
             .ToList();
+    }
+
+    public async Task<bool> RemoveRepositoryAsync(string repositoryUrl, CancellationToken cancellationToken = default)
+    {
+        var settings = await LoadSettingsAsync(cancellationToken);
+        var repository = settings.Repositories.FirstOrDefault(x => UrlEquals(x.Url, repositoryUrl));
+        if (repository is null)
+        {
+            return false;
+        }
+
+        settings.Repositories.Remove(repository);
+        await SaveSettingsAsync(settings, cancellationToken);
+        return true;
+    }
+
+    public async Task<RemotePluginInstallResult> InstallAsync(
+        RemotePluginManifest manifest,
+        CancellationToken cancellationToken = default)
+    {
+        manifest.Url = FixUrl(manifest.Url, manifest.PluginListUrl ?? manifest.RepositoryUrl ?? manifest.Url);
+        var plugin = await DownloadPluginAsync(manifest, manifest.RepositoryUrl, manifest.PluginListUrl, cancellationToken);
+        return new RemotePluginInstallResult { Success = true, Message = "Plugin installed.", Plugin = plugin };
     }
 
     public async Task<RemotePluginInstallResult> InstallAsync(string urlOrShortCode, string? internalName = null, CancellationToken cancellationToken = default)
@@ -113,8 +140,9 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
         }
 
         var repository = await AddRepositoryAsync(resolvedUrl, cancellationToken);
-        foreach (var pluginListUrl in repository.PluginLists)
+        foreach (var pluginList in repository.PluginLists)
         {
+            var pluginListUrl = pluginList.Url;
             var plugins = await FetchPluginListAsync(pluginListUrl, cancellationToken);
             var manifest = PickPlugin(plugins, internalName);
             if (manifest is null)
@@ -133,65 +161,134 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
 
     public async Task<bool> RemoveAsync(string internalName, CancellationToken cancellationToken = default)
     {
+        return await RemoveAsync(internalName, null, cancellationToken);
+    }
+
+    public async Task<bool> RemoveAsync(string internalName, string? packageInternalName, CancellationToken cancellationToken = default)
+    {
         var settings = await LoadSettingsAsync(cancellationToken);
-        var plugin = settings.InstalledPlugins.FirstOrDefault(x => KeyEquals(x.InternalName, internalName));
+        var plugin = settings.InstalledPlugins.FirstOrDefault(x =>
+            KeyEquals(x.InternalName, internalName)
+            && (string.IsNullOrWhiteSpace(packageInternalName) || KeyEquals(x.PackageInternalName, packageInternalName)));
         if (plugin is null)
         {
             return false;
         }
 
+        var canDeleteFile = !IsPluginFileUsed(settings, plugin.FilePath, plugin.InternalName);
+        if (canDeleteFile)
+        {
+            await DeleteFileWithRetryAsync(plugin.FilePath, cancellationToken);
+        }
+
         settings.InstalledPlugins.Remove(plugin);
         await SaveSettingsAsync(settings, cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(plugin.FilePath) && File.Exists(plugin.FilePath))
-        {
-            File.Delete(plugin.FilePath);
-        }
-
-        var pluginDirectory = Path.GetDirectoryName(plugin.FilePath);
-        if (!string.IsNullOrWhiteSpace(pluginDirectory)
-            && Directory.Exists(pluginDirectory)
-            && !Directory.EnumerateFileSystemEntries(pluginDirectory).Any())
-        {
-            Directory.Delete(pluginDirectory);
-        }
+        DeletePluginDirectoriesIfUnused(settings, plugin.FilePath);
 
         return true;
     }
 
     public async Task<RemotePluginInstallResult> UpdateAsync(string internalName, CancellationToken cancellationToken = default)
     {
+        return await UpdateAsync(internalName, null, cancellationToken);
+    }
+
+    public async Task<RemotePluginUpdateCheckResult> CheckUpdateAsync(string internalName, CancellationToken cancellationToken = default)
+    {
+        return await CheckUpdateAsync(internalName, null, cancellationToken);
+    }
+
+    public async Task<RemotePluginUpdateCheckResult> CheckUpdateAsync(
+        string internalName,
+        string? packageInternalName,
+        CancellationToken cancellationToken = default)
+    {
         var settings = await LoadSettingsAsync(cancellationToken);
-        var installed = settings.InstalledPlugins.FirstOrDefault(x => KeyEquals(x.InternalName, internalName));
+        var installed = settings.InstalledPlugins.FirstOrDefault(x =>
+            KeyEquals(x.InternalName, internalName)
+            && (string.IsNullOrWhiteSpace(packageInternalName) || KeyEquals(x.PackageInternalName, packageInternalName)));
         if (installed is null)
         {
-            return new RemotePluginInstallResult { Success = false, Message = "Plugin is not installed." };
+            return new RemotePluginUpdateCheckResult
+            {
+                Message = "Plugin is not installed."
+            };
         }
 
         var manifest = await FindLatestManifestAsync(installed, cancellationToken);
         if (manifest is null)
         {
-            return new RemotePluginInstallResult { Success = false, Message = "Plugin manifest could not be refreshed." };
+            return new RemotePluginUpdateCheckResult
+            {
+                InstalledPlugin = installed,
+                Message = "Plugin manifest could not be refreshed."
+            };
         }
 
-        if (manifest.Version <= installed.Version)
+        var hasUpdate = manifest.Version > installed.Version;
+        return new RemotePluginUpdateCheckResult
         {
-            return new RemotePluginInstallResult { Success = true, Message = "Plugin is already up to date.", Plugin = installed };
+            InstalledPlugin = installed,
+            LatestManifest = manifest,
+            HasUpdate = hasUpdate,
+            Message = hasUpdate ? "Plugin update is available." : "Plugin is already up to date."
+        };
+    }
+
+    public async Task<IReadOnlyList<RemotePluginUpdateCheckResult>> CheckUpdatesAsync(CancellationToken cancellationToken = default)
+    {
+        var settings = await LoadSettingsAsync(cancellationToken);
+        var plugins = settings.InstalledPlugins
+            .Select(x => new { x.InternalName, x.PackageInternalName })
+            .ToList();
+        var results = new List<RemotePluginUpdateCheckResult>();
+
+        foreach (var plugin in plugins)
+        {
+            results.Add(await CheckUpdateAsync(plugin.InternalName, plugin.PackageInternalName, cancellationToken));
         }
 
-        var updated = await DownloadPluginAsync(manifest, installed.RepositoryUrl, installed.PluginListUrl, cancellationToken);
+        return results;
+    }
+
+    public async Task<RemotePluginInstallResult> UpdateAsync(string internalName, string? packageInternalName, CancellationToken cancellationToken = default)
+    {
+        var check = await CheckUpdateAsync(internalName, packageInternalName, cancellationToken);
+        if (check.InstalledPlugin is null || string.IsNullOrWhiteSpace(check.InstalledPlugin.InternalName))
+        {
+            return new RemotePluginInstallResult { Success = false, Message = check.Message };
+        }
+
+        if (check.LatestManifest is null)
+        {
+            return new RemotePluginInstallResult { Success = false, Message = check.Message, Plugin = check.InstalledPlugin };
+        }
+
+        if (!check.HasUpdate)
+        {
+            return new RemotePluginInstallResult { Success = true, Message = check.Message, Plugin = check.InstalledPlugin };
+        }
+
+        var updated = await DownloadPluginAsync(
+            check.LatestManifest,
+            check.InstalledPlugin.RepositoryUrl,
+            check.InstalledPlugin.PluginListUrl,
+            cancellationToken);
         return new RemotePluginInstallResult { Success = true, Message = "Plugin updated.", Plugin = updated };
     }
 
     public async Task<IReadOnlyList<RemotePluginInstallResult>> UpdateAllAsync(CancellationToken cancellationToken = default)
     {
         var settings = await LoadSettingsAsync(cancellationToken);
-        var names = settings.InstalledPlugins.Select(x => x.InternalName).ToList();
+        var plugins = settings.InstalledPlugins
+            .Select(x => new { x.InternalName, x.PackageInternalName })
+            .ToList();
         var results = new List<RemotePluginInstallResult>();
 
-        foreach (var name in names)
+        foreach (var plugin in plugins)
         {
-            results.Add(await UpdateAsync(name, cancellationToken));
+            results.Add(await UpdateAsync(plugin.InternalName, plugin.PackageInternalName, cancellationToken));
         }
 
         return results;
@@ -210,24 +307,53 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
     {
         var settings = await LoadSettingsAsync(cancellationToken);
         var key = GetPluginKey(manifest);
+        var packageKey = GetPackageKey(manifest);
         var fileName = GetSafeFileName(Path.GetFileName(new Uri(manifest.Url).LocalPath));
         if (string.IsNullOrWhiteSpace(fileName))
         {
-            fileName = $"{key}.dll";
+            fileName = $"{packageKey}.dll";
         }
 
-        var pluginDirectory = Path.Combine(DownloadsPath, GetSafeFileName(key));
+        var pluginDirectory = Path.Combine(
+            DownloadsPath,
+            GetSafeFileName(packageKey),
+            GetVersionDirectoryName(manifest.Version));
         Directory.CreateDirectory(pluginDirectory);
 
         var filePath = Path.Combine(pluginDirectory, fileName);
-        await using (var remote = await _httpClient.GetStreamAsync(manifest.Url, cancellationToken))
-        await using (var local = File.Create(filePath))
+
+        var alreadyDownloaded = File.Exists(filePath)
+                                && settings.InstalledPlugins.Any(x =>
+                                    string.Equals(x.FilePath, filePath, StringComparison.OrdinalIgnoreCase)
+                                    && string.Equals(x.SourceUrl, manifest.Url, StringComparison.OrdinalIgnoreCase)
+                                    && x.Version >= manifest.Version);
+
+        if (!alreadyDownloaded)
         {
-            await remote.CopyToAsync(local, cancellationToken);
+            var tempFilePath = $"{filePath}.{Guid.NewGuid():N}.download";
+            try
+            {
+                await using (var remote = await _httpClient.GetStreamAsync(manifest.Url, cancellationToken))
+                await using (var local = File.Create(tempFilePath))
+                {
+                    await remote.CopyToAsync(local, cancellationToken);
+                }
+
+                await ReplaceFileWithRetryAsync(tempFilePath, filePath, cancellationToken);
+            }
+            finally
+            {
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                }
+            }
         }
 
         var now = DateTimeOffset.UtcNow;
-        var existing = settings.InstalledPlugins.FirstOrDefault(x => KeyEquals(x.InternalName, key));
+        var existing = settings.InstalledPlugins.FirstOrDefault(x =>
+            KeyEquals(x.InternalName, key)
+            && KeyEquals(x.PackageInternalName, packageKey));
         if (existing is null)
         {
             existing = new ManagedRemotePlugin
@@ -239,7 +365,7 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
         else if (!string.Equals(existing.FilePath, filePath, StringComparison.OrdinalIgnoreCase)
                  && File.Exists(existing.FilePath))
         {
-            File.Delete(existing.FilePath);
+            DeletePluginFileIfUnused(settings, existing.FilePath, existing.InternalName);
         }
 
         existing.Name = manifest.Name;
@@ -247,6 +373,8 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
         existing.Version = manifest.Version;
         existing.ApiVersion = manifest.ApiVersion;
         existing.SourceUrl = manifest.Url;
+        existing.PackageInternalName = packageKey;
+        existing.PackageName = manifest.PackageName;
         existing.RepositoryUrl = repositoryUrl ?? manifest.RepositoryUrl;
         existing.PluginListUrl = pluginListUrl;
         existing.FilePath = filePath;
@@ -262,10 +390,14 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
         if (!string.IsNullOrWhiteSpace(installed.PluginListUrl))
         {
             var list = await FetchPluginListAsync(installed.PluginListUrl, cancellationToken);
-            var manifest = list.FirstOrDefault(x => KeyEquals(GetPluginKey(x), installed.InternalName));
+            var manifest = list.FirstOrDefault(x =>
+                               KeyEquals(GetPluginKey(x), installed.InternalName)
+                               && KeyEquals(GetPackageKey(x), installed.PackageInternalName))
+                           ?? list.FirstOrDefault(x => KeyEquals(GetPluginKey(x), installed.InternalName));
             if (manifest is not null)
             {
                 manifest.Url = FixUrl(manifest.Url, installed.PluginListUrl);
+                manifest.PluginListUrl = installed.PluginListUrl;
                 manifest.RepositoryUrl ??= installed.RepositoryUrl;
                 return manifest;
             }
@@ -274,7 +406,10 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
         if (!string.IsNullOrWhiteSpace(installed.RepositoryUrl))
         {
             var plugins = await GetRepositoryPluginsAsync(installed.RepositoryUrl, cancellationToken);
-            return plugins.FirstOrDefault(x => KeyEquals(GetPluginKey(x), installed.InternalName));
+            return plugins.FirstOrDefault(x =>
+                       KeyEquals(GetPluginKey(x), installed.InternalName)
+                       && KeyEquals(GetPackageKey(x), installed.PackageInternalName))
+                   ?? plugins.FirstOrDefault(x => KeyEquals(GetPluginKey(x), installed.InternalName));
         }
 
         return installed.Manifest;
@@ -318,8 +453,33 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
 
     private async Task<List<RemotePluginManifest>> FetchPluginListAsync(string pluginListUrl, CancellationToken cancellationToken)
     {
-        var plugins = await GetJsonAsync<List<RemotePluginManifest>>(pluginListUrl, cancellationToken);
-        return plugins ?? [];
+        return FlattenPluginList(await FetchPluginPackagesAsync(pluginListUrl, cancellationToken));
+    }
+
+    private async Task<List<RemotePluginManifest>> FetchPluginPackagesAsync(string pluginListUrl, CancellationToken cancellationToken)
+    {
+        return await GetJsonAsync<List<RemotePluginManifest>>(pluginListUrl, cancellationToken) ?? [];
+    }
+
+    private async Task<List<ManagedRemotePluginList>> FetchManagedPluginListsAsync(
+        IEnumerable<string> pluginListUrls,
+        string repositoryUrl,
+        DateTimeOffset updatedAt,
+        CancellationToken cancellationToken)
+    {
+        var lists = new List<ManagedRemotePluginList>();
+
+        foreach (var pluginListUrl in pluginListUrls.Select(x => FixUrl(x, repositoryUrl)).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            lists.Add(new ManagedRemotePluginList
+            {
+                Url = pluginListUrl,
+                Packages = await FetchPluginPackagesAsync(pluginListUrl, cancellationToken),
+                UpdatedAt = updatedAt
+            });
+        }
+
+        return lists;
     }
 
     private async Task<T?> GetJsonAsync<T>(string url, CancellationToken cancellationToken)
@@ -375,7 +535,7 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
         return new RemotePluginManifest
         {
             Name = name ?? "Remote Plugin",
-            InternalName = name ?? "remote-plugin",
+            InternalName = name ?? "plugin.remote",
             Url = url,
             Version = 1,
             ApiVersion = 1,
@@ -411,7 +571,7 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
             ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
             : AppContext.BaseDirectory;
 
-        return Path.Combine(baseDir, "data/plugins");
+        return Path.Combine(baseDir, "data", "plugins");
     }
 
     private static string NormalizeGitHubUrl(string url)
@@ -491,6 +651,225 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
             : manifest.InternalName;
     }
 
+    private static string GetPackageKey(RemotePluginManifest manifest)
+    {
+        if (!string.IsNullOrWhiteSpace(manifest.PackageInternalName))
+        {
+            return manifest.PackageInternalName;
+        }
+
+        var fileName = Uri.TryCreate(manifest.Url, UriKind.Absolute, out var uri)
+            ? Path.GetFileNameWithoutExtension(uri.LocalPath)
+            : Path.GetFileNameWithoutExtension(manifest.Url);
+
+        return string.IsNullOrWhiteSpace(fileName)
+            ? GetPluginKey(manifest)
+            : fileName;
+    }
+
+    private static List<RemotePluginManifest> FlattenPluginList(IEnumerable<RemotePluginManifest> packages)
+    {
+        var plugins = new List<RemotePluginManifest>();
+
+        foreach (var package in packages)
+        {
+            if (package.Plugins is null || package.Plugins.Count == 0)
+            {
+                package.PackageInternalName = string.IsNullOrWhiteSpace(package.InternalName)
+                    ? GetPackageKey(package)
+                    : package.InternalName;
+                package.PackageName = package.Name;
+                plugins.Add(package);
+                continue;
+            }
+
+            var packageInternalName = string.IsNullOrWhiteSpace(package.InternalName)
+                ? GetPackageKey(package)
+                : package.InternalName;
+
+            foreach (var plugin in package.Plugins)
+            {
+                plugin.Url = package.Url;
+                plugin.Status = plugin.Status == 0 ? package.Status : plugin.Status;
+                plugin.Version = plugin.Version == 0 ? package.Version : plugin.Version;
+                plugin.ApiVersion = plugin.ApiVersion == 0 ? package.ApiVersion : plugin.ApiVersion;
+                plugin.RepositoryUrl ??= package.RepositoryUrl;
+                plugin.IconUrl ??= package.IconUrl;
+                plugin.Authors = plugin.Authors.Count == 0 ? package.Authors : plugin.Authors;
+                plugin.TvTypes ??= package.TvTypes;
+                plugin.Language ??= package.Language;
+                plugin.IsAdult ??= package.IsAdult;
+                plugin.PackageInternalName = packageInternalName;
+                plugin.PackageName = string.IsNullOrWhiteSpace(package.Name) ? packageInternalName : package.Name;
+                plugin.Plugins = null;
+                plugins.Add(plugin);
+            }
+        }
+
+        return plugins;
+    }
+
+    private static void DeletePluginFileIfUnused(RemotePluginSettings settings, string? filePath, string? excludingInternalName = null)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+        {
+            return;
+        }
+
+        if (!IsPluginFileUsed(settings, filePath, excludingInternalName))
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    private static bool IsPluginFileUsed(
+        RemotePluginSettings settings,
+        string? filePath,
+        string? excludingInternalName = null)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return false;
+        }
+
+        return settings.InstalledPlugins.Any(x =>
+            !KeyEquals(x.InternalName, excludingInternalName)
+            && string.Equals(x.FilePath, filePath, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static async Task DeleteFileWithRetryAsync(string? filePath, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+        {
+            return;
+        }
+
+        const int attempts = 20;
+        Exception? lastError = null;
+
+        for (var attempt = 0; attempt < attempts; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                File.Delete(filePath);
+                return;
+            }
+            catch (IOException ex)
+            {
+                lastError = ex;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                lastError = ex;
+            }
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(150, cancellationToken);
+        }
+
+        throw new IOException($"Plugin file could not be deleted because it is still locked: {filePath}", lastError);
+    }
+
+    private static void DeletePluginDirectoriesIfUnused(RemotePluginSettings settings, string? filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return;
+        }
+
+        var pluginDirectory = Path.GetDirectoryName(filePath);
+        if (string.IsNullOrWhiteSpace(pluginDirectory))
+        {
+            return;
+        }
+
+        if (settings.InstalledPlugins.Any(x =>
+                !string.IsNullOrWhiteSpace(x.FilePath)
+                && IsSameOrChildPath(pluginDirectory, x.FilePath)))
+        {
+            return;
+        }
+
+        TryDeleteDirectoryIfEmpty(pluginDirectory);
+
+        var parentDirectory = Directory.GetParent(pluginDirectory)?.FullName;
+        if (string.IsNullOrWhiteSpace(parentDirectory))
+        {
+            return;
+        }
+
+        if (settings.InstalledPlugins.Any(x =>
+                !string.IsNullOrWhiteSpace(x.FilePath)
+                && IsSameOrChildPath(parentDirectory, x.FilePath)))
+        {
+            return;
+        }
+
+        TryDeleteDirectoryIfEmpty(parentDirectory);
+    }
+
+    private static void TryDeleteDirectoryIfEmpty(string directory)
+    {
+        if (!Directory.Exists(directory) || Directory.EnumerateFileSystemEntries(directory).Any())
+        {
+            return;
+        }
+
+        Directory.Delete(directory);
+    }
+
+    private static bool IsSameOrChildPath(string directory, string path)
+    {
+        var normalizedDirectory = Path.GetFullPath(directory)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        var normalizedPath = Path.GetFullPath(path);
+
+        return normalizedPath.StartsWith(
+            normalizedDirectory,
+            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+    }
+
+    private static async Task ReplaceFileWithRetryAsync(
+        string sourceFilePath,
+        string destinationFilePath,
+        CancellationToken cancellationToken)
+    {
+        const int attempts = 20;
+        Exception? lastError = null;
+
+        for (var attempt = 0; attempt < attempts; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                if (File.Exists(destinationFilePath))
+                {
+                    File.Delete(destinationFilePath);
+                }
+
+                File.Move(sourceFilePath, destinationFilePath);
+                return;
+            }
+            catch (IOException ex)
+            {
+                lastError = ex;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                lastError = ex;
+            }
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(150, cancellationToken);
+        }
+
+        throw new IOException($"Plugin file could not be replaced because it is still locked: {destinationFilePath}", lastError);
+    }
+
     private static bool UrlEquals(string left, string right)
     {
         return string.Equals(left.TrimEnd('/'), right.TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
@@ -506,6 +885,11 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
         var invalidChars = Path.GetInvalidFileNameChars();
         var safe = new string(value.Select(ch => invalidChars.Contains(ch) ? '-' : ch).ToArray());
         return string.IsNullOrWhiteSpace(safe) ? "remote-plugin" : safe;
+    }
+
+    private static string GetVersionDirectoryName(int version)
+    {
+        return $"v{Math.Max(version, 1)}";
     }
 
     public void Dispose()

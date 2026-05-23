@@ -12,19 +12,27 @@ namespace CodeLogic.Framework.Application.Plugins;
 public sealed class PluginLoadContext : AssemblyLoadContext
 {
     private readonly AssemblyDependencyResolver _resolver;
+    private readonly string _pluginPath;
 
     /// <summary>Creates a new plugin load context for the assembly at the specified path.</summary>
     public PluginLoadContext(string pluginPath)
         : base(name: Path.GetFileNameWithoutExtension(pluginPath), isCollectible: true)
     {
+        _pluginPath = pluginPath;
         _resolver = new AssemblyDependencyResolver(pluginPath);
+    }
+
+    /// <summary>Loads the plugin assembly without keeping a file handle on the original DLL.</summary>
+    public Assembly LoadMainAssembly()
+    {
+        return LoadManagedAssemblyFromFile(_pluginPath);
     }
 
     /// <inheritdoc />
     protected override Assembly? Load(AssemblyName assemblyName)
     {
-        var shared = AppDomain.CurrentDomain
-            .GetAssemblies()
+        var shared = Default
+            .Assemblies
             .FirstOrDefault(assembly =>
                 string.Equals(assembly.GetName().Name, assemblyName.Name, StringComparison.OrdinalIgnoreCase));
 
@@ -32,7 +40,7 @@ public sealed class PluginLoadContext : AssemblyLoadContext
             return shared;
 
         var path = _resolver.ResolveAssemblyToPath(assemblyName);
-        return path != null ? LoadFromAssemblyPath(path) : null;
+        return path != null ? LoadManagedAssemblyFromFile(path) : null;
     }
 
     /// <inheritdoc />
@@ -40,6 +48,15 @@ public sealed class PluginLoadContext : AssemblyLoadContext
     {
         var path = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
         return path != null ? LoadUnmanagedDllFromPath(path) : IntPtr.Zero;
+    }
+
+    private Assembly LoadManagedAssemblyFromFile(string path)
+    {
+        using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var memory = new MemoryStream();
+        stream.CopyTo(memory);
+        memory.Position = 0;
+        return LoadFromStream(memory);
     }
 }
 

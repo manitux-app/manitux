@@ -121,7 +121,7 @@ public abstract class PluginBase : HttpHelper, IPlugin
     //     //_eventSub?.Dispose();
     // }
 
-    public virtual async Task<VideoSourceModel?> ExtractAsync(VideoSourceModel videoSource, string referer)
+    public virtual async Task<VideoSourceModel?> ExtractAsync(VideoSourceModel videoSource, string? referer = null)
     {
         var extractor = ExtractorManager.GetExtractorByUrl(videoSource.Url);
         if (extractor is not null)
