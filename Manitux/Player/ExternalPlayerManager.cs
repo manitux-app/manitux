@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Manitux.Core.Models;
@@ -9,189 +10,253 @@ namespace Manitux.Player;
 
 public class ExternalPlayerManager
 {
-    public void Play(int playerNumber, VideoSourceModel source)
+    public bool Play(int playerNumber, VideoSourceModel source)
     {
-        switch (playerNumber)
+        return playerNumber switch
         {
-            case 1:
-                MpvPlay(source);
-                break;
-            case 2:
-                VlcPlay(source);
-                break;
-        }
+            1 => MpvPlay(source),
+            2 => VlcPlay(source),
+            _ => false
+        };
     }
 
-    public void MpvPlay(VideoSourceModel source)
+    public bool MpvPlay(VideoSourceModel source, string? executablePath = null)
     {
-        // 1. Null ve Boş Değer Kontrolü
         if (source == null || string.IsNullOrWhiteSpace(source.Url))
         {
-            throw new ArgumentException("Video kaynağı veya URL'si geçersiz.");
+            throw new ArgumentException("Video source or URL is invalid.");
         }
 
-        string path = @"D:\PROJELER\Mpv\MpvPlayer\";
-
-        string mpvCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? path + "mpv.exe" : "mpv";
-
-        // Argümanları güvenli bir listede toplayalım
-        var args = new List<string>();
-
-        // Temel Video URL (Boşluklara karşı tırnak içinde)
-        args.Add($"\"{source.Url}\"");
-
-        // --- HTTP Headers & Referer ---
-        if (source.Headers != null && source.Headers.Any())
+        var mpvCmd = ResolveSelectedExecutable(executablePath) ?? ResolveMpvExecutable();
+        if (mpvCmd is null)
         {
-            var headerList = source.Headers.Select(h => $"{h.Name}: {h.Value}").ToList();
+            return false;
+        }
 
-            // mpv --http-header-fields için virgülle ayrılmış liste bekler
-            string allHeaders = string.Join(",", headerList);
-            args.Add($"--http-header-fields=\"{allHeaders}\"");
+        var startInfo = CreateStartInfo(mpvCmd);
+        startInfo.ArgumentList.Add(source.Url);
 
-            // User-Agent'ı listeden bulup ayrıca belirtmek uyumluluğu artırır
-            var ua = source.Headers.FirstOrDefault(h => h.Name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase));
-            if (ua != null) args.Add($"--user-agent=\"{ua.Value}\"");
+        if (source.Headers is not null && source.Headers.Any())
+        {
+            var headerList = source.Headers.Select(h => $"{h.Name}: {h.Value}");
+            startInfo.ArgumentList.Add($"--http-header-fields={string.Join(",", headerList)}");
+
+            var userAgent = source.Headers.FirstOrDefault(h =>
+                h.Name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase));
+            if (userAgent is not null)
+            {
+                startInfo.ArgumentList.Add($"--user-agent={userAgent.Value}");
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(source.Referer))
         {
-            args.Add($"--referrer=\"{source.Referer}\"");
+            startInfo.ArgumentList.Add($"--referrer={source.Referer}");
         }
 
-        // --- İnternet Altyazıları (Remote Subtitles) ---
-        if (source.Subtitles != null && source.Subtitles.Any())
+        if (source.Subtitles is not null)
         {
-            // İnternet URL'leri söz konusu olduğunda ayırıcı (separator) 
-            // işletim sisteminden bağımsız olarak genellikle düzgün çalışır 
-            // ancak yine de platform standartlarını korumak en iyisidir.
-            //string sep = OperatingSystem.IsWindows()  ? ";" : ":";
-
-            // Her bir altyazı URL'sini alıyoruz
-            //string subUrls = string.Join(sep, source.Subtitles.Select(s => s.Url));
-
-            foreach (var sub in source.Subtitles)
+            foreach (var sub in source.Subtitles.Where(x => !string.IsNullOrWhiteSpace(x.Url)))
             {
-                if (!string.IsNullOrWhiteSpace(sub.Url))
-                {
-                    // HATA ÇÖZÜMÜ: --sub-files yerine her altyazı için --sub-file (tekil) kullanıyoruz.
-                    // Bu sayede işletim sistemine özgü ayırıcı (; veya :) karmaşasından kurtuluyoruz.
-                    args.Add($"--sub-file=\"{sub.Url}\"");
-                }
+                startInfo.ArgumentList.Add($"--sub-file={sub.Url}");
             }
 
-            //args.Add($"--sub-files=\"{subUrls}\"");
-
-            // ÖNEMLİ: İnternetten altyazı yüklerken mpv'nin bazen 
-            // bunları otomatik seçmesi için şu ek argümanlar hayat kurtarır:
-            args.Add("--demuxer-max-bytes=100M"); // Buffer artırma (opsiyonel)
-            args.Add("--sub-auto=all");           // Tüm altyazıları algıla
+            startInfo.ArgumentList.Add("--demuxer-max-bytes=100M");
+            startInfo.ArgumentList.Add("--sub-auto=all");
         }
 
-        //args.Add("--extractor-args \"generic:impersonate\"");
-
-        string commands = string.Join(" ", args.Select(s => s));
-        Debug.WriteLine("mpv " + commands);
-
-        // --- Başlatma Ayarları ---
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = mpvCmd,
-            Arguments = string.Join(" ", args),
-            UseShellExecute = false,
-            CreateNoWindow = false,
-            // Hata ayıklama gerekirse çıktıları yönlendirebilirsiniz
-            RedirectStandardError = false,
-            RedirectStandardOutput = false
-        };
-
-        try
-        {
-            Process.Start(startInfo);
-        }
-        catch (Exception ex)
-        {
-            // Kullanıcıya mpv'nin yüklü olmadığını veya erişilemediğini bildirin
-            Debug.WriteLine($"Mpv Hata: {ex.Message}");
-        }
+        Debug.WriteLine($"mpv {string.Join(" ", startInfo.ArgumentList)}");
+        return TryStart(startInfo);
     }
 
-    public void VlcPlay(VideoSourceModel source)
+    public bool VlcPlay(VideoSourceModel source, string? executablePath = null)
     {
-        // 1. Null ve Boş Değer Kontrolü
         if (source == null || string.IsNullOrWhiteSpace(source.Url))
         {
-            throw new ArgumentException("Video kaynağı veya URL'si geçersiz.");
+            throw new ArgumentException("Video source or URL is invalid.");
         }
 
-        string path = @"D:\PROGRAMLAR\vlc-3.0.21\";
+        var vlcCmd = ResolveSelectedExecutable(executablePath) ?? ResolveVlcExecutable();
+        if (vlcCmd is null)
+        {
+            return false;
+        }
 
-        // 2. Platforma göre VLC komutunu belirle
-        // Not: Windows'ta VLC genelde PATH'te olmaz. Eğer çalışmazsa tam yol gerekebilir.
-        string vlcCmd = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? path + "vlc.exe" : "vlc";
+        var startInfo = CreateStartInfo(vlcCmd);
+        startInfo.ArgumentList.Add(source.Url);
 
-        var args = new List<string>();
-
-        // 1. ANA VİDEO URL'Sİ
-        // VLC'nin bunu bir dosya sanmaması için başına hiçbir ek koymadan, 
-        // sadece tırnak içinde en başa ekliyoruz.
-        args.Add($"\"{source.Url}\"");
-
-        // 2. HTTP HEADERS & REFERER
-        if (source.Headers != null && source.Headers.Any())
+        if (source.Headers is not null)
         {
             foreach (var header in source.Headers)
             {
-                // VLC'de boşluk içeren headerlar için tırnak kullanımı çok kritiktir
-                args.Add($":http-header-fields=\"{header.Name}: {header.Value}\"");
+                startInfo.ArgumentList.Add($":http-header-fields={header.Name}: {header.Value}");
             }
         }
 
         if (!string.IsNullOrWhiteSpace(source.Referer))
         {
-            args.Add($":http-referrer=\"{source.Referer}\"");
+            startInfo.ArgumentList.Add($":http-referrer={source.Referer}");
         }
 
-        // 3. ALTYAZI
-        if (source.Subtitles != null)
+        if (source.Subtitles is not null)
         {
-            foreach (var sub in source.Subtitles)
+            foreach (var sub in source.Subtitles.Where(x => !string.IsNullOrWhiteSpace(x.Url)))
             {
-                if (!string.IsNullOrWhiteSpace(sub.Url))
-                {
-                    args.Add($":input-slave=\"{sub.Url}\"");
-                    // Veya alternatif olarak:
-                    // args.Add($":sub-file=\"{sub.Url}\"");
-                }
+                startInfo.ArgumentList.Add($":input-slave={sub.Url}");
             }
         }
 
-        //args.Add("--no-video-title-show");
-        args.Add("--fullscreen");
-        args.Add("--play-and-exit");
+        startInfo.ArgumentList.Add("--fullscreen");
+        startInfo.ArgumentList.Add("--play-and-exit");
 
+        Debug.WriteLine($"vlc {string.Join(" ", startInfo.ArgumentList)}");
+        return TryStart(startInfo);
+    }
 
-        string commands = string.Join(" ", args.Select(s => s));
-        Debug.WriteLine("vlc " + commands);
-
-        // 4. SİSTEME GÖRE BAŞLATMA
-        var startInfo = new ProcessStartInfo
+    private static ProcessStartInfo CreateStartInfo(string executable)
+    {
+        return new ProcessStartInfo
         {
-            FileName = vlcCmd,
-            Arguments = string.Join(" ", args), // Argümanları birleştir
+            FileName = executable,
             UseShellExecute = false,
             CreateNoWindow = false,
-            WorkingDirectory = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "C:\\" : "/"
+            RedirectStandardError = false,
+            RedirectStandardOutput = false,
+            WorkingDirectory = GetDefaultWorkingDirectory()
         };
+    }
 
-
+    private static bool TryStart(ProcessStartInfo startInfo)
+    {
         try
         {
             Process.Start(startInfo);
+            return true;
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"VLC Hata: {ex.Message}");
+            Debug.WriteLine($"External player launch failed: {ex}");
+            return false;
         }
+    }
+
+    private static string GetDefaultWorkingDirectory()
+    {
+        return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+    }
+
+    private static string? ResolveMpvExecutable()
+    {
+        var candidates = new List<string>();
+
+        if (OperatingSystem.IsWindows())
+        {
+            candidates.AddRange(GetWindowsProgramFilesCandidates("mpv", "mpv.exe"));
+            candidates.AddRange(GetWindowsProgramFilesCandidates("Mpv", "mpv.exe"));
+            candidates.Add("mpv.exe");
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            candidates.Add("/Applications/mpv.app/Contents/MacOS/mpv");
+            candidates.Add("/Applications/IINA.app/Contents/MacOS/iina-cli");
+            candidates.Add("mpv");
+        }
+        else
+        {
+            candidates.Add("mpv");
+        }
+
+        return ResolveExecutable(candidates);
+    }
+
+    private static string? ResolveSelectedExecutable(string? executablePath)
+    {
+        if (string.IsNullOrWhiteSpace(executablePath))
+        {
+            return null;
+        }
+
+        return File.Exists(executablePath) ? executablePath : null;
+    }
+
+    private static string? ResolveVlcExecutable()
+    {
+        var candidates = new List<string>();
+
+        if (OperatingSystem.IsWindows())
+        {
+            candidates.AddRange(GetWindowsProgramFilesCandidates("VideoLAN\\VLC", "vlc.exe"));
+            candidates.Add("vlc.exe");
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            candidates.Add("/Applications/VLC.app/Contents/MacOS/VLC");
+            candidates.Add("vlc");
+        }
+        else
+        {
+            candidates.Add("vlc");
+            candidates.Add("cvlc");
+        }
+
+        return ResolveExecutable(candidates);
+    }
+
+    private static IEnumerable<string> GetWindowsProgramFilesCandidates(string relativeDirectory, string executable)
+    {
+        var roots = new[]
+        {
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+            Environment.GetEnvironmentVariable("LOCALAPPDATA")
+        };
+
+        return roots
+            .Where(root => !string.IsNullOrWhiteSpace(root))
+            .Select(root => Path.Combine(root!, relativeDirectory, executable));
+    }
+
+    private static string? ResolveExecutable(IEnumerable<string> candidates)
+    {
+        foreach (var candidate in candidates.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (Path.IsPathRooted(candidate))
+            {
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+
+                continue;
+            }
+
+            var fromPath = FindOnPath(candidate);
+            if (fromPath is not null)
+            {
+                return fromPath;
+            }
+        }
+
+        return null;
+    }
+
+    private static string? FindOnPath(string executable)
+    {
+        var path = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        foreach (var directory in path.Split(Path.PathSeparator).Where(x => !string.IsNullOrWhiteSpace(x)))
+        {
+            var candidate = Path.Combine(directory, executable);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 }

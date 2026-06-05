@@ -52,6 +52,7 @@ namespace Manitux.Services.Localizations
         public async Task ChangeLanguageAsync(string cultureCode)
         {
             var culture = ResolveCulture(new CultureInfo(cultureCode));
+            ApplyThreadCulture(culture);
             var appContext = CodeLogic.CodeLogic.GetApplicationContext();
             //Debug.WriteLine("ChangeLanguage AppContext: " + appContext?.ApplicationId);
            
@@ -63,6 +64,7 @@ namespace Manitux.Services.Localizations
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
+                    ApplyThreadCulture(new CultureInfo(loadedCulture));
                     CopyStrings(localized, Strings);
                     CurrentCulture = loadedCulture;
                     Debug.WriteLine("ChangeLanguage Culture: " + CurrentCulture);
@@ -70,6 +72,14 @@ namespace Manitux.Services.Localizations
                     LanguageChanged?.Invoke(this, EventArgs.Empty);
                 });
             }
+        }
+
+        private static void ApplyThreadCulture(CultureInfo culture)
+        {
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = culture;
+            CultureInfo.DefaultThreadCurrentCulture = culture;
+            CultureInfo.DefaultThreadCurrentUICulture = culture;
         }
 
         private async Task EnsureSupportedCulturesLoadedAsync()

@@ -53,8 +53,15 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     public string ManituxPlayer { get; set; } = "Manitux Player";
     public string VlcPlayer { get; set; } = "VLC Player";
     public string MpvPlayer { get; set; } = "MPV Player";
+    public string VlcPlayerNotFound { get; set; } = "VLC Player is not installed or could not be found.";
+    public string MpvPlayerNotFound { get; set; } = "MPV Player is not installed or could not be found.";
+    public string SelectVlcPlayerPath { get; set; } = "Select VLC Player executable";
+    public string SelectMpvPlayerPath { get; set; } = "Select MPV Player executable";
     public string MediaSelector { get; set; } = "Media selector";
     public string AudioTrackFormat { get; set; } = "Audio {0}";
+    public string Download { get; set; } = "Download";
+    public string DownloadCompleted { get; set; } = "Download completed";
+    public string DownloadFailed { get; set; } = "Download failed";
     public string AddToFavorites { get; set; } = "Add to favorites";
     public string RemoveFromFavorites { get; set; } = "Remove from favorites";
     public string PluginConfigTitleFormat { get; set; } = "{0} config.json";

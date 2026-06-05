@@ -2,12 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using AngleSharp.Media;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Notifications;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -241,8 +245,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             ShowError(Localize?.VideoNotInitialized); 
             return;
         } 
-        var playerManager = new ExternalPlayerManager();
-        playerManager.VlcPlay(source);
+        await PlayWithExternalPlayer(source, isVlc: true);
         //Debug.WriteLine(source.Url);
     }
 
@@ -254,9 +257,27 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             ShowError(Localize?.VideoNotInitialized); 
             return;
         } 
-        var playerManager = new ExternalPlayerManager();
-        playerManager.MpvPlay(source);
+        await PlayWithExternalPlayer(source, isVlc: false);
         //Debug.WriteLine(source.Url);
+    }
+
+    [RelayCommand]
+    private async Task DownloadVideo(VideoSourceModel? videoSource)
+    {
+        if (videoSource is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var source = await GetVideoSources(videoSource);
+        if (source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        await DownloadSource(source);
     }
 
     public async void PlayEpisode(EpisodeModel episode)
@@ -290,8 +311,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             return;
         }
 
-        var playerManager = new ExternalPlayerManager();
-        playerManager.VlcPlay(resolvedSource);
+        await PlayWithExternalPlayer(resolvedSource, isVlc: true);
     }
 
     public async void MpvPlayEpisode(EpisodeModel episode)
@@ -310,8 +330,33 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             return;
         }
 
-        var playerManager = new ExternalPlayerManager();
-        playerManager.MpvPlay(resolvedSource);
+        await PlayWithExternalPlayer(resolvedSource, isVlc: false);
+    }
+
+    [RelayCommand]
+    private async Task DownloadEpisode(EpisodeModel? episode)
+    {
+        if (episode is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var source = await GetEpisodeVideoSource(episode);
+        if (source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var resolvedSource = await GetVideoSources(source);
+        if (resolvedSource is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        await DownloadSource(resolvedSource);
     }
 
     public async void GetMediaInfo(RelatedVideoModel relatedVideo)
@@ -409,6 +454,161 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         {
             IsLoading = false;
         }
+    }
+
+    private async Task DownloadSource(VideoSourceModel source)
+    {
+        var storageProvider = GetStorageProvider();
+        if (storageProvider is null || string.IsNullOrWhiteSpace(source.Url))
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var extension = GetFileExtension(source.Url);
+        var downloadsFolder = await storageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Downloads);
+        var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = L.Download,
+            SuggestedFileName = $"{SanitizeFileName(MediaInfo?.Title ?? source.Name)} - {SanitizeFileName(source.Name)}{extension}",
+            SuggestedStartLocation = downloadsFolder,
+            DefaultExtension = extension.TrimStart('.'),
+            FileTypeChoices =
+            [
+                new FilePickerFileType("Video")
+                {
+                    Patterns = ["*.mp4", "*.mkv", "*.webm", "*.m3u8"]
+                }
+            ]
+        });
+
+        if (file is null)
+        {
+            return;
+        }
+
+        IsLoading = true;
+        try
+        {
+            using var httpClient = new HttpClient();
+            using var request = new HttpRequestMessage(HttpMethod.Get, source.Url);
+
+            if (!string.IsNullOrWhiteSpace(source.Referer))
+            {
+                request.Headers.Referrer = new Uri(source.Referer);
+            }
+
+            if (source.Headers is not null)
+            {
+                foreach (var header in source.Headers)
+                {
+                    request.Headers.TryAddWithoutValidation(header.Name, header.Value);
+                }
+            }
+
+            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            response.EnsureSuccessStatusCode();
+
+            await using var input = await response.Content.ReadAsStreamAsync();
+            await using var output = await file.OpenWriteAsync();
+            await input.CopyToAsync(output);
+
+            ShowSuccess(L.DownloadCompleted);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Download failed: {ex}");
+            ShowError($"{L.DownloadFailed}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task PlayWithExternalPlayer(VideoSourceModel source, bool isVlc)
+    {
+        var playerManager = new ExternalPlayerManager();
+        var started = isVlc
+            ? playerManager.VlcPlay(source)
+            : playerManager.MpvPlay(source);
+
+        if (started)
+        {
+            return;
+        }
+
+        ShowError(isVlc ? L.VlcPlayerNotFound : L.MpvPlayerNotFound);
+
+        var executablePath = await PickExternalPlayerPath(isVlc);
+        if (string.IsNullOrWhiteSpace(executablePath))
+        {
+            return;
+        }
+
+        started = isVlc
+            ? playerManager.VlcPlay(source, executablePath)
+            : playerManager.MpvPlay(source, executablePath);
+
+        if (!started)
+        {
+            ShowError(isVlc ? L.VlcPlayerNotFound : L.MpvPlayerNotFound);
+        }
+    }
+
+    private async Task<string?> PickExternalPlayerPath(bool isVlc)
+    {
+        var storageProvider = GetStorageProvider();
+        if (storageProvider is null)
+        {
+            return null;
+        }
+
+        var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = isVlc ? L.SelectVlcPlayerPath : L.SelectMpvPlayerPath,
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType(isVlc ? L.VlcPlayer : L.MpvPlayer)
+                {
+                    Patterns = OperatingSystem.IsWindows() ? ["*.exe"] : ["*"]
+                }
+            ]
+        });
+
+        return files.FirstOrDefault()?.Path.LocalPath;
+    }
+
+    private static IStorageProvider? GetStorageProvider()
+    {
+        return Application.Current?.ApplicationLifetime switch
+        {
+            IClassicDesktopStyleApplicationLifetime desktop => desktop.MainWindow?.StorageProvider,
+            ISingleViewApplicationLifetime singleView => TopLevel.GetTopLevel(singleView.MainView)?.StorageProvider,
+            _ => null
+        };
+    }
+
+    private static string GetFileExtension(string url)
+    {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            var extension = Path.GetExtension(uri.AbsolutePath);
+            if (!string.IsNullOrWhiteSpace(extension))
+            {
+                return extension;
+            }
+        }
+
+        return ".mp4";
+    }
+
+    private static string SanitizeFileName(string value)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        var cleaned = new string(value.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray()).Trim();
+        return string.IsNullOrWhiteSpace(cleaned) ? "video" : cleaned;
     }
 
     public List<SeasonModel> CreateSeasonGroup(List<EpisodeModel> episodes)
