@@ -25,7 +25,7 @@
             <u:Form LabelPosition="Top">
                 <StackPanel Spacing="12">
                 <TextBox u:FormItem.Label="{Binding L.MainUrl}"
-                         Watermark="https://example.com"
+                         Watermark="{Binding L.MainUrlWatermark}"
                          Text="{Binding MainUrl, Mode=TwoWay}" />
 
                 <TextBox u:FormItem.Label="{Binding L.ApiKey}"
@@ -33,11 +33,11 @@
                          Text="{Binding ApiKey, Mode=TwoWay}" />
 
                 <TextBox u:FormItem.Label="{Binding L.Favicon}"
-                         Watermark="https://example.com/favicon.ico"
+                         Watermark="{Binding L.FaviconWatermark}"
                          Text="{Binding Favicon, Mode=TwoWay}" />
 
                 <TextBox u:FormItem.Label="{Binding L.Language}"
-                         Watermark="tr"
+                         Watermark="{Binding L.LanguageWatermark}"
                          Text="{Binding Language, Mode=TwoWay}" />
 
                 <CheckBox Content="{Binding L.UseProxy}"

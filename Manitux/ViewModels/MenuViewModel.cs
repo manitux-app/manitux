@@ -122,7 +122,7 @@ public class MenuViewModel : ViewModelBase
              var menu = new MenuItemViewModel()
              {
                  MenuHeader = p.Plugin.Manifest.Name,
-                 Status = p.Plugin.Config.Language,
+                 Status = p.Plugin.Config.Language.ToUpper(),
                  MenuIconName = "plus",
                  PluginFavicon = p.Plugin.Config.Favicon
              };

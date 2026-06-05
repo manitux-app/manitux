@@ -21,6 +21,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using LibMPVSharp;
 using LibMPVSharp.Extensions;
+using Manitux.Core.Application;
 using Manitux.Core.Models;
 using Manitux.ViewModels;
 
@@ -33,6 +34,15 @@ namespace Manitux.Player
         {
             get => GetValue(MediaPlayerProperty);
             set => SetValue(MediaPlayerProperty, value);
+        }
+
+        public static readonly StyledProperty<AppStrings?> LocalizeProperty =
+            AvaloniaProperty.Register<MediaPlayerView, AppStrings?>(nameof(Localize));
+
+        public AppStrings? Localize
+        {
+            get => GetValue(LocalizeProperty);
+            set => SetValue(LocalizeProperty, value);
         }
 
         public static readonly StyledProperty<TimeSpan> DurationProperty = AvaloniaProperty.Register<MediaPlayerView, TimeSpan>(nameof(Duration));
@@ -636,7 +646,7 @@ namespace Manitux.Player
             if (storageProvider == null) return;
             var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
-                Title = "Media selector",
+                Title = Localize?.MediaSelector ?? "Media selector",
                 FileTypeFilter =
                 [
                     new FilePickerFileType("mp4")
@@ -747,7 +757,7 @@ namespace Manitux.Player
                             ? track.Title
                             : !string.IsNullOrWhiteSpace(track.Language)
                                 ? track.Language
-                                : $"Audio {index + 1}";
+                                : string.Format(Localize?.AudioTrackFormat ?? "Audio {0}", index + 1);
 
                         return new AudioTrackModel
                         {
@@ -952,7 +962,7 @@ namespace Manitux.Player
                 ?? new SubtitleModel
                 {
                     Id = "no",
-                    Name = "Closed",
+                    Name = Localize?.Closed ?? "Closed",
                     Url = string.Empty
                 };
 

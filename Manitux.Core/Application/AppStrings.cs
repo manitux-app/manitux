@@ -45,11 +45,16 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     public string Episode { get; set; } = "Episode";
     public string Close { get; set; } = "Close";
     public string Closed { get; set; } = "Closed";
+    public string Success { get; set; } = "Success";
+    public string Warning { get; set; } = "Warning";
+    public string Information { get; set; } = "Information";
     public string Theme { get; set; } = "Theme";
     public string Imdb { get; set; } = "IMDB";
     public string ManituxPlayer { get; set; } = "Manitux Player";
     public string VlcPlayer { get; set; } = "VLC Player";
     public string MpvPlayer { get; set; } = "MPV Player";
+    public string MediaSelector { get; set; } = "Media selector";
+    public string AudioTrackFormat { get; set; } = "Audio {0}";
     public string AddToFavorites { get; set; } = "Add to favorites";
     public string RemoveFromFavorites { get; set; } = "Remove from favorites";
     public string PluginConfigTitleFormat { get; set; } = "{0} config.json";
@@ -57,6 +62,9 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     public string ApiKey { get; set; } = "API Key";
     public string Favicon { get; set; } = "Favicon";
     public string Language { get; set; } = "Language";
+    public string MainUrlWatermark { get; set; } = "https://example.com";
+    public string FaviconWatermark { get; set; } = "https://example.com/favicon.ico";
+    public string LanguageWatermark { get; set; } = "en";
     public string UseProxy { get; set; } = "Use proxy";
     public string AdultContent { get; set; } = "Adult content";
     public string Cancel { get; set; } = "Cancel";
@@ -70,6 +78,9 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     public string Repositories { get; set; } = "Repositories";
     public string AvailablePlugins { get; set; } = "Available Plugins";
     public string InstalledPlugins { get; set; } = "Installed Plugins";
+    public string Installed { get; set; } = "Installed";
+    public string PluginsCountFormat { get; set; } = "{0} plugins";
+    public string InstalledStatusFormat { get; set; } = "{0}/{1} installed";
     public string RepositoryInputWatermark { get; set; } = "GitHub repo URL, raw repo.json, plugins.json, plugin URL, or short code";
 
     // ── GUI Messages ────────────────────────────────────────────────────────────
@@ -89,6 +100,9 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     public string RepositoryRequired { get; set; } = "Repository URL or short code is required.";
     public string RepositoryAddedFormat { get; set; } = "Repository added: {0}";
     public string RepositoryLoadedFormat { get; set; } = "Repository loaded: {0}";
+    public string RepositoryRemovedFormat { get; set; } = "Repository removed: {0}";
+    public string PluginsInstalledFormat { get; set; } = "{0}/{1} plugins installed.";
+    public string PluginsRemovedFormat { get; set; } = "{0} plugins removed.";
     public string PluginRemovedFormat { get; set; } = "Plugin removed: {0}";
     public string PluginWasNotFound { get; set; } = "Plugin was not found.";
     public string UpdateCheckCompletedFormat { get; set; } = "Update check completed. {0}/{1} plugins processed.";
