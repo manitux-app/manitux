@@ -53,6 +53,7 @@
   "update": "Aktualisieren",
   "updateAll": "Alle aktualisieren",
   "remove": "Entfernen",
+  "deleteAll": "Alle loschen",
   "repositories": "Repositories",
   "availablePlugins": "Verfugbare Plugins",
   "installedPlugins": "Installierte Plugins",

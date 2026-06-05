@@ -75,6 +75,7 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     public string Update { get; set; } = "Update";
     public string UpdateAll { get; set; } = "Update all";
     public string Remove { get; set; } = "Remove";
+    public string DeleteAll { get; set; } = "Delete all";
     public string Repositories { get; set; } = "Repositories";
     public string AvailablePlugins { get; set; } = "Available Plugins";
     public string InstalledPlugins { get; set; } = "Installed Plugins";

@@ -21,6 +21,7 @@ public partial class PluginTopBarViewModel : ViewModelBase
     private readonly IRemotePluginService _remotePluginService;
     private readonly Func<string?, Task<bool>> _searchHandler;
     private readonly Func<Task> _refreshHandler;
+    private readonly Func<Task>? _extraActionHandler;
 
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private string? _searchText;
@@ -29,6 +30,8 @@ public partial class PluginTopBarViewModel : ViewModelBase
     [ObservableProperty] private bool _isVisible = false;
     [ObservableProperty] private bool _isPluginConfigVisible = true;
     [ObservableProperty] private bool _isRefreshVisible = true;
+    [ObservableProperty] private bool _isExtraActionVisible;
+    [ObservableProperty] private string? _extraActionToolTip;
 
     private readonly string? _displayName;
     private readonly string? _displayFavicon;
@@ -44,7 +47,10 @@ public partial class PluginTopBarViewModel : ViewModelBase
         string? displayName = null,
         string? displayFavicon = null,
         bool isPluginConfigVisible = true,
-        bool isRefreshVisible = true)
+        bool isRefreshVisible = true,
+        Func<Task>? extraActionHandler = null,
+        string? extraActionToolTip = null,
+        bool isExtraActionVisible = false)
     {
         _pluginService = pluginService;
         _localizationService = localizationService;
@@ -55,6 +61,9 @@ public partial class PluginTopBarViewModel : ViewModelBase
         _displayFavicon = displayFavicon;
         IsPluginConfigVisible = isPluginConfigVisible;
         IsRefreshVisible = isRefreshVisible;
+        _extraActionHandler = extraActionHandler;
+        ExtraActionToolTip = extraActionToolTip;
+        IsExtraActionVisible = isExtraActionVisible;
         L = _localizationService.Strings;
 
         UpdatePluginInfo();
@@ -106,6 +115,17 @@ public partial class PluginTopBarViewModel : ViewModelBase
             options: options);
 
         UpdatePluginInfo();
+    }
+
+    [RelayCommand]
+    private async Task ExtraAction()
+    {
+        if (_extraActionHandler is null)
+        {
+            return;
+        }
+
+        await _extraActionHandler();
     }
 
     public void UpdatePluginInfo()

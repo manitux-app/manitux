@@ -53,6 +53,7 @@
   "update": "Güncelle",
   "updateAll": "Tümünü güncelle",
   "remove": "Kaldır",
+  "deleteAll": "Tümünü sil",
   "repositories": "Depolar",
   "availablePlugins": "Kullanılabilir eklentiler",
   "installedPlugins": "Yüklü eklentiler",

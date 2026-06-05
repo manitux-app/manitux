@@ -53,6 +53,7 @@
   "update": "Mettre a jour",
   "updateAll": "Tout mettre a jour",
   "remove": "Supprimer",
+  "deleteAll": "Tout supprimer",
   "repositories": "Depots",
   "availablePlugins": "Plugins disponibles",
   "installedPlugins": "Plugins installes",

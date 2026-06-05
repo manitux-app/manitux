@@ -99,6 +99,19 @@ public class FavoritesService : IFavoritesService
         }
     }
 
+    public async Task ClearAsync(CancellationToken cancellationToken = default)
+    {
+        await _lock.WaitAsync(cancellationToken);
+        try
+        {
+            await WriteFavoritesAsync([], cancellationToken);
+        }
+        finally
+        {
+            _lock.Release();
+        }
+    }
+
     private async Task<List<FavoriteItemModel>> ReadFavoritesAsync(CancellationToken cancellationToken)
     {
         var path = GetFavoritesFilePath();
