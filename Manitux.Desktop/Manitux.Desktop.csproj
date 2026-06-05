@@ -34,9 +34,9 @@
     <Folder Include="helpers\osx-x64\" />
     <Folder Include="helpers\win-x64\" />
     <Folder Include="runtimes\linux-x64\native\" />
-	<Folder Include="runtimes\linux-arm64\native\" />
+	  <Folder Include="runtimes\linux-arm64\native\" />
     <Folder Include="runtimes\osx-x64\native\" />
-	<Folder Include="runtimes\osx-arm64\native\" />
+	  <Folder Include="runtimes\osx-arm64\native\" />
     <Folder Include="runtimes\win-x64\native\" />
   </ItemGroup>
 
