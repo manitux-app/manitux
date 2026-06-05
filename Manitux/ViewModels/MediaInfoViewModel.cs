@@ -564,10 +564,13 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             return null;
         }
 
+         var defaultFolder = await storageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Documents);
+
         var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = isVlc ? L.SelectVlcPlayerPath : L.SelectMpvPlayerPath,
             AllowMultiple = false,
+            SuggestedStartLocation = defaultFolder,
             FileTypeFilter =
             [
                 new FilePickerFileType(isVlc ? L.VlcPlayer : L.MpvPlayer)
