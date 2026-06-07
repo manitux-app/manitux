@@ -42,32 +42,47 @@
 
 <ItemGroup>
   <!-- Windows x64 -->
-  <Content Include="runtimes\win-x64\native\tlsclient.dll" Condition="$(RuntimeIdentifier.StartsWith('win')) or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows))))">
+  <Content Include="runtimes\win-x64\native\*.dll" Condition="'$(RuntimeIdentifier)' == 'win-x64' or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows))))">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    <TargetPath>%(Filename)%(Extension)</TargetPath>
     <PublishState>Included</PublishState>
   </Content>
 
   <!-- Linux x64 -->
-  <Content Include="runtimes\linux-x64\native\libtlsclient.so" Condition="$(RuntimeIdentifier.StartsWith('linux')) or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))))">
+  <Content Include="runtimes\linux-x64\native\*.so*" Condition="'$(RuntimeIdentifier)' == 'linux-x64' or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))))">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    <TargetPath>%(Filename)%(Extension)</TargetPath>
     <PublishState>Included</PublishState>
   </Content>
 	
   <!-- Linux arm64 -->
-  <Content Include="runtimes\linux-arm64\native\libtlsclient.so" Condition="$(RuntimeIdentifier.StartsWith('linux')) or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))))">
+  <Content Include="runtimes\linux-arm64\native\*.so*" Condition="'$(RuntimeIdentifier)' == 'linux-arm64'">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    <TargetPath>%(Filename)%(Extension)</TargetPath>
     <PublishState>Included</PublishState>
   </Content>
 
   <!-- macOS x64  -->
-  <Content Include="runtimes\osx-x64\native\libtlsclient.dylib" Condition="$(RuntimeIdentifier.StartsWith('osx')) or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX))))">
+  <Content Include="runtimes\osx-x64\native\*.dylib" Condition="'$(RuntimeIdentifier)' == 'osx-x64' or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX))))">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    <TargetPath>%(Filename)%(Extension)</TargetPath>
     <PublishState>Included</PublishState>
   </Content>
 
   <!-- macOS arm64  -->
-  <Content Include="runtimes\osx-arm64\native\libtlsclient.dylib" Condition="$(RuntimeIdentifier.StartsWith('osx')) or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX))))">
+  <Content Include="runtimes\osx-arm64\native\*.dylib" Condition="'$(RuntimeIdentifier)' == 'osx-arm64'">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    <TargetPath>%(Filename)%(Extension)</TargetPath>
     <PublishState>Included</PublishState>
   </Content>
 </ItemGroup>
@@ -76,29 +91,45 @@
 <!-- Linux x64 -->
 <None Include="helpers\linux-x64\tlsclientapi" Condition="$(RuntimeIdentifier.StartsWith('linux')) or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))))">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     <Link>helpers\linux-x64\tlsclientapi</Link>
+    <TargetPath>helpers\linux-x64\tlsclientapi</TargetPath>
   </None>
 
 	<None Include="helpers\linux-x64\config.dist.yml" Condition="$(RuntimeIdentifier.StartsWith('linux')) or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))))">
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		<Link>helpers\linux-x64\config.dist.yml</Link>
+		<TargetPath>helpers\linux-x64\config.dist.yml</TargetPath>
 	</None>
+
+  <None Include="helpers\linux-x64\ytdlp" Condition="$(RuntimeIdentifier.StartsWith('linux')) or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))))">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    <Link>helpers\linux-x64\ytdlp</Link>
+    <TargetPath>helpers\linux-x64\ytdlp</TargetPath>
+  </None>
 
 	
 <!-- Windows x64 - for test  -->
 <None Include="helpers\win-x64\tlsclientapi.exe" Condition="$(RuntimeIdentifier.StartsWith('win')) or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows))))">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     <Link>helpers\win-x64\tlsclientapi.exe</Link>
+    <TargetPath>helpers\win-x64\tlsclientapi.exe</TargetPath>
   </None>
 
 	<None Include="helpers\win-x64\config.dist.yml" Condition="$(RuntimeIdentifier.StartsWith('win')) or ('$(RuntimeIdentifier)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows))))">
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		<Link>helpers\win-x64\config.dist.yml</Link>
+		<TargetPath>helpers\win-x64\config.dist.yml</TargetPath>
 	</None>
 </ItemGroup>
 
 <Target Name="MakeHelperExecutable" AfterTargets="Publish">
-  <Exec Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))" Command="chmod +x $(PublishDir)helpers\linux-x64\tlsclientapi" />
+  <Exec Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))) and Exists('$(PublishDir)helpers/linux-x64/tlsclientapi')" Command="chmod +x $(PublishDir)helpers\linux-x64\tlsclientapi" />
+  <Exec Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux))) and Exists('$(PublishDir)helpers/linux-x64/ytdlp')" Command="chmod +x $(PublishDir)helpers\linux-x64\ytdlp" />
   <!--<Exec Condition="$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::OSX)))" 
         Command="chmod +x $(PublishDir)tlsclientapi" />-->
 </Target>
