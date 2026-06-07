@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls.Notifications;
@@ -82,8 +83,12 @@ public partial class RemotePluginsViewModel : ViewModelBase
             return;
         }
 
+        //Debug.WriteLine(repository.Url);
+
         await RunBusy(async () =>
         {
+            await UnloadPlugins();
+
             var removed = await _remotePluginService.RemoveRepositoryAsync(repository.Url);
             await RefreshSettings();
             SetStatus(

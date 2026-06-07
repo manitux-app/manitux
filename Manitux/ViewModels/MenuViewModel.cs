@@ -158,5 +158,6 @@ public static class MenuKeys
     public const string MenuKeySearch = "Search";
     public const string MenuKeyPlayer = "Player";
     public const string MenuKeyEmptyPage = "EmptyPage";
+    public const string MenuKeyPlugins = "Plugins";
     
 }

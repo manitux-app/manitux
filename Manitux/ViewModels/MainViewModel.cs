@@ -115,6 +115,7 @@ public partial class MainViewModel : ViewModelBase
             MenuKeys.MenuKeyAboutUs => new AboutUsViewModel(),
             MenuKeys.MenuKeyCategories => new CategoriesViewModel(),
             MenuKeys.MenuKeyPageItems => new PageItemsViewModel(null),
+            MenuKeys.MenuKeySettings => new RemotePluginsViewModel(_remotePluginService, _localizationService, _pluginService),
             _ => null //throw new ArgumentOutOfRangeException(nameof(s), s, null)
         };
         UpdateNavigationChrome();
@@ -299,7 +300,7 @@ public partial class MainViewModel : ViewModelBase
                 Menus.LoadDefaultMenu(L);
                 if (navigateToFirstPlugin)
                 {
-                    OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
+                    OnNavigation(this, MenuKeys.MenuKeySettings);
                 }
             }
 
