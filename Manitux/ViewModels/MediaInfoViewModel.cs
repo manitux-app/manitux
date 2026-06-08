@@ -2,12 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using AngleSharp.Media;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Notifications;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -23,6 +27,7 @@ using Manitux.Player;
 using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Plugins;
+using Manitux.Services.WatchedEpisodes;
 using Ursa.Controls;
 using WindowNotificationManager = Ursa.Controls.WindowNotificationManager;
 
@@ -33,6 +38,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
     private readonly IPluginService _pluginService;
     private readonly ILocalizationService _localizationService;
     private readonly IFavoritesService _favoritesService;
+    private readonly IWatchedEpisodesService _watchedEpisodesService;
     private readonly PageItemModel? _sourcePageItem;
     private readonly Action<PlayerViewModel>? _showPlayer;
     private readonly Action? _goBack;
@@ -66,6 +72,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         IPluginService pluginService,
         ILocalizationService localizationService,
         IFavoritesService favoritesService,
+        IWatchedEpisodesService watchedEpisodesService,
         PageItemModel? pageItem,
         Action<PlayerViewModel>? showPlayer = null,
         Action? goBack = null)
@@ -75,6 +82,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         _pluginService = pluginService;
         _localizationService = localizationService;
         _favoritesService = favoritesService;
+        _watchedEpisodesService = watchedEpisodesService;
         _sourcePageItem = pageItem;
         _showPlayer = showPlayer;
         _goBack = goBack;
@@ -143,6 +151,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         IsFavoriteButtonVisible = false;
         MediaInfo = mediaInfo;
         Seasons = mediaInfo.Episodes is null ? null : CreateSeasonGroup(mediaInfo.Episodes);
+        _ = ApplyWatchedEpisodeStates(mediaInfo);
         OnDataRefreshed?.Invoke();
         _ = UpdateFavoriteButtonVisibility(mediaInfo);
     }
@@ -241,8 +250,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             ShowError(Localize?.VideoNotInitialized); 
             return;
         } 
-        var playerManager = new ExternalPlayerManager();
-        playerManager.VlcPlay(source);
+        await PlayWithExternalPlayer(source, isVlc: true);
         //Debug.WriteLine(source.Url);
     }
 
@@ -254,9 +262,27 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             ShowError(Localize?.VideoNotInitialized); 
             return;
         } 
-        var playerManager = new ExternalPlayerManager();
-        playerManager.MpvPlay(source);
+        await PlayWithExternalPlayer(source, isVlc: false);
         //Debug.WriteLine(source.Url);
+    }
+
+    [RelayCommand]
+    private async Task DownloadVideo(VideoSourceModel? videoSource)
+    {
+        if (videoSource is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var source = await GetVideoSources(videoSource);
+        if (source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        await DownloadSource(source);
     }
 
     public async void PlayEpisode(EpisodeModel episode)
@@ -272,6 +298,26 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
         Debug.WriteLine($"Episode VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
         ShowPlayer(source, sources);
+    }
+
+    [RelayCommand]
+    private async Task ToggleWatchedEpisode(EpisodeModel? episode)
+    {
+        if (episode is null || MediaInfo is null)
+        {
+            return;
+        }
+
+        var pluginId = GetCurrentPluginId();
+        if (episode.IsWatched)
+        {
+            await _watchedEpisodesService.UnmarkAsWatchedAsync(pluginId, MediaInfo.Url, episode.Url);
+            episode.IsWatched = false;
+            return;
+        }
+
+        await _watchedEpisodesService.MarkAsWatchedAsync(pluginId, MediaInfo.Url, episode.Url);
+        episode.IsWatched = true;
     }
 
     public async void VlcPlayEpisode(EpisodeModel episode)
@@ -290,8 +336,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             return;
         }
 
-        var playerManager = new ExternalPlayerManager();
-        playerManager.VlcPlay(resolvedSource);
+        await PlayWithExternalPlayer(resolvedSource, isVlc: true);
     }
 
     public async void MpvPlayEpisode(EpisodeModel episode)
@@ -310,8 +355,33 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             return;
         }
 
-        var playerManager = new ExternalPlayerManager();
-        playerManager.MpvPlay(resolvedSource);
+        await PlayWithExternalPlayer(resolvedSource, isVlc: false);
+    }
+
+    [RelayCommand]
+    private async Task DownloadEpisode(EpisodeModel? episode)
+    {
+        if (episode is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var source = await GetEpisodeVideoSource(episode);
+        if (source is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var resolvedSource = await GetVideoSources(source);
+        if (resolvedSource is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        await DownloadSource(resolvedSource);
     }
 
     public async void GetMediaInfo(RelatedVideoModel relatedVideo)
@@ -411,6 +481,164 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         }
     }
 
+    private async Task DownloadSource(VideoSourceModel source)
+    {
+        var storageProvider = GetStorageProvider();
+        if (storageProvider is null || string.IsNullOrWhiteSpace(source.Url))
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return;
+        }
+
+        var extension = GetFileExtension(source.Url);
+        var downloadsFolder = await storageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Downloads);
+        var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = L.Download,
+            SuggestedFileName = $"{SanitizeFileName(MediaInfo?.Title ?? source.Name)} - {SanitizeFileName(source.Name)}{extension}",
+            SuggestedStartLocation = downloadsFolder,
+            DefaultExtension = extension.TrimStart('.'),
+            FileTypeChoices =
+            [
+                new FilePickerFileType("Video")
+                {
+                    Patterns = ["*.mp4", "*.mkv", "*.webm", "*.m3u8"]
+                }
+            ]
+        });
+
+        if (file is null)
+        {
+            return;
+        }
+
+        IsLoading = true;
+        try
+        {
+            using var httpClient = new HttpClient();
+            using var request = new HttpRequestMessage(HttpMethod.Get, source.Url);
+
+            if (!string.IsNullOrWhiteSpace(source.Referer))
+            {
+                request.Headers.Referrer = new Uri(source.Referer);
+            }
+
+            if (source.Headers is not null)
+            {
+                foreach (var header in source.Headers)
+                {
+                    request.Headers.TryAddWithoutValidation(header.Name, header.Value);
+                }
+            }
+
+            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            response.EnsureSuccessStatusCode();
+
+            await using var input = await response.Content.ReadAsStreamAsync();
+            await using var output = await file.OpenWriteAsync();
+            await input.CopyToAsync(output);
+
+            ShowSuccess(L.DownloadCompleted);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Download failed: {ex}");
+            ShowError($"{L.DownloadFailed}: {ex.Message}");
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task PlayWithExternalPlayer(VideoSourceModel source, bool isVlc)
+    {
+        var playerManager = new ExternalPlayerManager();
+        var started = isVlc
+            ? playerManager.VlcPlay(source)
+            : playerManager.MpvPlay(source);
+
+        if (started)
+        {
+            return;
+        }
+
+        ShowError(isVlc ? L.VlcPlayerNotFound : L.MpvPlayerNotFound);
+
+        var executablePath = await PickExternalPlayerPath(isVlc);
+        if (string.IsNullOrWhiteSpace(executablePath))
+        {
+            return;
+        }
+
+        started = isVlc
+            ? playerManager.VlcPlay(source, executablePath)
+            : playerManager.MpvPlay(source, executablePath);
+
+        if (!started)
+        {
+            ShowError(isVlc ? L.VlcPlayerNotFound : L.MpvPlayerNotFound);
+        }
+    }
+
+    private async Task<string?> PickExternalPlayerPath(bool isVlc)
+    {
+        var storageProvider = GetStorageProvider();
+        if (storageProvider is null)
+        {
+            return null;
+        }
+
+         var defaultFolder = await storageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Documents);
+
+        var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = isVlc ? L.SelectVlcPlayerPath : L.SelectMpvPlayerPath,
+            AllowMultiple = false,
+            SuggestedStartLocation = defaultFolder,
+            FileTypeFilter =
+            [
+                new FilePickerFileType(isVlc ? L.VlcPlayer : L.MpvPlayer)
+                {
+                    Patterns = OperatingSystem.IsWindows() ? ["*.exe"] : ["*"]
+                }
+            ]
+        });
+
+        return files.FirstOrDefault()?.Path.LocalPath;
+    }
+
+    private static IStorageProvider? GetStorageProvider()
+    {
+        return Application.Current?.ApplicationLifetime switch
+        {
+            IClassicDesktopStyleApplicationLifetime desktop => desktop.MainWindow?.StorageProvider,
+            ISingleViewApplicationLifetime singleView => TopLevel.GetTopLevel(singleView.MainView)?.StorageProvider,
+            _ => null
+        };
+    }
+
+    private static string GetFileExtension(string url)
+    {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            var extension = Path.GetExtension(uri.AbsolutePath);
+            if (!string.IsNullOrWhiteSpace(extension))
+            {
+                return extension;
+            }
+        }
+
+        return ".mp4";
+    }
+
+    private static string SanitizeFileName(string value)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        var cleaned = new string(value.Select(ch => invalidChars.Contains(ch) ? '_' : ch).ToArray()).Trim();
+        return string.IsNullOrWhiteSpace(cleaned) ? "video" : cleaned;
+    }
+
     public List<SeasonModel> CreateSeasonGroup(List<EpisodeModel> episodes)
     {
         return episodes
@@ -422,6 +650,32 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
                 Episodes = g.OrderBy(e => e.EpisodeNumber).ToList()
             })
             .ToList();
+    }
+
+    private async Task ApplyWatchedEpisodeStates(MediaInfoModel mediaInfo)
+    {
+        if (mediaInfo.Episodes is null || mediaInfo.Episodes.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var watchedEpisodeUrls = await _watchedEpisodesService.GetWatchedEpisodeUrlsAsync(GetCurrentPluginId(), mediaInfo.Url);
+            foreach (var episode in mediaInfo.Episodes)
+            {
+                episode.IsWatched = watchedEpisodeUrls.Contains(episode.Url);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Watched episode status load failed: {ex}");
+        }
+    }
+
+    private string? GetCurrentPluginId()
+    {
+        return _sourcePageItem?.PluginId ?? _pluginService.CurrentPlugin?.Manifest.Id;
     }
 
     private void ShowPlayer(VideoSourceModel? videoSource, IEnumerable<VideoSourceModel>? availableSources = null)

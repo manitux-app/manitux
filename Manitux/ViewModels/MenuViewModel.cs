@@ -122,7 +122,7 @@ public class MenuViewModel : ViewModelBase
              var menu = new MenuItemViewModel()
              {
                  MenuHeader = p.Plugin.Manifest.Name,
-                 Status = p.Plugin.Config.Language,
+                 Status = p.Plugin.Config.Language.ToUpper(),
                  MenuIconName = "plus",
                  PluginFavicon = p.Plugin.Config.Favicon
              };
@@ -158,5 +158,6 @@ public static class MenuKeys
     public const string MenuKeySearch = "Search";
     public const string MenuKeyPlayer = "Player";
     public const string MenuKeyEmptyPage = "EmptyPage";
+    public const string MenuKeyPlugins = "Plugins";
     
 }

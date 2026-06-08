@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -100,7 +101,33 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
             return false;
         }
 
+        string? repoUrl = GetGitHubRepoUrl(repositoryUrl);
+        if(repoUrl is null) return false;
+        //Debug.WriteLine("repo url: " + repoUrl);
+
+        var plugins = settings.InstalledPlugins.Where(x => UrlEquals(x.RepositoryUrl ?? "", repoUrl)).ToList();
+
+        foreach (var plugin in plugins)
+        {
+            //Debug.WriteLine("deleted plugin: " + plugin.InternalName);
+
+            if (plugin is null)
+            {
+                continue;
+            }
+
+            var canDeleteFile = !IsPluginFileUsed(settings, plugin.FilePath, plugin.InternalName);
+            if (canDeleteFile)
+            {
+                await DeleteFileWithRetryAsync(plugin.FilePath, cancellationToken);
+            }
+
+            settings.InstalledPlugins.Remove(plugin);
+            DeletePluginDirectoriesIfUnused(settings, plugin.FilePath);
+        }
+
         settings.Repositories.Remove(repository);
+
         await SaveSettingsAsync(settings, cancellationToken);
         return true;
     }
@@ -501,7 +528,7 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
             return NormalizeGitHubUrl(uri.ToString());
         }
 
-        var shortCodeUrl = $"https://cutt.ly/{Uri.EscapeDataString(input)}";
+        var shortCodeUrl = $"https://tinyurl.com/{Uri.EscapeDataString(input)}";
         using var response = await _httpClient.GetAsync(shortCodeUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         response.EnsureSuccessStatusCode();
 
@@ -598,6 +625,30 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
         }
 
         return url;
+    }
+
+    private string? GetGitHubRepoUrl(string url)
+    {
+        try
+        {
+            Uri uri = new Uri(url);
+
+            // if (uri.Host != "://githubusercontent.com")
+            // {
+            //     return null;
+            // }
+
+            string[] segments = uri.AbsolutePath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (segments.Length < 2)
+            {
+                return null;
+            }
+
+            string repoAddress = $"https://github.com/{segments[0]}/{segments[1]}";
+            return repoAddress;
+        }
+        catch { return null; }
     }
 
     private static IEnumerable<string> GetRepositoryFallbackUrls(string url)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -12,10 +13,10 @@ namespace LibMPVSharp
     {
         public const string Name = "libmpv";
 
-        public static string WindowsLibrary { get; set; } = "libmpv-2";
+        public static string WindowsLibrary { get; set; } = "libmpv-2.dll";
         public static string LinuxLibrary { get; set; } = "libmpv.so.2";
         public static string AndroidLibrary { get; set; } = "libmpv.so";
-        public static string MacLibrary { get; set; } = "libmpv.2.dylib";
+        public static string MacLibrary { get; set; } = "libmpv.dylib";
 
         internal static void DllImportResolver()
         {
@@ -29,11 +30,11 @@ namespace LibMPVSharp
             {
                 if (OperatingSystem.IsWindows())
                 {
-                    return NativeLibrary.Load(WindowsLibrary, assembly, searchPath);
+                    return NativeLibrary.Load(ResolveLibraryPath(WindowsLibrary), assembly, searchPath);
                 }
                 else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
                 {
-                    return NativeLibrary.Load(MacLibrary, assembly, searchPath);
+                    return NativeLibrary.Load(ResolveLibraryPath(MacLibrary), assembly, searchPath);
                 }
                 else if (OperatingSystem.IsAndroid())
                 {
@@ -41,10 +42,16 @@ namespace LibMPVSharp
                 }
                 else if  (OperatingSystem.IsLinux())
                 {
-                    return NativeLibrary.Load(LinuxLibrary, assembly, searchPath);
+                    return NativeLibrary.Load(ResolveLibraryPath(LinuxLibrary), assembly, searchPath);
                 }
             }
             return IntPtr.Zero;
+        }
+
+        private static string ResolveLibraryPath(string libraryName)
+        {
+            var libraryPath = Path.Combine(AppContext.BaseDirectory, "libs", libraryName);
+            return File.Exists(libraryPath) ? libraryPath : libraryName;
         }
     }
 }

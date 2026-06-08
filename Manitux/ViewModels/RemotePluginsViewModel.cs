@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls.Notifications;
@@ -82,12 +83,16 @@ public partial class RemotePluginsViewModel : ViewModelBase
             return;
         }
 
+        //Debug.WriteLine(repository.Url);
+
         await RunBusy(async () =>
         {
+            await UnloadPlugins();
+
             var removed = await _remotePluginService.RemoveRepositoryAsync(repository.Url);
             await RefreshSettings();
             SetStatus(
-                removed ? $"{repository.Name} repository removed." : L.PluginWasNotFound,
+                removed ? string.Format(L.RepositoryRemovedFormat, repository.Name) : L.PluginWasNotFound,
                 removed ? NotificationType.Success : NotificationType.Warning);
         });
     }
@@ -135,7 +140,7 @@ public partial class RemotePluginsViewModel : ViewModelBase
             var statusType = installed == group.Plugins.Count
                 ? NotificationType.Success
                 : installed == 0 ? NotificationType.Error : NotificationType.Warning;
-            SetStatus($"{installed}/{group.Plugins.Count} plugins installed.", statusType);
+            SetStatus(string.Format(L.PluginsInstalledFormat, installed, group.Plugins.Count), statusType);
         });
     }
 
@@ -268,7 +273,7 @@ public partial class RemotePluginsViewModel : ViewModelBase
 
                 await RefreshSettings();
                 SetStatus(
-                    removed > 0 ? $"{removed} plugins removed." : L.PluginWasNotFound,
+                    removed > 0 ? string.Format(L.PluginsRemovedFormat, removed) : L.PluginWasNotFound,
                     removed > 0 ? NotificationType.Success : NotificationType.Warning);
             }
             finally
@@ -350,6 +355,7 @@ public partial class RemotePluginsViewModel : ViewModelBase
 
                     foreach (var plugin in orderedPlugins)
                     {
+                        plugin.Strings = L;
                         plugin.IsInstalled = installedPlugins.Any(installed =>
                             string.Equals(installed.InternalName, plugin.InternalName, StringComparison.OrdinalIgnoreCase)
                             && string.Equals(installed.PackageInternalName, GetPackageKey(plugin), StringComparison.OrdinalIgnoreCase));
@@ -359,7 +365,8 @@ public partial class RemotePluginsViewModel : ViewModelBase
                         x.Key,
                         orderedPlugins[0],
                         new ObservableCollection<RemotePluginManifest>(orderedPlugins),
-                        new ObservableCollection<ManagedRemotePlugin>(installedPlugins));
+                        new ObservableCollection<ManagedRemotePlugin>(installedPlugins),
+                        L);
                 })
                 .OrderBy(x => x.Name)
                 .ToList();
@@ -474,7 +481,8 @@ public sealed class RemotePluginPackageGroup
         string internalName,
         RemotePluginManifest package,
         ObservableCollection<RemotePluginManifest> plugins,
-        ObservableCollection<ManagedRemotePlugin> installedPlugins)
+        ObservableCollection<ManagedRemotePlugin> installedPlugins,
+        AppStrings strings)
     {
         InternalName = internalName;
         Name = string.IsNullOrWhiteSpace(package.PackageName) ? internalName : package.PackageName;
@@ -483,6 +491,7 @@ public sealed class RemotePluginPackageGroup
         Authors = package.Authors;
         Plugins = plugins;
         InstalledPlugins = installedPlugins;
+        L = strings;
     }
 
     public string InternalName { get; }
@@ -494,7 +503,9 @@ public sealed class RemotePluginPackageGroup
     public ObservableCollection<ManagedRemotePlugin> InstalledPlugins { get; }
     public bool IsInstalled => Plugins.Count > 0 && InstalledPlugins.Count == Plugins.Count;
     public bool HasUpdate => GetPluginUpdates().Any();
-    public string InstalledStatus => $"{InstalledPlugins.Count}/{Plugins.Count} installed";
+    public string PluginCountText => string.Format(L.PluginsCountFormat, Plugins.Count);
+    public string InstalledStatus => string.Format(L.InstalledStatusFormat, InstalledPlugins.Count, Plugins.Count);
+    public AppStrings L { get; }
 
     public System.Collections.Generic.IEnumerable<RemotePluginManifest> GetPluginUpdates()
     {

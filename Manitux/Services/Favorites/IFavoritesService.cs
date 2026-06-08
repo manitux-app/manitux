@@ -10,4 +10,5 @@ public interface IFavoritesService
     Task<bool> ExistsAsync(PageItemModel pageItem, CancellationToken cancellationToken = default);
     Task AddOrUpdateAsync(PageItemModel pageItem, CancellationToken cancellationToken = default);
     Task<bool> RemoveAsync(PageItemModel pageItem, CancellationToken cancellationToken = default);
+    Task ClearAsync(CancellationToken cancellationToken = default);
 }

@@ -30,6 +30,7 @@ using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Notifications;
 using Manitux.Services.Plugins;
+using Manitux.Services.WatchedEpisodes;
 using Manitux.Views;
 using Semi.Avalonia;
 using TlsClient.Api;
@@ -51,6 +52,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly ILocalizationService _localizationService;
     private readonly IRemotePluginService _remotePluginService;
     private readonly IFavoritesService _favoritesService;
+    private readonly IWatchedEpisodesService _watchedEpisodesService;
 
     private PluginManager? _pluginManager;
 
@@ -79,7 +81,8 @@ public partial class MainViewModel : ViewModelBase
         IPluginService pluginService,
         ILocalizationService localizationService,
         IRemotePluginService remotePluginService,
-        IFavoritesService favoritesService)
+        IFavoritesService favoritesService,
+        IWatchedEpisodesService watchedEpisodesService)
     {
         _toastService = toastService;
         _notificationService = notificationService;
@@ -87,6 +90,7 @@ public partial class MainViewModel : ViewModelBase
         _localizationService = localizationService;
         _remotePluginService = remotePluginService;
         _favoritesService = favoritesService;
+        _watchedEpisodesService = watchedEpisodesService;
         Locales = new LocaleViewModel(localizationService);
 
         L = _localizationService.Strings;
@@ -115,6 +119,7 @@ public partial class MainViewModel : ViewModelBase
             MenuKeys.MenuKeyAboutUs => new AboutUsViewModel(),
             MenuKeys.MenuKeyCategories => new CategoriesViewModel(),
             MenuKeys.MenuKeyPageItems => new PageItemsViewModel(null),
+            MenuKeys.MenuKeySettings => new RemotePluginsViewModel(_remotePluginService, _localizationService, _pluginService),
             _ => null //throw new ArgumentOutOfRangeException(nameof(s), s, null)
         };
         UpdateNavigationChrome();
@@ -299,7 +304,7 @@ public partial class MainViewModel : ViewModelBase
                 Menus.LoadDefaultMenu(L);
                 if (navigateToFirstPlugin)
                 {
-                    OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
+                    OnNavigation(this, MenuKeys.MenuKeySettings);
                 }
             }
 
@@ -349,6 +354,7 @@ public partial class MainViewModel : ViewModelBase
             _pluginService,
             _localizationService,
             _favoritesService,
+            _watchedEpisodesService,
             pageItem,
             NavigateToPlayer,
             GoBack));

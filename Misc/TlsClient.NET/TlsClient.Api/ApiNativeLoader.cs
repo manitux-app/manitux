@@ -22,27 +22,15 @@ namespace TlsClient.Api.Native
             _ => throw new PlatformNotSupportedException("Unsupported OS platform")
         };
 
-        private static readonly string BaseArch = RuntimeInformation.ProcessArchitecture switch
-        {
-            Architecture.X64 => "x64",
-            Architecture.X86 => "x86",
-            Architecture.Arm => "arm",
-            Architecture.Arm64 => "arm64",
-            _ => throw new PlatformNotSupportedException("Unsupported process architecture")
-        };
-
         public static string GetBinaryPath()
         {
-            string platform = Platform;
-            string arch = BaseArch;
-
             if (OperatingSystem.IsAndroid())
             {
                 return "tlsclientapi";
             }
             else
             {
-                return Path.GetFullPath($"helpers/{platform}-{arch}/tlsclientapi{Extension}");
+                return Path.Combine(AppContext.BaseDirectory, "libs", "helpers", $"tlsclientapi{Extension}");
             }
         }
     }

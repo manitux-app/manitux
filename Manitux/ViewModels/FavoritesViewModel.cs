@@ -49,7 +49,10 @@ public partial class FavoritesViewModel : ViewModelBase
             L.Favorites,
             null,
             isPluginConfigVisible: false,
-            isRefreshVisible: false);
+            isRefreshVisible: false,
+            extraActionHandler: ClearAllFavorites,
+            extraActionToolTip: L.DeleteAll,
+            isExtraActionVisible: true);
 
         _ = RefreshPageItems();
     }
@@ -109,5 +112,20 @@ public partial class FavoritesViewModel : ViewModelBase
 
         IsVisible = PageItems?.Any() == true;
         OnDataRefreshed?.Invoke();
+    }
+
+    private async Task ClearAllFavorites()
+    {
+        IsLoading = true;
+
+        try
+        {
+            await _favoritesService.ClearAsync();
+            UpdatePageItems([]);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 }

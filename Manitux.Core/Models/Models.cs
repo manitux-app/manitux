@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -111,15 +113,38 @@ namespace Manitux.Core.Models
     /// <summary>
     /// Episode info model
     /// </summary>
-    public class EpisodeModel
+    public class EpisodeModel : INotifyPropertyChanged
     {
+        private bool _isWatched;
+
         public int SeasonNumber { get; set; }
         public int EpisodeNumber { get; set; }
         public required string Url { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }
         public string? Trailer { get; set; }
-     }
+        public bool IsWatched
+        {
+            get => _isWatched;
+            set
+            {
+                if (_isWatched == value)
+                {
+                    return;
+                }
+
+                _isWatched = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
 
 
     /// <summary>

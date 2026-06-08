@@ -45,6 +45,7 @@
 		<Style Selector="Border.MovieCard:pointerover Image">
 			<Setter Property="Opacity" Value="0.8"/>
 		</Style>
+
 	</UserControl.Styles>
 
 	<!-- <Control.Styles>
@@ -203,15 +204,35 @@
 														<MenuFlyout Placement="BottomEdgeAlignedRight">
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.ManituxPlayer}" 
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).Play}" 
-																	CommandParameter="{Binding}"/>
+																	CommandParameter="{Binding}">
+																<MenuItem.Icon>
+																	<Image Source="avares://Manitux/Assets/logo.png" Width="18" Height="18" Stretch="Uniform"/>
+																</MenuItem.Icon>
+															</MenuItem>
 															
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.VlcPlayer}" 
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).VlcPlay}" 
-																	CommandParameter="{Binding}"/>
+																	CommandParameter="{Binding}">
+																<MenuItem.Icon>
+																	<Image Source="avares://Manitux/Assets/vlc.png" Width="18" Height="18" Stretch="Uniform"/>
+																</MenuItem.Icon>
+															</MenuItem>
 															
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.MpvPlayer}" 
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).MpvPlay}" 
-																	CommandParameter="{Binding}"/>
+																	CommandParameter="{Binding}">
+																<MenuItem.Icon>
+																	<Image Source="avares://Manitux/Assets/mpv.png" Width="18" Height="18" Stretch="Uniform"/>
+																</MenuItem.Icon>
+															</MenuItem>
+
+															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.Download}" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).DownloadVideoCommand}" 
+																	CommandParameter="{Binding}">
+																<MenuItem.Icon>
+																	<PathIcon Data="{StaticResource SemiIconDownload}" Width="18" Height="18"/>
+																</MenuItem.Icon>
+															</MenuItem>
 														</MenuFlyout>
 													</Button.Flyout>
 												</u:IconDropDownButton>
@@ -249,21 +270,64 @@
 												<u:IconDropDownButton Margin="10"
 													Icon="{StaticResource SemiIconCamera}"
 													Content="{Binding Title}"
-													Classes="Tertiary"
+													Classes.Tertiary="{Binding !IsWatched}"
+													Classes.Warning="{Binding IsWatched}"
 													Theme="{DynamicResource OutlineIconDropDownButton}">
 													<Button.Flyout>
 														<MenuFlyout Placement="BottomEdgeAlignedRight">
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.ManituxPlayer}" 
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).PlayEpisode}" 
-																	CommandParameter="{Binding}"/>
+																	CommandParameter="{Binding}">
+																<MenuItem.Icon>
+																	<Image Source="avares://Manitux/Assets/logo.png" Width="18" Height="18" Stretch="Uniform"/>
+																</MenuItem.Icon>
+															</MenuItem>
 															
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.VlcPlayer}" 
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).VlcPlayEpisode}" 
-																	CommandParameter="{Binding}"/>
+																	CommandParameter="{Binding}">
+																<MenuItem.Icon>
+																	<Image Source="avares://Manitux/Assets/vlc.png" Width="18" Height="18" Stretch="Uniform"/>
+																</MenuItem.Icon>
+															</MenuItem>
 															
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.MpvPlayer}" 
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).MpvPlayEpisode}" 
-																	CommandParameter="{Binding}"/>
+																	CommandParameter="{Binding}">
+																<MenuItem.Icon>
+																	<Image Source="avares://Manitux/Assets/mpv.png" Width="18" Height="18" Stretch="Uniform"/>
+																</MenuItem.Icon>
+															</MenuItem>
+
+															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.Download}" 
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).DownloadEpisodeCommand}" 
+																	CommandParameter="{Binding}">
+																<MenuItem.Icon>
+																	<PathIcon Data="{StaticResource SemiIconDownload}" Width="18" Height="18"/>
+																</MenuItem.Icon>
+															</MenuItem>
+															
+															<Separator/>
+
+															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.MarkAsWatched}"
+																	IsVisible="{Binding !IsWatched}"
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).ToggleWatchedEpisodeCommand}"
+																	CommandParameter="{Binding}">
+																<MenuItem.Icon>
+																	<PathIcon Data="{StaticResource SemiIconStar}" Width="18" Height="18" Foreground="Orange"/>
+																</MenuItem.Icon>
+															</MenuItem>
+
+															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.MarkAsUnwatched}"
+																	IsVisible="{Binding IsWatched}"
+																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).ToggleWatchedEpisodeCommand}"
+																	CommandParameter="{Binding}">
+																<MenuItem.Icon>
+																	<PathIcon Data="{StaticResource SemiIconStar}" Width="18" Height="18"/>
+																</MenuItem.Icon>
+															</MenuItem>
+
+															
 														</MenuFlyout>
 													</Button.Flyout>
 												</u:IconDropDownButton>

@@ -46,6 +46,15 @@
                             ToolTip.Tip="{Binding L.Refresh}"
                             FontWeight="Normal" FontSize="16"
                             Theme="{DynamicResource BorderlessIconButton}"/>
+                    <u:IconButton IsVisible="{Binding IsExtraActionVisible}"
+                            HorizontalAlignment="Stretch"
+                            Classes="Tertiary"
+                            Command="{Binding ExtraActionCommand}"
+                            Icon="{StaticResource SemiIconDelete}"
+                            RenderTransform="{x:Null}"
+                            ToolTip.Tip="{Binding ExtraActionToolTip}"
+                            FontWeight="Normal" FontSize="16"
+                            Theme="{DynamicResource BorderlessIconButton}"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <Image async:ImageLoader.Source="{Binding PluginFavicon}" Stretch="Fill" Width="32" Height="32" IsVisible="{Binding IsPluginConfigVisible}"/>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Manitux.Core.Application;
 
 namespace Manitux.Core.Services.Plugins;
 
@@ -78,6 +79,12 @@ public sealed class RemotePluginManifest
 
     [JsonIgnore]
     public bool IsInstalled { get; set; }
+
+    [JsonIgnore]
+    public AppStrings? Strings { get; set; }
+
+    [JsonIgnore]
+    public string LanguageDisplay => Language?.ToUpperInvariant() ?? string.Empty;
 }
 
 public sealed class ManagedRemotePlugin
