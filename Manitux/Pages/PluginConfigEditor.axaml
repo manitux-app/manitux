@@ -22,8 +22,8 @@
                   Content="{Binding ErrorMessage}" />
 
         <ScrollViewer Grid.Row="2">
-            <u:Form LabelPosition="Top">
-                <StackPanel Spacing="12">
+            <u:Form LabelPosition="Left" LabelWidth="*">
+                
                 <TextBox u:FormItem.Label="{Binding L.MainUrl}"
                          Watermark="{Binding L.MainUrlWatermark}"
                          Text="{Binding MainUrl, Mode=TwoWay}" />
@@ -45,7 +45,7 @@
 
                 <CheckBox Content="{Binding L.AdultContent}"
                           IsChecked="{Binding IsAdult, Mode=TwoWay}" />
-                </StackPanel>
+                
             </u:Form>
         </ScrollViewer>
 

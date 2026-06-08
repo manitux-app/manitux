@@ -64,7 +64,7 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     public string DownloadFailed { get; set; } = "Download failed";
     public string AddToFavorites { get; set; } = "Add to favorites";
     public string RemoveFromFavorites { get; set; } = "Remove from favorites";
-    public string PluginConfigTitleFormat { get; set; } = "{0} config.json";
+    public string PluginConfigTitleFormat { get; set; } = "{0} Settings";
     public string MainUrl { get; set; } = "Main URL";
     public string ApiKey { get; set; } = "API Key";
     public string Favicon { get; set; } = "Favicon";

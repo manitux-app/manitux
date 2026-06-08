@@ -257,6 +257,9 @@ paket-files/
 .localappdata/
 *.lscache
 
+# Local native runtime payloads that exceed GitHub's file size limit.
+/Manitux.Desktop/runtimes/win-x64/native/libmpv-2.dll
+
 # Local agent memory bank
 /AGENTS.md
 

@@ -42,7 +42,7 @@
   "downloadFailed": "Echec du telechargement",
   "addToFavorites": "Ajouter aux favoris",
   "removeFromFavorites": "Retirer des favoris",
-  "pluginConfigTitleFormat": "{0} config.json",
+  "pluginConfigTitleFormat": "{0} Parametres",
   "mainUrl": "URL principale",
   "apiKey": "Cle API",
   "favicon": "Favicon",

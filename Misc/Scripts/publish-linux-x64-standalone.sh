@@ -7,10 +7,20 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 PROJECT="$REPO_ROOT/Manitux.Desktop/Manitux.Desktop.csproj"
 OUTPUT_DIR="${1:-$REPO_ROOT/builds/linux-x64-standalone}"
 HELPER_SOURCE="$REPO_ROOT/Manitux.Desktop/helpers/linux-x64"
-HELPER_OUTPUT="$OUTPUT_DIR/helpers/linux-x64"
+HELPER_OUTPUT="$OUTPUT_DIR/libs/helpers"
+OUTPUT_PARENT="$(dirname -- "$OUTPUT_DIR")"
+OUTPUT_NAME="$(basename -- "$OUTPUT_DIR")"
+mkdir -p "$OUTPUT_PARENT"
+OUTPUT_REAL="$(cd -- "$OUTPUT_PARENT" && pwd)/$OUTPUT_NAME"
 
 echo "Publishing standalone linux-x64 build..."
 echo "Output: $OUTPUT_DIR"
+
+case "$OUTPUT_REAL" in
+  "$REPO_ROOT"/builds/*)
+    rm -rf "$OUTPUT_REAL"
+    ;;
+esac
 
 dotnet publish "$PROJECT" \
   -c Release \

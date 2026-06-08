@@ -42,7 +42,7 @@
   "downloadFailed": "İndirme başarısız",
   "addToFavorites": "Favorilere ekle",
   "removeFromFavorites": "Favorilerden kaldır",
-  "pluginConfigTitleFormat": "{0} config.json",
+  "pluginConfigTitleFormat": "{0} Ayarlar",
   "mainUrl": "Ana URL",
   "apiKey": "API anahtarı",
   "favicon": "Favicon",

@@ -42,7 +42,7 @@
   "downloadFailed": "Download fehlgeschlagen",
   "addToFavorites": "Zu Favoriten hinzufugen",
   "removeFromFavorites": "Aus Favoriten entfernen",
-  "pluginConfigTitleFormat": "{0} config.json",
+  "pluginConfigTitleFormat": "{0} Einstellungen",
   "mainUrl": "Haupt-URL",
   "apiKey": "API-Schlussel",
   "favicon": "Favicon",

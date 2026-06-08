@@ -44,7 +44,7 @@ public partial class LocaleViewModel : ViewModelBase
     {
         return new LocaleItemViewModel
         {
-            Header = culture.NativeName,
+            Header = culture.NativeName.Split('(')[0].Trim(),
             CultureName = culture.Name,
             Command = SelectLocaleCommand,
             CommandParameter = culture

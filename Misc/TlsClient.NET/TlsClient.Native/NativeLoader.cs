@@ -23,48 +23,27 @@ namespace TlsClient.Native
             _ => throw new PlatformNotSupportedException("Unsupported OS platform")
         };
 
-        private static readonly string BaseArch = RuntimeInformation.ProcessArchitecture switch
-        {
-            Architecture.X64 => "x64",
-            Architecture.X86 => "x86",
-            Architecture.Arm => "arm",
-            Architecture.Arm64 => "arm64",
-            _ => throw new PlatformNotSupportedException("Unsupported process architecture")
-        };
-
         public static string GetLibraryPath()
         {
-            string platform = Platform;
-            string arch = BaseArch;
-
-            if (platform == "linux")
-            {
-                string distro = NativeLinuxMethods.GetLinuxDistro() ?? "UNKNOWN";
-                arch = arch switch
-                {
-                    "x64" => "amd64",
-                    "x86" => "i386",
-                    "arm" => "armhf",
-                    "arm64" => "aarch64",
-                    _ => arch
-                };
-
-                if (!distro.Equals("UNKNOWN", StringComparison.OrdinalIgnoreCase))
-                {
-                    platform = $"{platform}-{distro}";
-                    arch = arch.Replace("x", string.Empty);
-                }
-            }
-
             if (OperatingSystem.IsAndroid())
             {
                 return "tlsclient";
             }
             else
             {
-                return Path.GetFullPath($"runtimes/{platform}-{arch}/native/tlsclient{Extension}");
-                //return Path.GetFullPath($"runtimes/tls-client/{platform}/{arch}/tls-client.{Extension}");
+                return Path.Combine(AppContext.BaseDirectory, "libs", GetLibraryFileName());
             }
+        }
+
+        private static string GetLibraryFileName()
+        {
+            return Platform switch
+            {
+                "win" => "tlsclient.dll",
+                "linux" => "libtlsclient.so",
+                "darwin" => "libtlsclient.dylib",
+                _ => $"tlsclient{Extension}"
+            };
         }
 
         public static IntPtr LoadNativeAssembly(string libraryPath)
