@@ -27,6 +27,7 @@ using Manitux.Player;
 using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Plugins;
+using Manitux.Services.WatchedEpisodes;
 using Ursa.Controls;
 using WindowNotificationManager = Ursa.Controls.WindowNotificationManager;
 
@@ -37,6 +38,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
     private readonly IPluginService _pluginService;
     private readonly ILocalizationService _localizationService;
     private readonly IFavoritesService _favoritesService;
+    private readonly IWatchedEpisodesService _watchedEpisodesService;
     private readonly PageItemModel? _sourcePageItem;
     private readonly Action<PlayerViewModel>? _showPlayer;
     private readonly Action? _goBack;
@@ -70,6 +72,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         IPluginService pluginService,
         ILocalizationService localizationService,
         IFavoritesService favoritesService,
+        IWatchedEpisodesService watchedEpisodesService,
         PageItemModel? pageItem,
         Action<PlayerViewModel>? showPlayer = null,
         Action? goBack = null)
@@ -79,6 +82,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         _pluginService = pluginService;
         _localizationService = localizationService;
         _favoritesService = favoritesService;
+        _watchedEpisodesService = watchedEpisodesService;
         _sourcePageItem = pageItem;
         _showPlayer = showPlayer;
         _goBack = goBack;
@@ -147,6 +151,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         IsFavoriteButtonVisible = false;
         MediaInfo = mediaInfo;
         Seasons = mediaInfo.Episodes is null ? null : CreateSeasonGroup(mediaInfo.Episodes);
+        _ = ApplyWatchedEpisodeStates(mediaInfo);
         OnDataRefreshed?.Invoke();
         _ = UpdateFavoriteButtonVisibility(mediaInfo);
     }
@@ -293,6 +298,26 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
         Debug.WriteLine($"Episode VideoSource: {JsonSerializer.Serialize(source)}" + Environment.NewLine);
         ShowPlayer(source, sources);
+    }
+
+    [RelayCommand]
+    private async Task ToggleWatchedEpisode(EpisodeModel? episode)
+    {
+        if (episode is null || MediaInfo is null)
+        {
+            return;
+        }
+
+        var pluginId = GetCurrentPluginId();
+        if (episode.IsWatched)
+        {
+            await _watchedEpisodesService.UnmarkAsWatchedAsync(pluginId, MediaInfo.Url, episode.Url);
+            episode.IsWatched = false;
+            return;
+        }
+
+        await _watchedEpisodesService.MarkAsWatchedAsync(pluginId, MediaInfo.Url, episode.Url);
+        episode.IsWatched = true;
     }
 
     public async void VlcPlayEpisode(EpisodeModel episode)
@@ -625,6 +650,32 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
                 Episodes = g.OrderBy(e => e.EpisodeNumber).ToList()
             })
             .ToList();
+    }
+
+    private async Task ApplyWatchedEpisodeStates(MediaInfoModel mediaInfo)
+    {
+        if (mediaInfo.Episodes is null || mediaInfo.Episodes.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var watchedEpisodeUrls = await _watchedEpisodesService.GetWatchedEpisodeUrlsAsync(GetCurrentPluginId(), mediaInfo.Url);
+            foreach (var episode in mediaInfo.Episodes)
+            {
+                episode.IsWatched = watchedEpisodeUrls.Contains(episode.Url);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Watched episode status load failed: {ex}");
+        }
+    }
+
+    private string? GetCurrentPluginId()
+    {
+        return _sourcePageItem?.PluginId ?? _pluginService.CurrentPlugin?.Manifest.Id;
     }
 
     private void ShowPlayer(VideoSourceModel? videoSource, IEnumerable<VideoSourceModel>? availableSources = null)

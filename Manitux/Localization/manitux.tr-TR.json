@@ -42,6 +42,8 @@
   "downloadFailed": "İndirme başarısız",
   "addToFavorites": "Favorilere ekle",
   "removeFromFavorites": "Favorilerden kaldır",
+  "markAsWatched": "İzledim",
+  "markAsUnwatched": "İzlenmedi olarak işaretle",
   "pluginConfigTitleFormat": "{0} Ayarlar",
   "mainUrl": "Ana URL",
   "apiKey": "API anahtarı",

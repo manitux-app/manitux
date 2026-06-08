@@ -2,6 +2,7 @@ using System;
 using System.Text.Json;
 using Manitux.Core.Models;
 using Manitux.Models;
+using Manitux.Services.Storage;
 
 namespace Manitux.Services.Favorites;
 
@@ -146,10 +147,6 @@ public class FavoritesService : IFavoritesService
 
     private static string GetFavoritesFilePath()
     {
-        var baseDir = OperatingSystem.IsAndroid()
-            ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-            : AppContext.BaseDirectory;
-
-        return Path.Combine(baseDir, "data", "favorites", "favorites.json");
+        return AppDataPath.GetDataPath("favorites", "favorites.json");
     }
 }

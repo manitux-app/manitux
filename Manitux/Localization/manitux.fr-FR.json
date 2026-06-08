@@ -42,6 +42,8 @@
   "downloadFailed": "Echec du telechargement",
   "addToFavorites": "Ajouter aux favoris",
   "removeFromFavorites": "Retirer des favoris",
+  "markAsWatched": "Marquer comme vu",
+  "markAsUnwatched": "Marquer comme non vu",
   "pluginConfigTitleFormat": "{0} Parametres",
   "mainUrl": "URL principale",
   "apiKey": "Cle API",

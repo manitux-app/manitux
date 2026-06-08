@@ -64,6 +64,8 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     public string DownloadFailed { get; set; } = "Download failed";
     public string AddToFavorites { get; set; } = "Add to favorites";
     public string RemoveFromFavorites { get; set; } = "Remove from favorites";
+    public string MarkAsWatched { get; set; } = "Mark as watched";
+    public string MarkAsUnwatched { get; set; } = "Mark as unwatched";
     public string PluginConfigTitleFormat { get; set; } = "{0} Settings";
     public string MainUrl { get; set; } = "Main URL";
     public string ApiKey { get; set; } = "API Key";
