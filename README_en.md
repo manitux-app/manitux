@@ -28,3 +28,15 @@ Manitux is an extension-based multimedia player with tracking support. There are
 + Bookmarks
 + Windows, Linux and Macos support (Android TV in the future)
 + Extension system for personal customization
+
+## Support and Donate
+
+If you find the project useful and enjoy using it, please support the developers to ensure its longevity.
+
+[![Donate](https://img.shields.io/badge/DONATE_TO-THE_PROJECT-orange?style=for-the-badge)](https://www.shopier.com/manitux/47711390)
+
+![image1](/images/manitux1.png)
+
+![image2](/images/manitux2.png)
+
+![image3](/images/manitux3.png)
