@@ -262,22 +262,23 @@ namespace Manitux.ViewModels
                 return;
             }
 
+            Debug.WriteLine("player started..");
+
             await Task.Delay(1000);
 
             try
             {
-                MediaPlayer.SetProperty("terminal", "no");
+                //MediaPlayer.SetProperty("terminal", "no");
                 //MediaPlayer.SetProperty("msg-level", "all=v,sub=debug,lavf=debug");
 
                 MediaPlayer.SetProperty("idle", "yes");
                 MediaPlayer.SetProperty("vo", "libmpv");
-                MediaPlayer.SetProperty("hwdec", "auto-safe");
+                MediaPlayer.SetProperty("hwdec", ShouldDisableHardwareDecoding(source) ? "no" : "auto-safe");
                 MediaPlayer.SetProperty("osd-level", "0");
                 MediaPlayer.SetProperty("keep-open", "no");
-                MediaPlayer.SetProperty("sub-auto", "all");
-                MediaPlayer.SetProperty("sub-file-paths", ".");
+               
 
-                MediaPlayer.SetProperty("volume", 50.0);
+                // MediaPlayer.SetProperty("volume", 50.0);
 
                 // string ytdlPath = Path.Combine(AppContext.BaseDirectory, "yt-dlp");
                 // Debug.WriteLine($"yt-dlp path:{ytdlPath}");
@@ -292,7 +293,7 @@ namespace Manitux.ViewModels
 
                 if (IsHlsUrl(source.Url))
                 {
-                    MediaPlayer.SetProperty("ytdl", "no");
+                    //MediaPlayer.SetProperty("ytdl", "no"); // boom on linux!
                     MediaPlayer.SetProperty("vid", "auto");
                     MediaPlayer.SetProperty("aid", "auto");
                 }
@@ -355,6 +356,15 @@ namespace Manitux.ViewModels
                         })
                         .ToList();
 
+                    if (OperatingSystem.IsLinux())
+                    {
+                        await AddLinuxRemoteSubtitlesAsync(resolvedSubtitles);
+                    }
+
+                    MediaPlayer.SetProperty("demuxer-max-bytes", "100M");
+                    MediaPlayer.SetProperty("sub-auto", "all");
+                    MediaPlayer.SetProperty("sub-file-paths", ".");
+
                     OnAddSubtitleRequested?.Invoke(subtitles);
                 }
             }
@@ -401,12 +411,16 @@ namespace Manitux.ViewModels
             return url.Contains(".m3u8", StringComparison.OrdinalIgnoreCase);
         }
 
+        private static bool ShouldDisableHardwareDecoding(VideoSourceModel source)
+        {
+            return OperatingSystem.IsLinux() && IsHlsUrl(source.Url);
+        }
+
         private static string? BuildHttpHeaderFields(List<HeaderModel>? headers, string? referer)
         {
             var headerList = headers?
                 .Where(h => !string.IsNullOrWhiteSpace(h.Name)
-                            && !string.IsNullOrWhiteSpace(h.Value)
-                            && !h.Name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase))
+                            && !string.IsNullOrWhiteSpace(h.Value))
                 .Select(h => $"{h.Name}: {h.Value}")
                 .ToList()
                 ?? new List<string>();
@@ -461,8 +475,10 @@ namespace Manitux.ViewModels
             {
                 try
                 {
+                    Debug.WriteLine($"[PlayerViewModel] resolving subtitle: {track.Url}");
                     var subtitleUrl = await _subtitleManager.ResolveAsync(track.Url);
                     var subtitlePath = NormalizeSubtitlePathForMpv(subtitleUrl);
+                    Debug.WriteLine($"[PlayerViewModel] resolved subtitle: {track.Url} -> {subtitlePath}");
 
                     resolvedSubtitles.Add(new SubtitleModel
                     {
@@ -480,9 +496,40 @@ namespace Manitux.ViewModels
             return resolvedSubtitles;
         }
 
+        private async Task AddLinuxRemoteSubtitlesAsync(List<SubtitleModel> subtitles)
+        {
+            if (MediaPlayer is null)
+            {
+                return;
+            }
+
+            foreach (var subtitle in subtitles.Where(s => IsRemoteUrl(s.Url)))
+            {
+                try
+                {
+                    Debug.WriteLine($"[PlayerViewModel] linux sub-add: {subtitle.Url}");
+                    await MediaPlayer.ExecuteCommandAsync([
+                        "sub-add",
+                        subtitle.Url,
+                        "select",
+                        subtitle.Name
+                    ]);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[PlayerViewModel] linux sub-add failed. Url: {subtitle.Url} Error: {ex}");
+                }
+            }
+        }
+
         private static string[] CreateLoadFileCommand(string url, List<SubtitleModel> subtitles)
         {
             if (subtitles.Count == 0)
+            {
+                return [MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, url];
+            }
+
+            if (OperatingSystem.IsLinux() && subtitles.Any(subtitle => IsRemoteUrl(subtitle.Url)))
             {
                 return [MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, url];
             }
@@ -501,6 +548,10 @@ namespace Manitux.ViewModels
                 ? [MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, url]
                 : [MPVMediaPlayer.PlaylistManipulationCommands.Loadfile, url, "replace", "-1", options];
         }
+
+        private static bool IsRemoteUrl(string? value)
+            => Uri.TryCreate(value, UriKind.Absolute, out var uri)
+               && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
         private static List<VideoSourceModel> CreateSourceList(VideoSourceModel selectedSource, IEnumerable<VideoSourceModel>? availableSources)
         {

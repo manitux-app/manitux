@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using CodeLogic.Core.Logging;
+using TlsClient.Api.Extensions;
 using TlsClient.Core.Builders;
 using TlsClient.Core.Models.Entities;
 using TlsClient.Core.Models.Requests;
@@ -97,6 +98,11 @@ public class SubtitleManager
 
     private static async Task<string?> DownloadWithTlsAsync(Uri uri, CancellationToken cancellationToken)
     {
+        if (OperatingSystem.IsLinux())
+        {
+            return await DownloadWithApiTlsAsync(uri, cancellationToken);
+        }
+
         var filePath = CreateTempFilePath(uri);
 
         foreach (var identifier in new[] { TlsClientIdentifier.Cloudscraper, TlsClientIdentifier.Chrome144 })
@@ -143,6 +149,59 @@ public class SubtitleManager
             {
                 TryDelete(filePath);
                 LogHelper.Http.Log(LogLevel.Error, $"[SubtitleManager] TLS subtitle download error. Identifier: {identifier} Url: {uri} Error: {ex}");
+            }
+        }
+
+        return null;
+    }
+
+    private static async Task<string?> DownloadWithApiTlsAsync(Uri uri, CancellationToken cancellationToken)
+    {
+        var filePath = CreateTempFilePath(uri);
+        var baseUri = new Uri("http://127.0.0.1:8080/");
+
+        foreach (var identifier in new[] { TlsClientIdentifier.Cloudscraper, TlsClientIdentifier.Chrome144 })
+        {
+            try
+            {
+                var clientBuilder = new TlsClientBuilder()
+                    .WithIdentifier(identifier)
+                    .WithUserAgent(UserAgent)
+                    .WithTimeout(TimeSpan.FromSeconds(30))
+                    .WithFollowRedirects(true)
+                    .WithInsecureSkipVerify()
+                    .WithDisableHttp3()
+                    .WithApi(baseUri, "my-auth-key-1");
+
+                using var client = clientBuilder.ApiBuild();
+
+                var request = new Request
+                {
+                    RequestUrl = uri.ToString(),
+                    RequestMethod = HttpMethod.Get,
+                    StreamOutputPath = filePath,
+                    Headers = new Dictionary<string, string>
+                    {
+                        ["User-Agent"] = UserAgent,
+                        ["Referer"] = GetDomainReferer(uri),
+                        ["Accept"] = "text/vtt,application/x-subrip,text/plain,*/*"
+                    }
+                };
+
+                var response = await client.RequestAsync(request, cancellationToken);
+                if (response.Status == HttpStatusCode.OK && File.Exists(filePath) && new FileInfo(filePath).Length > 0)
+                {
+                    LogHelper.Http.Log(LogLevel.Debug, $"[SubtitleManager] Subtitle downloaded with API TLS. Identifier: {identifier} Url: {uri} Path: {filePath}");
+                    return filePath;
+                }
+
+                TryDelete(filePath);
+                LogHelper.Http.Log(LogLevel.Debug, $"[SubtitleManager] API TLS subtitle download failed. Identifier: {identifier} Url: {uri} Status: {response.Status} Target: {response.Target} Body: {TrimForLog(response.Body)}");
+            }
+            catch (Exception ex)
+            {
+                TryDelete(filePath);
+                LogHelper.Http.Log(LogLevel.Error, $"[SubtitleManager] API TLS subtitle download error. Identifier: {identifier} Url: {uri} Error: {ex}");
             }
         }
 

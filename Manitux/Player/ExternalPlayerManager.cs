@@ -65,6 +65,9 @@ public class ExternalPlayerManager
             startInfo.ArgumentList.Add("--sub-auto=all");
         }
 
+        startInfo.ArgumentList.Add("--fullscreen");
+        startInfo.ArgumentList.Add("--keep-open=no");
+
         Debug.WriteLine($"mpv {string.Join(" ", startInfo.ArgumentList)}");
         return TryStart(startInfo);
     }

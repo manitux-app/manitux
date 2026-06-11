@@ -526,6 +526,7 @@ namespace Manitux.Player
 
         private void MpvFiledLoaded(object? sender)
         {
+            Debug.WriteLine("[MediaPlayerView] file-loaded received.");
             Dispatcher.UIThread.InvokeAsync(TryGetVideoParams);
             Dispatcher.UIThread.InvokeAsync(TryGetAudioTracks);
         }
@@ -731,14 +732,30 @@ namespace Manitux.Player
         private void TryGetVideoParams()
         {
             if (MediaPlayer == null) return;
-            var node = MediaPlayer.GetPropertyNode(MPVMediaPlayer.Properties.VideoParams);
-            using var sw = new StringWriter();
-            using var writer = new IndentedTextWriter(sw);
-            node.Node.ReadToWriter(writer);
-            writer.Flush();
-            MediaPlayer.FreeNode(node);
-            var vp = sw.ToString();
-            DispatchSetCurrentValue(VideoParamsProperty, vp);
+
+            MpvNodeWrap? node = null;
+
+            try
+            {
+                node = MediaPlayer.GetPropertyNode(MPVMediaPlayer.Properties.VideoParams);
+                using var sw = new StringWriter();
+                using var writer = new IndentedTextWriter(sw);
+                node.Node.ReadToWriter(writer);
+                writer.Flush();
+                var vp = sw.ToString();
+                DispatchSetCurrentValue(VideoParamsProperty, vp);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[MediaPlayerView] video params read failed. Error: {ex}");
+            }
+            finally
+            {
+                if (node is not null)
+                {
+                    MediaPlayer.FreeNode(node);
+                }
+            }
         }
 
         private void TryGetAudioTracks()
@@ -749,6 +766,7 @@ namespace Manitux.Player
 
             try
             {
+                Debug.WriteLine("[MediaPlayerView] reading audio track-list.");
                 node = MediaPlayer.GetPropertyNode(MPVMediaPlayer.Properties.TrackList);
                 var tracks = ReadTracks(node.Node, "audio")
                     .Select((track, index) =>
@@ -772,9 +790,11 @@ namespace Manitux.Player
                 SetCurrentValue(AudioTracksProperty, newList);
                 SetCurrentValue(HasAudioTracksProperty, newList.Count > 1);
                 SetCurrentValue(SelectedAudioTrackProperty, newList.FirstOrDefault());
+                Debug.WriteLine($"[MediaPlayerView] audio track-list read. Count: {newList.Count}");
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"[MediaPlayerView] audio track-list read failed. Error: {ex}");
             }
             finally
             {
