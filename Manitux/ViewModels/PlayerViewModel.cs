@@ -413,7 +413,7 @@ namespace Manitux.ViewModels
 
         private static bool ShouldDisableHardwareDecoding(VideoSourceModel source)
         {
-            return OperatingSystem.IsLinux() && IsHlsUrl(source.Url);
+            return (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && IsHlsUrl(source.Url);
         }
 
         private static string? BuildHttpHeaderFields(List<HeaderModel>? headers, string? referer)

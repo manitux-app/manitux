@@ -8,22 +8,28 @@ namespace LibMPVSharp
         private MpvRenderContext* _renderContext;
         private MpvOpenglInitParams_get_proc_addressCallback? _glGetProcAddress;
         private MpvRenderUpdateFn? _mpvRenderUpdate;
+        private readonly object _renderLock = new();
 
         public void EnsureRenderContextCreated()
         {
             CheckClientHandle();
-            
-            if (_renderContext == null)
+
+            lock (_renderLock)
             {
+                if (_renderContext != null)
+                {
+                    return;
+                }
+
                 if (_options.SharedPlayer != null)
                 {
                     _renderContext = _options.SharedPlayer._renderContext;
                     return;
                 }
-                
+
                 _glGetProcAddress = GLGetProcAddress;
                 _mpvRenderUpdate = MPVRenderUpdate;
-                
+
                 var MPV_RENDER_PARAM_API_TYPE_Data = Marshal.StringToHGlobalAnsi("opengl");
 
                 var openglInitParams = new MpvOpenglInitParams
@@ -34,15 +40,15 @@ namespace LibMPVSharp
                 var MPV_RENDER_PARAM_OPENGL_INIT_PARAMS_Data = Marshal.AllocHGlobal(Marshal.SizeOf<MpvOpenglInitParams>());
                 Marshal.StructureToPtr(openglInitParams, MPV_RENDER_PARAM_OPENGL_INIT_PARAMS_Data, false);
 
-                var parameters = new MpvRenderParam[]
-                {
-                    new(){ type = MpvRenderParamType.MPV_RENDER_PARAM_API_TYPE, data = (void*)MPV_RENDER_PARAM_API_TYPE_Data},
-                    new(){ type = MpvRenderParamType.MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, data = (void*)MPV_RENDER_PARAM_OPENGL_INIT_PARAMS_Data},
-                    new(){ type = MpvRenderParamType.MPV_RENDER_PARAM_INVALID, data = null}
-                };
-
                 try
                 {
+                    var parameters = new MpvRenderParam[]
+                    {
+                        new(){ type = MpvRenderParamType.MPV_RENDER_PARAM_API_TYPE, data = (void*)MPV_RENDER_PARAM_API_TYPE_Data},
+                        new(){ type = MpvRenderParamType.MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, data = (void*)MPV_RENDER_PARAM_OPENGL_INIT_PARAMS_Data},
+                        new(){ type = MpvRenderParamType.MPV_RENDER_PARAM_INVALID, data = null}
+                    };
+
                     MpvRenderContext* content = null;
                     fixed (MpvRenderParam* ptr = parameters)
                     {
@@ -63,9 +69,14 @@ namespace LibMPVSharp
 
         public void ReleaseRenderContext()
         {
-            if (_renderContext == null || _options.SharedPlayer != null) return;
-            Render.MpvRenderContextFree(_renderContext);
-            _renderContext = null;
+            lock (_renderLock)
+            {
+                if (_renderContext == null || _options.SharedPlayer != null) return;
+                _mpvRenderUpdate = _ => { };
+                Render.MpvRenderContextSetUpdateCallback(_renderContext, _mpvRenderUpdate, null);
+                Render.MpvRenderContextFree(_renderContext);
+                _renderContext = null;
+            }
         }
 
         private IntPtr GLGetProcAddress(IntPtr ctx, string name)
@@ -76,36 +87,40 @@ namespace LibMPVSharp
 
         private void MPVRenderUpdate(void* ctx)
         {
+            if (_disposed) return;
             if (Options?.UpdateCallback == null) return;
             Options.UpdateCallback(ctx);
         }
 
         public void OpenGLRender(int width, int height, int fbo, int format = 0, int flipY = 0)
         {
-            if (_renderContext == null || _disposed) return;
-
-            var fboArray = new MpvOpenglFbo[]
+            lock (_renderLock)
             {
-                new(){ w = width, h = height, fbo = fbo, internal_format = format },
-            };
+                if (_renderContext == null || _disposed) return;
 
-            var flipYArray = new int[] { flipY };
-
-            fixed(MpvOpenglFbo* fboPtr = fboArray)
-            {
-                fixed(int* flipYPtr = flipYArray)
+                var fboArray = new MpvOpenglFbo[]
                 {
-                    var parameters = new MpvRenderParam[]
-                    {
-                        new(){ type = MpvRenderParamType.MPV_RENDER_PARAM_OPENGL_FBO, data = fboPtr },
-                        new(){ type = MpvRenderParamType.MPV_RENDER_PARAM_FLIP_Y, data = flipYPtr},
-                        new(){ type = MpvRenderParamType.MPV_RENDER_PARAM_INVALID, data = null }
-                    };
+                    new(){ w = width, h = height, fbo = fbo, internal_format = format },
+                };
 
-                    fixed(MpvRenderParam* renderParamPtr = parameters)
+                var flipYArray = new int[] { flipY };
+
+                fixed(MpvOpenglFbo* fboPtr = fboArray)
+                {
+                    fixed(int* flipYPtr = flipYArray)
                     {
-                        var result = Render.MpvRenderContextRender(_renderContext, renderParamPtr);
-                        CheckError(result, nameof(Render.MpvRenderContextRender));
+                        var parameters = new MpvRenderParam[]
+                        {
+                            new(){ type = MpvRenderParamType.MPV_RENDER_PARAM_OPENGL_FBO, data = fboPtr },
+                            new(){ type = MpvRenderParamType.MPV_RENDER_PARAM_FLIP_Y, data = flipYPtr},
+                            new(){ type = MpvRenderParamType.MPV_RENDER_PARAM_INVALID, data = null }
+                        };
+
+                        fixed(MpvRenderParam* renderParamPtr = parameters)
+                        {
+                            var result = Render.MpvRenderContextRender(_renderContext, renderParamPtr);
+                            CheckError(result, nameof(Render.MpvRenderContextRender));
+                        }
                     }
                 }
             }

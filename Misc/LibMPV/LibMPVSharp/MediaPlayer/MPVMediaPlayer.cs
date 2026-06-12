@@ -401,17 +401,20 @@ namespace LibMPVSharp
 
                 _disposed = true;
 
+                if (_clientHandle == null) return;
+                var handle = _clientHandle;
+
+                StopEventLoop(handle);
                 ReleaseRenderContext();
 
-                if (_clientHandle == null) return;
                 if (terminate)
                 {
-                    Client.MpvTerminateDestroy(_clientHandle);
+                    Client.MpvTerminateDestroy(handle);
                     _clientHandle = null;
                 }
                 else
                 {
-                    Client.MpvDestroy(_clientHandle);
+                    Client.MpvDestroy(handle);
                     _clientHandle = null;
                 }
             }

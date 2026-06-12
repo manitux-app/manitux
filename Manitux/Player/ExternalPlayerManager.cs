@@ -3,13 +3,19 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
+using System.Text.Json;
 using Manitux.Core.Models;
+using Manitux.Services.Storage;
 
 namespace Manitux.Player;
 
 public class ExternalPlayerManager
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true
+    };
+
     public bool Play(int playerNumber, VideoSourceModel source)
     {
         return playerNumber switch
@@ -85,14 +91,46 @@ public class ExternalPlayerManager
             return false;
         }
 
-        var startInfo = CreateStartInfo(vlcCmd);
+        var startInfo = CreateVlcStartInfo(vlcCmd, source);
+        Debug.WriteLine($"{startInfo.FileName} {string.Join(" ", startInfo.ArgumentList)}");
+        return TryStart(startInfo);
+    }
+
+    private static ProcessStartInfo CreateVlcStartInfo(string vlcCmd, VideoSourceModel source)
+    {
+        var startInfo = OperatingSystem.IsMacOS() && string.Equals(vlcCmd, "open", StringComparison.Ordinal)
+            ? CreateMacOpenVlcStartInfo()
+            : CreateStartInfo(vlcCmd);
+
+        AddVlcArguments(startInfo, source);
+        return startInfo;
+    }
+
+    private static ProcessStartInfo CreateMacOpenVlcStartInfo()
+    {
+        var startInfo = CreateStartInfo("open");
+        startInfo.ArgumentList.Add("-a");
+        startInfo.ArgumentList.Add("VLC");
+        startInfo.ArgumentList.Add("--args");
+        return startInfo;
+    }
+
+    private static void AddVlcArguments(ProcessStartInfo startInfo, VideoSourceModel source)
+    {
+        startInfo.ArgumentList.Add("--fullscreen");
+        // Keep this disabled while diagnosing external-player failures; otherwise VLC can close before its error is visible.
+        // startInfo.ArgumentList.Add("--play-and-exit");
+
         startInfo.ArgumentList.Add(source.Url);
 
         if (source.Headers is not null)
         {
             foreach (var header in source.Headers)
             {
-                startInfo.ArgumentList.Add($":http-header-fields={header.Name}: {header.Value}");
+                if (header.Name.Equals("User-Agent", StringComparison.OrdinalIgnoreCase))
+                {
+                    startInfo.ArgumentList.Add($":http-user-agent={header.Value}");
+                }
             }
         }
 
@@ -108,12 +146,6 @@ public class ExternalPlayerManager
                 startInfo.ArgumentList.Add($":input-slave={sub.Url}");
             }
         }
-
-        startInfo.ArgumentList.Add("--fullscreen");
-        startInfo.ArgumentList.Add("--play-and-exit");
-
-        Debug.WriteLine($"vlc {string.Join(" ", startInfo.ArgumentList)}");
-        return TryStart(startInfo);
     }
 
     private static ProcessStartInfo CreateStartInfo(string executable)
@@ -150,26 +182,7 @@ public class ExternalPlayerManager
 
     private static string? ResolveMpvExecutable()
     {
-        var candidates = new List<string>();
-
-        if (OperatingSystem.IsWindows())
-        {
-            candidates.AddRange(GetWindowsProgramFilesCandidates("mpv", "mpv.exe"));
-            candidates.AddRange(GetWindowsProgramFilesCandidates("Mpv", "mpv.exe"));
-            candidates.Add("mpv.exe");
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            candidates.Add("/Applications/mpv.app/Contents/MacOS/mpv");
-            candidates.Add("/Applications/IINA.app/Contents/MacOS/iina-cli");
-            candidates.Add("mpv");
-        }
-        else
-        {
-            candidates.Add("mpv");
-        }
-
-        return ResolveExecutable(candidates);
+        return ResolveConfiguredExecutable("mpv");
     }
 
     private static string? ResolveSelectedExecutable(string? executablePath)
@@ -179,44 +192,102 @@ public class ExternalPlayerManager
             return null;
         }
 
+        if (OperatingSystem.IsMacOS() && Directory.Exists(executablePath) && executablePath.EndsWith(".app", StringComparison.OrdinalIgnoreCase))
+        {
+            var appExecutable = Path.Combine(executablePath, "Contents", "MacOS", Path.GetFileNameWithoutExtension(executablePath));
+            if (File.Exists(appExecutable))
+            {
+                return appExecutable;
+            }
+        }
+
         return File.Exists(executablePath) ? executablePath : null;
     }
 
     private static string? ResolveVlcExecutable()
     {
+        return ResolveConfiguredExecutable("vlc");
+    }
+
+    private static string? ResolveConfiguredExecutable(string playerName)
+    {
+        var settings = LoadPlayerSettings();
+        var player = settings.GetCurrentPlatform()?.GetPlayer(playerName);
+        if (player is null)
+        {
+            return null;
+        }
+
         var candidates = new List<string>();
 
-        if (OperatingSystem.IsWindows())
+        if (!string.IsNullOrWhiteSpace(player.SelectedPath))
         {
-            candidates.AddRange(GetWindowsProgramFilesCandidates("VideoLAN\\VLC", "vlc.exe"));
-            candidates.Add("vlc.exe");
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            candidates.Add("/Applications/VLC.app/Contents/MacOS/VLC");
-            candidates.Add("vlc");
-        }
-        else
-        {
-            candidates.Add("vlc");
-            candidates.Add("cvlc");
+            candidates.Add(player.SelectedPath);
         }
 
+        candidates.AddRange(player.DefaultPaths);
         return ResolveExecutable(candidates);
     }
 
-    private static IEnumerable<string> GetWindowsProgramFilesCandidates(string relativeDirectory, string executable)
+    public void SavePlayerPath(string playerName, string executablePath)
     {
-        var roots = new[]
+        var resolvedPath = ResolveSelectedExecutable(executablePath);
+        if (resolvedPath is null)
         {
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-            Environment.GetEnvironmentVariable("LOCALAPPDATA")
-        };
+            return;
+        }
 
-        return roots
-            .Where(root => !string.IsNullOrWhiteSpace(root))
-            .Select(root => Path.Combine(root!, relativeDirectory, executable));
+        var settings = LoadPlayerSettings();
+        var platform = settings.GetOrCreateCurrentPlatform();
+        var player = platform.GetOrCreatePlayer(playerName);
+        player.SelectedPath = resolvedPath;
+        SavePlayerSettings(settings);
+    }
+
+    private static PlayerSettings LoadPlayerSettings()
+    {
+        var path = GetPlayersJsonPath();
+        try
+        {
+            EnsurePlayerSettingsFile(path);
+            var json = File.ReadAllText(path);
+            return JsonSerializer.Deserialize<PlayerSettings>(json, JsonOptions) ?? PlayerSettings.CreateDefault();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Player settings load failed. Path: {path} Error: {ex}");
+            return PlayerSettings.CreateDefault();
+        }
+    }
+
+    private static void SavePlayerSettings(PlayerSettings settings)
+    {
+        var path = GetPlayersJsonPath();
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, JsonSerializer.Serialize(settings, JsonOptions));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Player settings save failed. Path: {path} Error: {ex}");
+        }
+    }
+
+    private static void EnsurePlayerSettingsFile(string path)
+    {
+        if (File.Exists(path))
+        {
+            return;
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, JsonSerializer.Serialize(PlayerSettings.CreateDefault(), JsonOptions));
+    }
+
+    private static string GetPlayersJsonPath()
+    {
+        return AppDataPath.GetDataPath("players.json");
     }
 
     private static string? ResolveExecutable(IEnumerable<string> candidates)
@@ -261,5 +332,106 @@ public class ExternalPlayerManager
         }
 
         return null;
+    }
+
+    private sealed class PlayerSettings
+    {
+        public PlatformPlayerSettings Windows { get; set; } = new();
+        public PlatformPlayerSettings Linux { get; set; } = new();
+        public PlatformPlayerSettings Macos { get; set; } = new();
+
+        public static PlayerSettings CreateDefault() => new()
+        {
+            Windows = new PlatformPlayerSettings
+            {
+                Vlc = new PlayerPathSettings
+                {
+                    DefaultPaths =
+                    [
+                        @"C:\Program Files\VideoLAN\VLC\vlc.exe",
+                        @"C:\Program Files (x86)\VideoLAN\VLC\vlc.exe"
+                    ]
+                },
+                Mpv = new PlayerPathSettings
+                {
+                    DefaultPaths =
+                    [
+                        @"C:\Program Files\mpv\mpv.exe",
+                        @"C:\Program Files\Mpv\mpv.exe",
+                        @"C:\mpv\mpv.exe"
+                    ]
+                }
+            },
+            Linux = new PlatformPlayerSettings
+            {
+                Vlc = new PlayerPathSettings { DefaultPaths = ["vlc", "cvlc"] },
+                Mpv = new PlayerPathSettings { DefaultPaths = ["mpv"] }
+            },
+            Macos = new PlatformPlayerSettings
+            {
+                Vlc = new PlayerPathSettings
+                {
+                    DefaultPaths =
+                    [
+                        "open",
+                        "/Applications/VLC.app/Contents/MacOS/VLC",
+                        "/Applications/VLC media player.app/Contents/MacOS/VLC"
+                    ]
+                },
+                Mpv = new PlayerPathSettings
+                {
+                    DefaultPaths =
+                    [
+                        "/Applications/mpv.app/Contents/MacOS/mpv",
+                        "/Applications/IINA.app/Contents/MacOS/iina-cli",
+                        "mpv"
+                    ]
+                }
+            }
+        };
+
+        public PlatformPlayerSettings? GetCurrentPlatform()
+        {
+            if (OperatingSystem.IsWindows()) return Windows;
+            if (OperatingSystem.IsLinux()) return Linux;
+            if (OperatingSystem.IsMacOS()) return Macos;
+            return null;
+        }
+
+        public PlatformPlayerSettings GetOrCreateCurrentPlatform()
+        {
+            if (OperatingSystem.IsWindows()) return Windows ??= new PlatformPlayerSettings();
+            if (OperatingSystem.IsLinux()) return Linux ??= new PlatformPlayerSettings();
+            if (OperatingSystem.IsMacOS()) return Macos ??= new PlatformPlayerSettings();
+            return Linux ??= new PlatformPlayerSettings();
+        }
+    }
+
+    private sealed class PlatformPlayerSettings
+    {
+        public PlayerPathSettings Vlc { get; set; } = new();
+        public PlayerPathSettings Mpv { get; set; } = new();
+
+        public PlayerPathSettings? GetPlayer(string playerName)
+        {
+            return playerName.Equals("vlc", StringComparison.OrdinalIgnoreCase)
+                ? Vlc
+                : playerName.Equals("mpv", StringComparison.OrdinalIgnoreCase)
+                    ? Mpv
+                    : null;
+        }
+
+        public PlayerPathSettings GetOrCreatePlayer(string playerName)
+        {
+            return playerName.Equals("vlc", StringComparison.OrdinalIgnoreCase)
+                ? Vlc ??= new PlayerPathSettings()
+                : Mpv ??= new PlayerPathSettings();
+        }
+    }
+
+    private sealed class PlayerPathSettings
+    {
+        public List<string> DefaultPaths { get; set; } = [];
+        public string? SelectedPath { get; set; }
     }
 }

@@ -203,6 +203,7 @@
 													<Button.Flyout>
 														<MenuFlyout Placement="BottomEdgeAlignedRight">
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.ManituxPlayer}" 
+																	IsEnabled="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).IsManituxPlayerEnabled}"
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).Play}" 
 																	CommandParameter="{Binding}">
 																<MenuItem.Icon>
@@ -211,6 +212,7 @@
 															</MenuItem>
 															
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.VlcPlayer}" 
+																	IsEnabled="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).AreExternalPlayerActionsEnabled}"
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).VlcPlay}" 
 																	CommandParameter="{Binding}">
 																<MenuItem.Icon>
@@ -219,6 +221,7 @@
 															</MenuItem>
 															
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.MpvPlayer}" 
+																	IsEnabled="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).AreExternalPlayerActionsEnabled}"
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).MpvPlay}" 
 																	CommandParameter="{Binding}">
 																<MenuItem.Icon>
@@ -227,6 +230,7 @@
 															</MenuItem>
 
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.Download}" 
+																	IsEnabled="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).AreExternalPlayerActionsEnabled}"
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).DownloadVideoCommand}" 
 																	CommandParameter="{Binding}">
 																<MenuItem.Icon>
@@ -276,6 +280,7 @@
 													<Button.Flyout>
 														<MenuFlyout Placement="BottomEdgeAlignedRight">
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.ManituxPlayer}" 
+																	IsEnabled="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).IsManituxPlayerEnabled}"
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).PlayEpisode}" 
 																	CommandParameter="{Binding}">
 																<MenuItem.Icon>
@@ -284,6 +289,7 @@
 															</MenuItem>
 															
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.VlcPlayer}" 
+																	IsEnabled="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).AreExternalPlayerActionsEnabled}"
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).VlcPlayEpisode}" 
 																	CommandParameter="{Binding}">
 																<MenuItem.Icon>
@@ -292,6 +298,7 @@
 															</MenuItem>
 															
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.MpvPlayer}" 
+																	IsEnabled="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).AreExternalPlayerActionsEnabled}"
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).MpvPlayEpisode}" 
 																	CommandParameter="{Binding}">
 																<MenuItem.Icon>
@@ -300,6 +307,7 @@
 															</MenuItem>
 
 															<MenuItem Header="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).L.Download}" 
+																	IsEnabled="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).AreExternalPlayerActionsEnabled}"
 																	Command="{Binding $parent[UserControl].((vm:MediaInfoViewModel)DataContext).DownloadEpisodeCommand}" 
 																	CommandParameter="{Binding}">
 																<MenuItem.Icon>
