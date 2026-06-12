@@ -62,6 +62,9 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
     [ObservableProperty] private List<SeasonModel>? _seasons;
 
+    public bool IsManituxPlayerEnabled => !OperatingSystem.IsMacOS();
+    public bool AreExternalPlayerActionsEnabled => !OperatingSystem.IsAndroid();
+
     public event Action? OnDataRefreshed;
     public event Action? OnRequestClose;
     public event EventHandler<object?>? RequestClose;
@@ -575,7 +578,11 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
             ? playerManager.VlcPlay(source, executablePath)
             : playerManager.MpvPlay(source, executablePath);
 
-        if (!started)
+        if (started)
+        {
+            playerManager.SavePlayerPath(isVlc ? "vlc" : "mpv", executablePath);
+        }
+        else
         {
             ShowError(isVlc ? L.VlcPlayerNotFound : L.MpvPlayerNotFound);
         }

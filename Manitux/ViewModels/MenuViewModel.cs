@@ -69,7 +69,7 @@ public class MenuViewModel : ViewModelBase
         L = localize;
         MenuItems = new ObservableCollection<MenuItemViewModel>
         {
-            new() { MenuHeader = L.Settings, Key = MenuKeys.MenuKeySettings, IsSeparator = false, MenuIconName = "SemiIconSetting" },
+            CreateSettingsMenu(),
             new() { MenuHeader = L.Favorites, Key = MenuKeys.MenuKeyFavorites, IsSeparator = false, MenuIconName = "star" },
             new() { MenuHeader = L.Plugins, IsSeparator = true, Status = "0" }
         };
@@ -112,7 +112,7 @@ public class MenuViewModel : ViewModelBase
         MenuItems = new ObservableCollection<MenuItemViewModel>
         {
             //new() { MenuHeader = localize.AboutUs, Key = MenuKeys.MenuKeyAboutUs, IsSeparator = false },
-            new() { MenuHeader = L.Settings, Key = MenuKeys.MenuKeySettings, IsSeparator = false, MenuIconName = "settings" },
+            CreateSettingsMenu(),
             new() { MenuHeader = L.Favorites, Key = MenuKeys.MenuKeyFavorites, IsSeparator = false, MenuIconName = "star" },
             new() { MenuHeader = L.Plugins, IsSeparator = true, Status = pluginMenus.Any() ? pluginMenus.Count.ToString(): "0" },
         };
@@ -144,6 +144,20 @@ public class MenuViewModel : ViewModelBase
         //Debug.WriteLine(JsonSerializer.Serialize(MenuItems));
         OnPropertyChanged(nameof(MenuItems));
     }
+
+    private MenuItemViewModel CreateSettingsMenu()
+    {
+        return new MenuItemViewModel
+        {
+            MenuHeader = L.Settings,
+            MenuIconName = "settings",
+            Children =
+            [
+                new() { MenuHeader = L.PluginRepositories, Key = MenuKeys.MenuKeySettings, MenuIconName = "settings" },
+                new() { MenuHeader = L.Updates, Key = MenuKeys.MenuKeyApplicationUpdate, MenuIconName = "settings" }
+            ]
+        };
+    }
 }
 
 public static class MenuKeys
@@ -159,5 +173,6 @@ public static class MenuKeys
     public const string MenuKeyPlayer = "Player";
     public const string MenuKeyEmptyPage = "EmptyPage";
     public const string MenuKeyPlugins = "Plugins";
+    public const string MenuKeyApplicationUpdate = "ApplicationUpdate";
     
 }

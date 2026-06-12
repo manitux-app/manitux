@@ -34,6 +34,8 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     //[LocalizedString]
     public string AboutUs { get; set; } = "About Us";
     public string Settings { get; set; } = "Settings";
+    public string PluginRepositories { get; set; } = "Plugin repositories";
+    public string Updates { get; set; } = "Updates";
     public string Plugins { get; set; } = "Plugins";
     public string Favorites { get; set; } = "Favorites";
     public string Search { get; set; } = "Search";
@@ -83,6 +85,17 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     public string Install { get; set; } = "Install";
     public string Update { get; set; } = "Update";
     public string UpdateAll { get; set; } = "Update all";
+    public string ApplicationUpdate { get; set; } = "Application update";
+    public string CheckForUpdates { get; set; } = "Check for updates";
+    public string NoApplicationUpdateFound { get; set; } = "Manitux is up to date.";
+    public string ApplicationUpdateFoundFormat { get; set; } = "Manitux {0} is available.";
+    public string ApplicationUpdateReadyFormat { get; set; } = "Version {0} is ready to download and install.";
+    public string StartApplicationUpdate { get; set; } = "Start update";
+    public string ApplicationUpdateStarting { get; set; } = "The update is starting.";
+    public string ApplicationUpdateFailedFormat { get; set; } = "Update failed: {0}";
+    public string CurrentVersion { get; set; } = "Current version";
+    public string LatestVersion { get; set; } = "Latest version";
+    public string ReleaseNotes { get; set; } = "Release notes";
     public string Remove { get; set; } = "Remove";
     public string DeleteAll { get; set; } = "Delete all";
     public string Repositories { get; set; } = "Repositories";

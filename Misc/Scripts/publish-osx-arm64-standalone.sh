@@ -5,14 +5,12 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 
 PROJECT="$REPO_ROOT/Manitux.Desktop/Manitux.Desktop.csproj"
-RUNTIME_ID="linux-x64"
+RUNTIME_ID="osx-arm64"
 VERSION="$(dotnet msbuild "$PROJECT" -getProperty:Version -nologo | tr -d '\r' | tail -n 1)"
 VERSION="${VERSION:-0.0.0}"
 ASSET_NAME="Manitux_${RUNTIME_ID}_v${VERSION}"
 OUTPUT_DIR="${1:-$REPO_ROOT/builds/$ASSET_NAME}"
 ASSET_ZIP="${2:-$REPO_ROOT/builds/$ASSET_NAME.zip}"
-HELPER_SOURCE="$REPO_ROOT/Manitux.Desktop/helpers/$RUNTIME_ID"
-HELPER_OUTPUT="$OUTPUT_DIR/libs/helpers"
 OUTPUT_PARENT="$(dirname -- "$OUTPUT_DIR")"
 OUTPUT_NAME="$(basename -- "$OUTPUT_DIR")"
 ZIP_PARENT="$(dirname -- "$ASSET_ZIP")"
@@ -42,22 +40,9 @@ dotnet publish "$PROJECT" \
   -maxcpucount:1 \
   -o "$OUTPUT_REAL"
 
-if [ ! -d "$HELPER_SOURCE" ]; then
-  echo "Missing helper source directory: $HELPER_SOURCE" >&2
-  exit 1
-fi
-
-mkdir -p "$HELPER_OUTPUT"
-cp -a "$HELPER_SOURCE/." "$HELPER_OUTPUT/"
+python3 "$SCRIPT_DIR/patch-macho-rpaths.py" "$OUTPUT_REAL/libs"
 
 chmod +x "$OUTPUT_REAL/Manitux.Desktop"
-if [ -f "$HELPER_OUTPUT/tlsclientapi" ]; then
-  chmod +x "$HELPER_OUTPUT/tlsclientapi"
-fi
-if [ -f "$HELPER_OUTPUT/ytdlp" ]; then
-  chmod +x "$HELPER_OUTPUT/ytdlp"
-fi
-
 rm -f "$ZIP_REAL"
 (cd "$OUTPUT_REAL" && zip -qr "$ZIP_REAL" .)
 

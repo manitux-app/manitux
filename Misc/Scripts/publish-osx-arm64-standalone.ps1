@@ -1,5 +1,6 @@
 param(
-    [string]$OutputDir
+    [string]$OutputDir,
+    [string]$ZipPath
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,17 +11,29 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Resolve-Path (Join-Path $ScriptDir "../..")
 
 $Project = Join-Path $RepoRoot "Manitux.Desktop/Manitux.Desktop.csproj"
-if ([string]::IsNullOrWhiteSpace($OutputDir)) {
-    $OutputDir = Join-Path $RepoRoot "builds/osx-arm64-standalone"
+$RuntimeId = "osx-arm64"
+$Version = ((dotnet msbuild $Project -getProperty:Version -nologo) | Select-Object -Last 1).Trim()
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $Version = "0.0.0"
 }
 
-$HelperSource = Join-Path $RepoRoot "Manitux.Desktop/helpers/osx-arm64"
+$AssetName = "Manitux_${RuntimeId}_v$Version"
+if ([string]::IsNullOrWhiteSpace($OutputDir)) {
+    $OutputDir = Join-Path $RepoRoot "builds/$AssetName"
+}
+if ([string]::IsNullOrWhiteSpace($ZipPath)) {
+    $ZipPath = Join-Path $RepoRoot "builds/$AssetName.zip"
+}
+
+$HelperSource = Join-Path $RepoRoot "Manitux.Desktop/helpers/$RuntimeId"
 $HelperOutput = Join-Path $OutputDir "libs/helpers"
 $BuildsRoot = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot "builds"))
 $FullOutputDir = [System.IO.Path]::GetFullPath($OutputDir)
+$FullZipPath = [System.IO.Path]::GetFullPath($ZipPath)
 
-Write-Host "Publishing standalone osx-arm64 build..."
-Write-Host "Output: $OutputDir"
+Write-Host "Publishing standalone $RuntimeId build..."
+Write-Host "Output: $FullOutputDir"
+Write-Host "Asset: $FullZipPath"
 
 if ((Test-Path $FullOutputDir) -and $FullOutputDir.StartsWith($BuildsRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
     Remove-Item -LiteralPath $FullOutputDir -Recurse -Force
@@ -28,7 +41,7 @@ if ((Test-Path $FullOutputDir) -and $FullOutputDir.StartsWith($BuildsRoot, [Syst
 
 dotnet publish $Project `
     -c Release `
-    -r osx-arm64 `
+    -r $RuntimeId `
     --self-contained true `
     -p:PublishSingleFile=true `
     -p:IncludeNativeLibrariesForSelfExtract=true `
@@ -36,7 +49,7 @@ dotnet publish $Project `
     -p:DebugSymbols=false `
     -p:UseSharedCompilation=false `
     -maxcpucount:1 `
-    -o $OutputDir
+    -o $FullOutputDir
 
 if (Test-Path $HelperSource) {
     New-Item -ItemType Directory -Force -Path $HelperOutput | Out-Null
@@ -58,8 +71,17 @@ if (Test-Path $HelperSource) {
 }
 
 if (-not $RunningOnWindows) {
-    chmod +x (Join-Path $OutputDir "Manitux.Desktop")
+    python3 (Join-Path $ScriptDir "patch-macho-rpaths.py") (Join-Path $FullOutputDir "libs")
+    chmod +x (Join-Path $FullOutputDir "Manitux.Desktop")
 }
 
+$ZipParent = Split-Path -Parent $FullZipPath
+New-Item -ItemType Directory -Force -Path $ZipParent | Out-Null
+if (Test-Path $FullZipPath) {
+    Remove-Item -LiteralPath $FullZipPath -Force
+}
+Compress-Archive -Path (Join-Path $FullOutputDir "*") -DestinationPath $FullZipPath -Force
+
 Write-Host "Done."
-Write-Host "Run: $(Join-Path $OutputDir 'Manitux.Desktop')"
+Write-Host "Run: $(Join-Path $FullOutputDir 'Manitux.Desktop')"
+Write-Host "Release asset: $FullZipPath"
