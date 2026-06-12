@@ -30,6 +30,7 @@ using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Notifications;
 using Manitux.Services.Plugins;
+using Manitux.Services.Updates;
 using Manitux.Services.WatchedEpisodes;
 using Manitux.Views;
 using Semi.Avalonia;
@@ -38,6 +39,7 @@ using TlsClient.Native;
 using Ursa.Controls;
 using static Manitux.Core.Helpers.LogHelper;
 using SemiTheme = Semi.Avalonia.SemiTheme;
+using UrsaWindowNotificationManager = Ursa.Controls.WindowNotificationManager;
 
 namespace Manitux.ViewModels;
 
@@ -53,6 +55,9 @@ public partial class MainViewModel : ViewModelBase
     private readonly IRemotePluginService _remotePluginService;
     private readonly IFavoritesService _favoritesService;
     private readonly IWatchedEpisodesService _watchedEpisodesService;
+    private readonly IApplicationUpdateService _applicationUpdateService;
+    private readonly UrsaWindowNotificationManager _notificationManager;
+    private bool _applicationUpdateCheckStarted;
 
     private PluginManager? _pluginManager;
 
@@ -82,7 +87,9 @@ public partial class MainViewModel : ViewModelBase
         ILocalizationService localizationService,
         IRemotePluginService remotePluginService,
         IFavoritesService favoritesService,
-        IWatchedEpisodesService watchedEpisodesService)
+        IWatchedEpisodesService watchedEpisodesService,
+        IApplicationUpdateService applicationUpdateService,
+        UrsaWindowNotificationManager notificationManager)
     {
         _toastService = toastService;
         _notificationService = notificationService;
@@ -91,6 +98,8 @@ public partial class MainViewModel : ViewModelBase
         _remotePluginService = remotePluginService;
         _favoritesService = favoritesService;
         _watchedEpisodesService = watchedEpisodesService;
+        _applicationUpdateService = applicationUpdateService;
+        _notificationManager = notificationManager;
         Locales = new LocaleViewModel(localizationService);
 
         L = _localizationService.Strings;
@@ -101,6 +110,7 @@ public partial class MainViewModel : ViewModelBase
         WeakReferenceMessenger.Default.Register<MainViewModel, PageItemChangedMessage>(this, OnNavigation);
         WeakReferenceMessenger.Default.Register<MainViewModel, PluginCatalogReloadingMessage>(this, OnPluginCatalogReloading);
         WeakReferenceMessenger.Default.Register<MainViewModel, PluginCatalogChangedMessage>(this, OnPluginCatalogChanged);
+        _applicationUpdateService.UpdateAvailable += ApplicationUpdateServiceOnUpdateAvailable;
         //WeakReferenceMessenger.Default.Register<MainViewModel, string, string>(this, "JumpTo", OnNavigation);
         //OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
 
@@ -120,6 +130,7 @@ public partial class MainViewModel : ViewModelBase
             MenuKeys.MenuKeyCategories => new CategoriesViewModel(),
             MenuKeys.MenuKeyPageItems => new PageItemsViewModel(null),
             MenuKeys.MenuKeySettings => new RemotePluginsViewModel(_remotePluginService, _localizationService, _pluginService),
+            MenuKeys.MenuKeyApplicationUpdate => new UpdateViewModel(_applicationUpdateService, _localizationService, _notificationService),
             _ => null //throw new ArgumentOutOfRangeException(nameof(s), s, null)
         };
         UpdateNavigationChrome();
@@ -160,6 +171,9 @@ public partial class MainViewModel : ViewModelBase
                 break;
             case MenuKeys.MenuKeySettings:
                 Content = new RemotePluginsViewModel(_remotePluginService, _localizationService, _pluginService);
+                break;
+            case MenuKeys.MenuKeyApplicationUpdate:
+                Content = new UpdateViewModel(_applicationUpdateService, _localizationService, _notificationService);
                 break;
             case MenuKeys.MenuKeyFavorites:
                 _currentPageItemsViewModel = null;
@@ -310,6 +324,7 @@ public partial class MainViewModel : ViewModelBase
 
             IsInitialized = true;
             IsReady = true;
+            StartApplicationUpdateCheck();
         }
         else
         {
@@ -419,6 +434,82 @@ public partial class MainViewModel : ViewModelBase
     private void UpdateNavigationChrome()
     {
         IsNavigationVisible = Content is not PlayerViewModel;
+    }
+
+    private void StartApplicationUpdateCheck()
+    {
+        if (_applicationUpdateCheckStarted)
+        {
+            return;
+        }
+
+        _applicationUpdateCheckStarted = true;
+        _ = Task.Run(() => _applicationUpdateService.CheckForUpdatesAsync());
+    }
+
+    private void ApplicationUpdateServiceOnUpdateAvailable(object? sender, EventArgs e)
+    {
+        Dispatcher.UIThread.Post(ShowApplicationUpdateNotification);
+    }
+
+    private void ShowApplicationUpdateNotification()
+    {
+        var updateVersion = _applicationUpdateService.LatestVersion
+                            ?? _applicationUpdateService.LatestReleaseName
+                            ?? string.Empty;
+        var message = string.Format(L.ApplicationUpdateReadyFormat, updateVersion);
+
+        var detailsButton = new Button
+        {
+            Content = L.Open,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right
+        };
+        detailsButton.Click += (_, _) => OnNavigation(this, MenuKeys.MenuKeyApplicationUpdate);
+
+        var updateButton = new Button
+        {
+            Content = L.StartApplicationUpdate,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right
+        };
+        updateButton.Click += async (_, _) =>
+        {
+            ShowToast(L.ApplicationUpdateStarting, NotificationType.Information);
+            await _applicationUpdateService.DownloadAndInstallUpdateAsync();
+        };
+
+        var content = new StackPanel
+        {
+            Spacing = 8,
+            MaxWidth = 360
+        };
+        content.Children.Add(new TextBlock
+        {
+            Text = L.ApplicationUpdate,
+            FontWeight = Avalonia.Media.FontWeight.SemiBold
+        });
+        content.Children.Add(new TextBlock
+        {
+            Text = message,
+            TextWrapping = Avalonia.Media.TextWrapping.Wrap
+        });
+
+        var actions = new StackPanel
+        {
+            Orientation = Avalonia.Layout.Orientation.Horizontal,
+            Spacing = 8,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right
+        };
+        actions.Children.Add(detailsButton);
+        actions.Children.Add(updateButton);
+        content.Children.Add(actions);
+
+        _notificationManager.Show(
+            content,
+            showIcon: true,
+            showClose: true,
+            type: NotificationType.Information,
+            classes: ["Dark"],
+            expiration: TimeSpan.FromSeconds(30));
     }
 
     private void ShowTestPlayer()

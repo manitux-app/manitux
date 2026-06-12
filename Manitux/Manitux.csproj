@@ -33,6 +33,7 @@
     <PackageReference Include="Irihi.Ursa.Themes.Semi" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Semi.Avalonia" />
+    <PackageReference Include="Updatum" />
   </ItemGroup>
 
   <ItemGroup>

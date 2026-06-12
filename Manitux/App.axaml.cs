@@ -13,6 +13,7 @@ using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Notifications;
 using Manitux.Services.Plugins;
+using Manitux.Services.Updates;
 using Manitux.Services.WatchedEpisodes;
 using Manitux.ViewModels;
 using Manitux.Views;
@@ -72,6 +73,7 @@ public partial class App : Application
             services.AddSingleton<IRemotePluginService, RemotePluginService>();
             services.AddSingleton<IFavoritesService, FavoritesService>();
             services.AddSingleton<IWatchedEpisodesService, WatchedEpisodesService>();
+            services.AddSingleton<IApplicationUpdateService, ApplicationUpdateService>();
 
             services.AddTransient<MainViewModel>();
 
@@ -108,6 +110,7 @@ public partial class App : Application
             services.AddSingleton<IRemotePluginService, RemotePluginService>();
             services.AddSingleton<IFavoritesService, FavoritesService>();
             services.AddSingleton<IWatchedEpisodesService, WatchedEpisodesService>();
+            services.AddSingleton<IApplicationUpdateService, ApplicationUpdateService>();
 
             services.AddTransient<MainViewModel>();
 
