@@ -10,6 +10,8 @@
 
 **⚠️ Uyarı: Varsayılan olarak, bu uygulama herhangi bir video kaynağı sağlamaz; uygulamaya işlevsellik katmak için eklenti yüklemeniz gerekir.**
 
+Official Plugins for the Manitux App: https://github.com/manitux-app/manitux-plugins
+
 ## Hakkında: 
 
 **Manitux, kullanıcılar ve geliştiriciler için tam özgürlük ve esnekliği önceliklendiren ve vurgulayan bir medya merkezidir.** 

@@ -10,6 +10,8 @@
 
 **⚠️ Warning: By default, this app doesn't provide any video sources; you have to install extensions to add functionality to the app.**
 
+Manitux App Resmi Eklenti Deposu: https://github.com/manitux-app/manitux-plugins
+
 ## About us: 
 
 **Manitux is a media center that prioritizes and emphasizes complete freedom and flexibility for users and developers.** 
