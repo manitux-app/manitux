@@ -6,11 +6,11 @@
 
 ## Manitux Cross-Platform Desktop Application
 
-[Like CloudStream, Kodi, MediaPortal, Jellyfin. But cross-platform desktop and user-friendly. Many more great features will be added in the future.]
+[Like CloudStream, Kodi. But cross-platform desktop and user-friendly. Many more great features will be added in the future.]
 
 **⚠️ Warning: By default, this app doesn't provide any video sources; you have to install extensions to add functionality to the app.**
 
-Manitux App Resmi Eklenti Deposu: https://github.com/manitux-app/manitux-plugins
+Official Plugins for the Manitux App: https://github.com/manitux-app/manitux-plugins
 
 ## About us: 
 
