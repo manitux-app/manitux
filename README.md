@@ -6,9 +6,11 @@
 
 ## Manitux Cross Platform Masaüstü Uygulama
 
-[CloudStream, Kodi, MediaPortal, Jellyfin gibi ama platformlar arası masaüstü ve kullanıcı dostu. Gelecekte çok daha fazla harika özellik eklenecek.]
+[CloudStream, Kodi gibi ama platformlar arası masaüstü ve kullanıcı dostu. Gelecekte çok daha fazla harika özellik eklenecek.]
 
 **⚠️ Uyarı: Varsayılan olarak, bu uygulama herhangi bir video kaynağı sağlamaz; uygulamaya işlevsellik katmak için eklenti yüklemeniz gerekir.**
+
+Manitux App Resmi Eklenti Deposu: https://github.com/manitux-app/manitux-plugins
 
 ## Hakkında: 
 
