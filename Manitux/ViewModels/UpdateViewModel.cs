@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Avalonia.Controls.Notifications;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Manitux.Core.Application;
@@ -41,6 +42,7 @@ public partial class UpdateViewModel : ViewModelBase
     public string DownloadProgressText => _updateService.DownloadProgressText;
     public bool HasStatus => !string.IsNullOrWhiteSpace(StatusMessage);
     public bool HasChangelog => !string.IsNullOrWhiteSpace(Changelog);
+    public bool CanStartUpdate => IsUpdateAvailable && !IsBusy;
     public NotificationType StatusType => IsUpdateAvailable ? NotificationType.Success : NotificationType.Information;
 
     [RelayCommand]
@@ -49,23 +51,25 @@ public partial class UpdateViewModel : ViewModelBase
         await _updateService.CheckForUpdatesAsync();
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanStartUpdate))]
     private async Task StartUpdate()
     {
-        if (!IsUpdateAvailable)
-        {
-            await CheckForUpdates();
-            if (!IsUpdateAvailable)
-            {
-                return;
-            }
-        }
-
         _notificationService.ShowInfo(L.ApplicationUpdateStarting, L.ApplicationUpdate, true, true);
         await _updateService.DownloadAndInstallUpdateAsync();
     }
 
     private void UpdateServiceOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(RaiseUpdateProperties);
+            return;
+        }
+
+        RaiseUpdateProperties();
+    }
+
+    private void RaiseUpdateProperties()
     {
         OnPropertyChanged(nameof(CurrentVersion));
         OnPropertyChanged(nameof(LatestVersion));
@@ -82,6 +86,8 @@ public partial class UpdateViewModel : ViewModelBase
         OnPropertyChanged(nameof(DownloadProgressText));
         OnPropertyChanged(nameof(HasStatus));
         OnPropertyChanged(nameof(HasChangelog));
+        OnPropertyChanged(nameof(CanStartUpdate));
         OnPropertyChanged(nameof(StatusType));
+        StartUpdateCommand.NotifyCanExecuteChanged();
     }
 }

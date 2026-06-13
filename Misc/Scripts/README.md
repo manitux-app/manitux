@@ -62,6 +62,7 @@ Asset: Manitux_linux-x64_v0.2.0.zip
 Shell scriptler:
 
 ```bash
+bash Misc/Scripts/publish-win-x64-standalone.sh
 bash Misc/Scripts/publish-linux-x64-standalone.sh
 bash Misc/Scripts/publish-osx-x64-standalone.sh
 bash Misc/Scripts/publish-osx-arm64-standalone.sh
@@ -70,6 +71,7 @@ bash Misc/Scripts/publish-osx-arm64-standalone.sh
 Opsiyonel olarak çıktı klasörü ve zip yolu verilebilir:
 
 ```bash
+bash Misc/Scripts/publish-win-x64-standalone.sh [output-dir] [zip-path]
 bash Misc/Scripts/publish-linux-x64-standalone.sh [output-dir] [zip-path]
 ```
 
