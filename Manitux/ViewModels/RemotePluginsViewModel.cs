@@ -284,6 +284,37 @@ public partial class RemotePluginsViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private async Task SavePluginSelections(RemotePluginRepositoryGroup? repositoryGroup)
+    {
+        if (repositoryGroup is null)
+        {
+            return;
+        }
+
+        var states = repositoryGroup.PluginGroups
+            .SelectMany(group => group.Plugins.Where(plugin => plugin.IsInstalled).Select(plugin => new RemotePluginEnabledState
+            {
+                InternalName = plugin.InternalName,
+                PackageInternalName = GetPackageKey(plugin),
+                IsEnabled = plugin.IsEnabled
+            }))
+            .ToList();
+
+        await RunBusy(async () =>
+        {
+            var changed = await _remotePluginService.SetEnabledStatesAsync(states);
+
+            if (changed > 0)
+            {
+                await ReloadPlugins();
+            }
+
+            await RefreshSettings();
+            SetStatus(L.Success, NotificationType.Success);
+        });
+    }
+
+    [RelayCommand]
     private async Task UpdateAll()
     {
         await RunBusy(async () =>
@@ -355,10 +386,13 @@ public partial class RemotePluginsViewModel : ViewModelBase
 
                     foreach (var plugin in orderedPlugins)
                     {
-                        plugin.Strings = L;
-                        plugin.IsInstalled = installedPlugins.Any(installed =>
+                        var installed = installedPlugins.FirstOrDefault(installed =>
                             string.Equals(installed.InternalName, plugin.InternalName, StringComparison.OrdinalIgnoreCase)
                             && string.Equals(installed.PackageInternalName, GetPackageKey(plugin), StringComparison.OrdinalIgnoreCase));
+
+                        plugin.Strings = L;
+                        plugin.IsInstalled = installed is not null;
+                        plugin.IsEnabled = installed?.IsEnabled ?? true;
                     }
 
                     return new RemotePluginPackageGroup(
@@ -455,6 +489,16 @@ public partial class RemotePluginsViewModel : ViewModelBase
         {
             return;
         }
+
+        var settings = await _remotePluginService.GetSettingsAsync();
+        var enabledPlugins = settings.InstalledPlugins
+            .Where(x => x.IsEnabled)
+            .Select(x => x.InternalName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var hasPluginSettings = settings.InstalledPlugins.Count > 0;
+
+        _pluginManager.SetPluginEnabledFilter((manifest, _) =>
+            !hasPluginSettings || enabledPlugins.Contains(manifest.Id));
 
         await _pluginManager.LoadAllAsync();
         WeakReferenceMessenger.Default.Send(new PluginCatalogChangedMessage(true));

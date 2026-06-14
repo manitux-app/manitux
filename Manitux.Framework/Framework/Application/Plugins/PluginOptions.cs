@@ -16,4 +16,9 @@ public sealed class PluginOptions
 
     /// <summary>Debounce interval to avoid double-reloads on rapid file changes.</summary>
     public TimeSpan ReloadDebounce { get; set; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>
+    /// Optional per-plugin load filter. Return false to keep a discovered plugin disabled.
+    /// </summary>
+    public Func<PluginManifest, string, bool>? IsPluginEnabled { get; set; }
 }

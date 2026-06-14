@@ -191,6 +191,44 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
         return await RemoveAsync(internalName, null, cancellationToken);
     }
 
+    public async Task<int> SetEnabledStatesAsync(
+        IReadOnlyCollection<RemotePluginEnabledState> states,
+        CancellationToken cancellationToken = default)
+    {
+        if (states.Count == 0)
+        {
+            return 0;
+        }
+
+        var settings = await LoadSettingsAsync(cancellationToken);
+        var changed = 0;
+        var now = DateTimeOffset.UtcNow;
+
+        foreach (var state in states)
+        {
+            var plugin = settings.InstalledPlugins.FirstOrDefault(x =>
+                KeyEquals(x.InternalName, state.InternalName)
+                && (string.IsNullOrWhiteSpace(state.PackageInternalName)
+                    || KeyEquals(x.PackageInternalName, state.PackageInternalName)));
+
+            if (plugin is null || plugin.IsEnabled == state.IsEnabled)
+            {
+                continue;
+            }
+
+            plugin.IsEnabled = state.IsEnabled;
+            plugin.UpdatedAt = now;
+            changed++;
+        }
+
+        if (changed > 0)
+        {
+            await SaveSettingsAsync(settings, cancellationToken);
+        }
+
+        return changed;
+    }
+
     public async Task<bool> RemoveAsync(string internalName, string? packageInternalName, CancellationToken cancellationToken = default)
     {
         var settings = await LoadSettingsAsync(cancellationToken);

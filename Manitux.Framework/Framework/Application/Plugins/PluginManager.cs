@@ -143,6 +143,29 @@ public sealed class PluginManager : IAsyncDisposable
                 throw new InvalidOperationException(
                     $"Duplicate plugin id '{duplicateInAssembly.Key}' in {Path.GetFileName(pluginPath)}");
 
+            var disabledPlugins = pluginCandidates
+                .Where(p => _options.IsPluginEnabled?.Invoke(p.Manifest, pluginPath) == false)
+                .ToList();
+
+            foreach (var (_, plugin, manifest) in disabledPlugins)
+            {
+                plugin.Dispose();
+                disposedPlugins.Add(plugin);
+                Console.WriteLine($"  - Plugin disabled: {manifest.Name} v{manifest.Version}");
+            }
+
+            pluginCandidates = pluginCandidates
+                .Except(disabledPlugins)
+                .ToList();
+
+            if (pluginCandidates.Count == 0)
+            {
+                if (loadCtx.IsCollectible)
+                    loadCtx.Unload();
+
+                return;
+            }
+
             var alreadyLoaded = pluginCandidates
                 .FirstOrDefault(p => _plugins.ContainsKey(p.Manifest.Id));
 
@@ -368,6 +391,10 @@ public sealed class PluginManager : IAsyncDisposable
     public IEnumerable<IPlugin> GetAllPlugins() => _plugins.Values.Select(p => p.Instance);
     /// <summary>Returns all loaded plugin records including state and metadata.</summary>
     public IEnumerable<LoadedPlugin> GetLoadedPlugins() => _plugins.Values;
+
+    /// <summary>Updates the optional per-plugin load filter used by subsequent load/reload operations.</summary>
+    public void SetPluginEnabledFilter(Func<PluginManifest, string, bool>? filter) =>
+        _options.IsPluginEnabled = filter;
 
     /// <summary>Runs health checks on all started plugins and returns their status.</summary>
     public async Task<Dictionary<string, HealthStatus>> GetHealthAsync()

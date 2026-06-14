@@ -81,6 +81,9 @@ public sealed class RemotePluginManifest
     public bool IsInstalled { get; set; }
 
     [JsonIgnore]
+    public bool IsEnabled { get; set; } = true;
+
+    [JsonIgnore]
     public AppStrings? Strings { get; set; }
 
     [JsonIgnore]
@@ -99,9 +102,17 @@ public sealed class ManagedRemotePlugin
     public string? RepositoryUrl { get; set; }
     public string? PluginListUrl { get; set; }
     public string FilePath { get; set; } = string.Empty;
+    public bool IsEnabled { get; set; } = true;
     public DateTimeOffset InstalledAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public RemotePluginManifest? Manifest { get; set; }
+}
+
+public sealed class RemotePluginEnabledState
+{
+    public string InternalName { get; set; } = string.Empty;
+    public string? PackageInternalName { get; set; }
+    public bool IsEnabled { get; set; } = true;
 }
 
 public sealed class ManagedRemoteRepository
