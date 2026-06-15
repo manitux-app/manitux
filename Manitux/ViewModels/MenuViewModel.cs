@@ -153,8 +153,8 @@ public class MenuViewModel : ViewModelBase
             MenuIconName = "settings",
             Children =
             [
-                new() { MenuHeader = L.PluginRepositories, Key = MenuKeys.MenuKeySettings, MenuIconName = "settings" },
-                new() { MenuHeader = L.Updates, Key = MenuKeys.MenuKeyApplicationUpdate, MenuIconName = "settings" }
+                new() { MenuHeader = L.PluginRepositories, Key = MenuKeys.MenuKeySettings, MenuIconName = "repo" },
+                new() { MenuHeader = L.Updates, Key = MenuKeys.MenuKeyApplicationUpdate, MenuIconName = "update" }
             ]
         };
     }

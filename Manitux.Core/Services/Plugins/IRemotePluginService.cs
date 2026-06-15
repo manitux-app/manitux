@@ -11,6 +11,7 @@ public interface IRemotePluginService
     Task<IReadOnlyList<RemotePluginManifest>> GetRepositoryPluginsAsync(string repositoryUrlOrShortCode, CancellationToken cancellationToken = default);
     Task<RemotePluginInstallResult> InstallAsync(string urlOrShortCode, string? internalName = null, CancellationToken cancellationToken = default);
     Task<RemotePluginInstallResult> InstallAsync(RemotePluginManifest manifest, CancellationToken cancellationToken = default);
+    Task<int> SetEnabledStatesAsync(IReadOnlyCollection<RemotePluginEnabledState> states, CancellationToken cancellationToken = default);
     Task<bool> RemoveAsync(string internalName, CancellationToken cancellationToken = default);
     Task<bool> RemoveAsync(string internalName, string? packageInternalName, CancellationToken cancellationToken = default);
     Task<RemotePluginUpdateCheckResult> CheckUpdateAsync(string internalName, CancellationToken cancellationToken = default);

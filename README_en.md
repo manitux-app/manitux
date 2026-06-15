@@ -12,6 +12,8 @@
 
 Official Plugins for the Manitux App: https://github.com/manitux-app/manitux-plugins
 
+For plugin developers: [PluginTemplate](https://github.com/manitux-app/manitux-plugins/tree/main/PluginTemplate)
+
 ## About us: 
 
 **Manitux is a media center that prioritizes and emphasizes complete freedom and flexibility for users and developers.** 

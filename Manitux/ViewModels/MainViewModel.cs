@@ -63,6 +63,7 @@ public partial class MainViewModel : ViewModelBase
 
     private AppConfig _config = new();
     public AppStrings L { get; }
+    public string ApplicationVersion => _applicationUpdateService.CurrentVersion;
     private ManituxFramework _framework = new ManituxFramework();
     private readonly Stack<object> _navigationStack = new();
     

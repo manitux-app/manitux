@@ -91,7 +91,10 @@
                         </DockPanel>
                     </u:NavMenu.Header>
                     <u:NavMenu.Footer>
-                        <u:IconButton IsVisible="False"
+                        <StackPanel>
+                        <Separator Height="5"/>
+                        <TextBlock Text="{Binding ApplicationVersion}" FontSize="12" HorizontalAlignment="Center"></TextBlock>
+                        <!-- <u:IconButton IsVisible="False"
                             HorizontalAlignment="Stretch"
                             Classes="Tertiary"
                             Icon="{StaticResource SemiIconSetting}"
@@ -112,7 +115,8 @@
                                     </u:Form>
                                 </Flyout>
                             </Button.Flyout>
-                        </u:IconButton>
+                        </u:IconButton> -->
+                        </StackPanel>
                     </u:NavMenu.Footer>
                 </u:NavMenu>
             </Border>

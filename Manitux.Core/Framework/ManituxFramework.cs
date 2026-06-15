@@ -7,6 +7,7 @@ using CodeLogic.Framework.Application;
 using CodeLogic.Framework.Application.Plugins;
 using Manitux.Core.Application;
 using Manitux.Core.Plugins;
+using Manitux.Core.Services.Plugins;
 
 namespace Manitux.Core.Framework;
 
@@ -64,9 +65,21 @@ public class ManituxFramework
 
         //Debug.WriteLine(pluginsDir);
 
+        var remotePluginSettings = await new RemotePluginService(pluginsDir).GetSettingsAsync();
+        var enabledPlugins = remotePluginSettings.InstalledPlugins
+            .Where(x => x.IsEnabled)
+            .Select(x => x.InternalName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var hasPluginSettings = remotePluginSettings.InstalledPlugins.Count > 0;
+
         var pluginMgr = new PluginManager(
             CodeLogic.CodeLogic.GetEventBus(),
-            new PluginOptions { PluginsDirectory = pluginsDir, EnableHotReload = true });
+            new PluginOptions
+            {
+                PluginsDirectory = pluginsDir,
+                EnableHotReload = true,
+                IsPluginEnabled = (manifest, _) => !hasPluginSettings || enabledPlugins.Contains(manifest.Id)
+            });
 
         // Load our demo plugins directly (no separate DLL needed for in-process plugins)
          //await LoadInProcessPluginAsync(pluginMgr, new TmdbPlugin());

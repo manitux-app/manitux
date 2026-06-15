@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using Avalonia.Threading;
 using Manitux.Services.Localizations;
 using Updatum;
@@ -23,10 +24,11 @@ public sealed class ApplicationUpdateService : IApplicationUpdateService
     public ApplicationUpdateService(ILocalizationService localizationService)
     {
         _localizationService = localizationService;
-        _updater = new UpdatumManager(RepositoryOwner, RepositoryName)
+        _updater = new UpdatumManager(RepositoryOwner, RepositoryName, GetEntryVersionValue())
         {
-            AssetRegexPattern = $"^{ApplicationName}_{GetRuntimeIdentifier()}_v",
+            AssetRegexPattern = GetAssetRegexPattern(),
             AssetExtensionFilter = ".zip",
+            AllowPreReleases = true,
             InstallUpdateSingleFileExecutableNameStrategy = UpdatumSingleFileExecutableNameStrategy.EntryApplicationName,
             InstallUpdateSingleFileExecutableName = "Manitux.Desktop",
             InstallUpdateWindowsExeType = UpdatumWindowsExeType.SingleFileApp
@@ -175,11 +177,35 @@ public sealed class ApplicationUpdateService : IApplicationUpdateService
 
     private static string GetEntryVersion()
     {
+        return GetEntryVersionValue().ToString(3);
+    }
+
+    private static Version GetEntryVersionValue()
+    {
         var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
         var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
                       ?? assembly.GetName().Version?.ToString();
 
-        return string.IsNullOrWhiteSpace(version) ? "0.0.0" : version;
+        version = version?.Trim();
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            return new Version(0, 0, 0);
+        }
+
+        var metadataIndex = version.IndexOfAny(['+', '-']);
+        if (metadataIndex > -1)
+        {
+            version = version[..metadataIndex];
+        }
+
+        return Version.TryParse(version.TrimStart('v', 'V'), out var parsed)
+            ? parsed
+            : new Version(0, 0, 0);
+    }
+
+    private static string GetAssetRegexPattern()
+    {
+        return $@"^{Regex.Escape(ApplicationName)}_{Regex.Escape(GetRuntimeIdentifier())}_v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?\.zip$";
     }
 
     private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
