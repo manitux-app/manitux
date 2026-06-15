@@ -12,6 +12,8 @@
 
 Manitux App Resmi Eklenti Deposu: https://github.com/manitux-app/manitux-plugins
 
+Eklenti geliştiricileri için: [PluginTemplate](https://github.com/manitux-app/manitux-plugins/tree/main/PluginTemplate)
+
 ## Hakkında: 
 
 **Manitux, kullanıcılar ve geliştiriciler için tam özgürlük ve esnekliği önceliklendiren ve vurgulayan bir medya merkezidir.** 

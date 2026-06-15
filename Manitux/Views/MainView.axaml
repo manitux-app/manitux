@@ -92,7 +92,7 @@
                     </u:NavMenu.Header>
                     <u:NavMenu.Footer>
                         <StackPanel>
-                        <Separator/>
+                        <Separator Height="5"/>
                         <TextBlock Text="{Binding ApplicationVersion}" FontSize="12" HorizontalAlignment="Center"></TextBlock>
                         <!-- <u:IconButton IsVisible="False"
                             HorizontalAlignment="Stretch"
