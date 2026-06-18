@@ -71,6 +71,7 @@ public class MenuViewModel : ViewModelBase
         {
             CreateSettingsMenu(),
             new() { MenuHeader = L.Favorites, Key = MenuKeys.MenuKeyFavorites, IsSeparator = false, MenuIconName = "star" },
+            new() { MenuHeader = L.Downloads, Key = MenuKeys.MenuKeyDownloads, IsSeparator = false, MenuIconName = "download" },
             new() { MenuHeader = L.Plugins, IsSeparator = true, Status = "0" }
         };
 
@@ -114,6 +115,7 @@ public class MenuViewModel : ViewModelBase
             //new() { MenuHeader = localize.AboutUs, Key = MenuKeys.MenuKeyAboutUs, IsSeparator = false },
             CreateSettingsMenu(),
             new() { MenuHeader = L.Favorites, Key = MenuKeys.MenuKeyFavorites, IsSeparator = false, MenuIconName = "star" },
+            new() { MenuHeader = L.Downloads, Key = MenuKeys.MenuKeyDownloads, IsSeparator = false, MenuIconName = "download" },
             new() { MenuHeader = L.Plugins, IsSeparator = true, Status = pluginMenus.Any() ? pluginMenus.Count.ToString(): "0" },
         };
 
@@ -168,6 +170,7 @@ public static class MenuKeys
     public const string MenuKeyCategories = "Categories";
     public const string MenuKeyPageItems = "PageItems";
     public const string MenuKeyFavorites = "Favorites";
+    public const string MenuKeyDownloads = "Downloads";
     public const string MenuKeyMediaInfo = "MediaInfo";
     public const string MenuKeySearch = "Search";
     public const string MenuKeyPlayer = "Player";

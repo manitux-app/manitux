@@ -9,6 +9,7 @@ using Avalonia.Threading;
 using CodeLogic.Framework.Application.Plugins;
 using Manitux.Core.Services.Plugins;
 using Manitux.Services.Applications;
+using Manitux.Services.Downloads;
 using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Notifications;
@@ -72,6 +73,7 @@ public partial class App : Application
             services.AddSingleton<ILocalizationService, LocalizationService>();
             services.AddSingleton<IRemotePluginService, RemotePluginService>();
             services.AddSingleton<IFavoritesService, FavoritesService>();
+            services.AddSingleton<IDownloadService, DownloadService>();
             services.AddSingleton<IWatchedEpisodesService, WatchedEpisodesService>();
             services.AddSingleton<IApplicationUpdateService, ApplicationUpdateService>();
 
@@ -109,6 +111,7 @@ public partial class App : Application
             services.AddSingleton<ILocalizationService, LocalizationService>();
             services.AddSingleton<IRemotePluginService, RemotePluginService>();
             services.AddSingleton<IFavoritesService, FavoritesService>();
+            services.AddSingleton<IDownloadService, DownloadService>();
             services.AddSingleton<IWatchedEpisodesService, WatchedEpisodesService>();
             services.AddSingleton<IApplicationUpdateService, ApplicationUpdateService>();
 

@@ -266,7 +266,7 @@ public static class M3u8Helper
 
         var client = new HttpClient(handler)
         {
-            Timeout = TimeSpan.FromSeconds(20)
+            Timeout = TimeSpan.FromSeconds(120)
         };
 
         client.DefaultRequestHeaders.Accept.Clear();

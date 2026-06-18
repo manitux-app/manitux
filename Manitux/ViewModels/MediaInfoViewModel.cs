@@ -24,6 +24,7 @@ using Manitux.Core.Plugins;
 using Manitux.Models;
 using Manitux.Pages;
 using Manitux.Player;
+using Manitux.Services.Downloads;
 using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Plugins;
@@ -38,6 +39,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
     private readonly IPluginService _pluginService;
     private readonly ILocalizationService _localizationService;
     private readonly IFavoritesService _favoritesService;
+    private readonly IDownloadService _downloadService;
     private readonly IWatchedEpisodesService _watchedEpisodesService;
     private readonly PageItemModel? _sourcePageItem;
     private readonly Action<PlayerViewModel>? _showPlayer;
@@ -75,6 +77,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         IPluginService pluginService,
         ILocalizationService localizationService,
         IFavoritesService favoritesService,
+        IDownloadService downloadService,
         IWatchedEpisodesService watchedEpisodesService,
         PageItemModel? pageItem,
         Action<PlayerViewModel>? showPlayer = null,
@@ -85,6 +88,7 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         _pluginService = pluginService;
         _localizationService = localizationService;
         _favoritesService = favoritesService;
+        _downloadService = downloadService;
         _watchedEpisodesService = watchedEpisodesService;
         _sourcePageItem = pageItem;
         _showPlayer = showPlayer;
@@ -486,20 +490,48 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
     private async Task DownloadSource(VideoSourceModel source)
     {
-        var storageProvider = GetStorageProvider();
-        if (storageProvider is null || string.IsNullOrWhiteSpace(source.Url))
+        if (string.IsNullOrWhiteSpace(source.Url))
         {
             ShowError(Localize?.VideoNotInitialized);
             return;
         }
 
         var extension = GetFileExtension(source.Url);
-        var downloadsFolder = await storageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Downloads);
+        var fileName = $"{SanitizeFileName(MediaInfo?.Title ?? source.Name)} - {SanitizeFileName(source.Name)}{extension}";
+        var filePath = await PickDownloadFilePath(fileName, extension);
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            return;
+        }
+
+        try
+        {
+            await _downloadService.AddAsync(source, Path.GetFileName(filePath), filePath);
+            ShowSuccess(L.DownloadQueued);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Download queue failed: {ex}");
+            ShowError($"{L.DownloadFailed}: {ex.Message}");
+        }
+    }
+
+    private async Task<string?> PickDownloadFilePath(string fileName, string extension)
+    {
+        var storageProvider = GetStorageProvider();
+        if (storageProvider is null)
+        {
+            ShowError(Localize?.VideoNotInitialized);
+            return null;
+        }
+
+        var defaultFolder = await storageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Videos)
+                            ?? await storageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Downloads);
         var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = L.Download,
-            SuggestedFileName = $"{SanitizeFileName(MediaInfo?.Title ?? source.Name)} - {SanitizeFileName(source.Name)}{extension}",
-            SuggestedStartLocation = downloadsFolder,
+            SuggestedFileName = fileName,
+            SuggestedStartLocation = defaultFolder,
             DefaultExtension = extension.TrimStart('.'),
             FileTypeChoices =
             [
@@ -512,46 +544,10 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
         if (file is null)
         {
-            return;
+            return null;
         }
 
-        IsLoading = true;
-        try
-        {
-            using var httpClient = new HttpClient();
-            using var request = new HttpRequestMessage(HttpMethod.Get, source.Url);
-
-            if (!string.IsNullOrWhiteSpace(source.Referer))
-            {
-                request.Headers.Referrer = new Uri(source.Referer);
-            }
-
-            if (source.Headers is not null)
-            {
-                foreach (var header in source.Headers)
-                {
-                    request.Headers.TryAddWithoutValidation(header.Name, header.Value);
-                }
-            }
-
-            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-            response.EnsureSuccessStatusCode();
-
-            await using var input = await response.Content.ReadAsStreamAsync();
-            await using var output = await file.OpenWriteAsync();
-            await input.CopyToAsync(output);
-
-            ShowSuccess(L.DownloadCompleted);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Download failed: {ex}");
-            ShowError($"{L.DownloadFailed}: {ex.Message}");
-        }
-        finally
-        {
-            IsLoading = false;
-        }
+        return file.Path.LocalPath;
     }
 
     private async Task PlayWithExternalPlayer(VideoSourceModel source, bool isVlc)
@@ -627,6 +623,11 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
 
     private static string GetFileExtension(string url)
     {
+        if (IsHlsDownloadUrl(url))
+        {
+            return ".mp4";
+        }
+
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
         {
             var extension = Path.GetExtension(uri.AbsolutePath);
@@ -637,6 +638,13 @@ public partial class MediaInfoViewModel : ViewModelBase, IDialogContext
         }
 
         return ".mp4";
+    }
+
+    private static bool IsHlsDownloadUrl(string url)
+    {
+        return url.Contains(".m3u8", StringComparison.OrdinalIgnoreCase)
+               || url.Contains("/hls/", StringComparison.OrdinalIgnoreCase)
+               && url.EndsWith(".txt", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string SanitizeFileName(string value)

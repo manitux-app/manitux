@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:u="https://irihi.tech/ursa"
+             xmlns:vm="clr-namespace:Manitux.ViewModels"
+             xmlns:models="clr-namespace:Manitux.Models"
+             mc:Ignorable="d"
+             d:DesignWidth="900"
+             d:DesignHeight="640"
+             x:DataType="vm:DownloadsViewModel"
+             x:Class="Manitux.Pages.Downloads">
+    <Grid RowDefinitions="Auto,*" RowSpacing="12" Margin="16">
+        <TextBlock Grid.Row="0"
+                   Text="{Binding L.Downloads}"
+                   FontSize="24"
+                   FontWeight="SemiBold"/>
+
+        <Grid Grid.Row="1">
+            <TextBlock Text="{Binding L.NoDownloadsFound}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontSize="18"
+                       Opacity="0.7"
+                       IsVisible="{Binding !HasDownloads}"/>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          IsVisible="{Binding HasDownloads}">
+                <ItemsControl ItemsSource="{Binding Downloads}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:DownloadItemModel">
+                            <Border Margin="0,0,0,10"
+                                    Padding="12"
+                                    Theme="{DynamicResource CardBorder}">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="6">
+                                        <TextBlock Text="{Binding FileName}"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Grid.Row="1"
+                                                   Text="{Binding Url}"
+                                                   Opacity="0.65"
+                                                   TextWrapping="Wrap"/>
+                                        <Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="4">
+                                            <ProgressBar Minimum="0"
+                                                         Maximum="100"
+                                                         Value="{Binding ProgressPercentage}"/>
+                                            <TextBlock Grid.Row="1"
+                                                       Text="{Binding ProgressText}"
+                                                       Opacity="0.65"
+                                                       FontSize="12"/>
+                                        </Grid>
+                                    </Grid>
+
+                                    <StackPanel Grid.Column="1"
+                                                Orientation="Horizontal"
+                                                Spacing="8"
+                                                VerticalAlignment="Center">
+                                        <u:IconButton Classes="Primary"
+                                                      Command="{Binding $parent[ItemsControl].((vm:DownloadsViewModel)DataContext).PauseCommand}"
+                                                      CommandParameter="{Binding}"
+                                                      IsVisible="{Binding CanPause}"
+                                                      Icon="⏸"
+                                                      ToolTip.Tip="{Binding $parent[ItemsControl].((vm:DownloadsViewModel)DataContext).L.Pause}"/>
+                                        <u:IconButton Classes="Primary"
+                                                      Command="{Binding $parent[ItemsControl].((vm:DownloadsViewModel)DataContext).StartCommand}"
+                                                      CommandParameter="{Binding}"
+                                                      IsVisible="{Binding CanStart}"
+                                                      Icon="▶"
+                                                      ToolTip.Tip="{Binding $parent[ItemsControl].((vm:DownloadsViewModel)DataContext).L.Resume}"/>
+                                        <u:IconButton Classes="Danger"
+                                                      Command="{Binding $parent[ItemsControl].((vm:DownloadsViewModel)DataContext).RemoveCommand}"
+                                                      CommandParameter="{Binding}"
+                                                      Icon="{StaticResource SemiIconDelete}"
+                                                      ToolTip.Tip="{Binding $parent[ItemsControl].((vm:DownloadsViewModel)DataContext).L.Remove}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

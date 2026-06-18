@@ -38,6 +38,7 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     public string Updates { get; set; } = "Updates";
     public string Plugins { get; set; } = "Plugins";
     public string Favorites { get; set; } = "Favorites";
+    public string Downloads { get; set; } = "Downloads";
     public string Search { get; set; } = "Search";
     public string Refresh { get; set; } = "Refresh";
     public string Country { get; set; } = "Country";
@@ -62,8 +63,11 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     public string MediaSelector { get; set; } = "Media selector";
     public string AudioTrackFormat { get; set; } = "Audio {0}";
     public string Download { get; set; } = "Download";
+    public string DownloadQueued { get; set; } = "Download added";
     public string DownloadCompleted { get; set; } = "Download completed";
     public string DownloadFailed { get; set; } = "Download failed";
+    public string Pause { get; set; } = "Pause";
+    public string Resume { get; set; } = "Resume";
     public string AddToFavorites { get; set; } = "Add to favorites";
     public string RemoveFromFavorites { get; set; } = "Remove from favorites";
     public string MarkAsWatched { get; set; } = "Mark as watched";
@@ -114,6 +118,7 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     public string Error { get; set; } = "Error";
     public string PluginNotSelected { get; set; } = "Plugin not selected";
     public string NoFavoritesFound { get; set; } = "No favorites found";
+    public string NoDownloadsFound { get; set; } = "No downloads found";
     public string AddedToFavorites { get; set; } = "Added to favorites";
     public string RemovedFromFavorites { get; set; } = "Removed from favorites";
     public string NoPluginsLoadedTitle { get; set; } = "No plugins loaded yet!";
