@@ -13,6 +13,9 @@ OUTPUT_DIR="${1:-$REPO_ROOT/builds/$ASSET_NAME}"
 ASSET_ZIP="${2:-$REPO_ROOT/builds/$ASSET_NAME.zip}"
 HELPER_SOURCE="$REPO_ROOT/Manitux.Desktop/helpers/$RUNTIME_ID"
 HELPER_OUTPUT="$OUTPUT_DIR/libs/helpers"
+ICON_SOURCE="$REPO_ROOT/Manitux/Assets/icons/hicolor"
+ICON_OUTPUT="$OUTPUT_DIR/share/icons/hicolor"
+DESKTOP_OUTPUT="$OUTPUT_DIR/share/applications"
 OUTPUT_PARENT="$(dirname -- "$OUTPUT_DIR")"
 OUTPUT_NAME="$(basename -- "$OUTPUT_DIR")"
 ZIP_PARENT="$(dirname -- "$ASSET_ZIP")"
@@ -57,6 +60,22 @@ fi
 if [ -f "$HELPER_OUTPUT/ytdlp" ]; then
   chmod +x "$HELPER_OUTPUT/ytdlp"
 fi
+
+if [ -d "$ICON_SOURCE" ]; then
+  mkdir -p "$ICON_OUTPUT"
+  cp -a "$ICON_SOURCE/." "$ICON_OUTPUT/"
+fi
+
+mkdir -p "$DESKTOP_OUTPUT"
+cat > "$DESKTOP_OUTPUT/manitux.desktop" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=Manitux
+Exec=Manitux.Desktop
+Icon=manitux
+Categories=AudioVideo;Video;Player;
+Terminal=false
+DESKTOP
 
 rm -f "$ZIP_REAL"
 (cd "$OUTPUT_REAL" && zip -qr "$ZIP_REAL" .)

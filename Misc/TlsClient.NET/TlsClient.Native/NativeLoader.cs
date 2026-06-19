@@ -29,6 +29,14 @@ namespace TlsClient.Native
             {
                 return "tlsclient";
             }
+            else if (OperatingSystem.IsMacOS())
+            {
+                return Path.GetFullPath(Path.Combine(
+                    AppContext.BaseDirectory,
+                    "..",
+                    "Frameworks",
+                    GetLibraryFileName()));
+            }
             else
             {
                 return Path.Combine(AppContext.BaseDirectory, "libs", GetLibraryFileName());

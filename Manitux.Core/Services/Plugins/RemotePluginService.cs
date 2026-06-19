@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Manitux.Core.Services.Storage;
 
 namespace Manitux.Core.Services.Plugins;
 
@@ -632,11 +633,7 @@ public sealed class RemotePluginService : IRemotePluginService, IDisposable
 
     private static string GetDefaultPluginsRootPath()
     {
-        var baseDir = OperatingSystem.IsAndroid()
-            ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-            : AppContext.BaseDirectory;
-
-        return Path.Combine(baseDir, "data", "plugins");
+        return AppDataPath.GetPluginsPath();
     }
 
     private static string NormalizeGitHubUrl(string url)

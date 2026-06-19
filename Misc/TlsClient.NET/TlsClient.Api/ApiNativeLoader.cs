@@ -28,6 +28,14 @@ namespace TlsClient.Api.Native
             {
                 return "tlsclientapi";
             }
+            else if (OperatingSystem.IsMacOS())
+            {
+                return Path.GetFullPath(Path.Combine(
+                    AppContext.BaseDirectory,
+                    "..",
+                    "Helpers",
+                    $"tlsclientapi{Extension}"));
+            }
             else
             {
                 return Path.Combine(AppContext.BaseDirectory, "libs", "helpers", $"tlsclientapi{Extension}");

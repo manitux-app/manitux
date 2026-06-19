@@ -29,6 +29,7 @@ public sealed class ApplicationUpdateService : IApplicationUpdateService
             AssetRegexPattern = GetAssetRegexPattern(),
             AssetExtensionFilter = ".zip",
             AllowPreReleases = true,
+            InstallUpdateCodesignMacOSApp = true,
             InstallUpdateSingleFileExecutableNameStrategy = UpdatumSingleFileExecutableNameStrategy.EntryApplicationName,
             InstallUpdateSingleFileExecutableName = "Manitux.Desktop",
             InstallUpdateWindowsExeType = UpdatumWindowsExeType.SingleFileApp

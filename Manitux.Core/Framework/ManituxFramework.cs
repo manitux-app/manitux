@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using CodeLogic.Framework.Application;
@@ -8,6 +7,7 @@ using CodeLogic.Framework.Application.Plugins;
 using Manitux.Core.Application;
 using Manitux.Core.Plugins;
 using Manitux.Core.Services.Plugins;
+using Manitux.Core.Services.Storage;
 
 namespace Manitux.Core.Framework;
 
@@ -15,13 +15,14 @@ public class ManituxFramework
 {
     public async Task<PluginManager> InitAsync()
     {
+        SeedBundledApplicationLocalization();
         EnsureLocalizationCulturesConfigured();
 
         // ── Step 1: Initialize ────────────────────────────────────────────────────
         var initResult = await CodeLogic.CodeLogic.InitializeAsync(opts =>
         {
-            opts.FrameworkRootPath = "data/codelogic";
-            opts.ApplicationRootPath = "data/app";
+            opts.FrameworkRootPath = AppDataPath.GetDataPath("codelogic");
+            opts.ApplicationRootPath = AppDataPath.GetAppPath();
             opts.AppVersion = "1.0.0";
             opts.HandleShutdownSignals = false; // önemli!
         });
@@ -57,11 +58,7 @@ public class ManituxFramework
         // with the rest of the app. It is registered with the runtime for health
         // checks and graceful shutdown.
 
-        string baseDir = OperatingSystem.IsAndroid()
-            ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android /data/user/0/.../files/
-            : AppContext.BaseDirectory;
-
-        string pluginsDir = Path.Combine(baseDir, "data", "plugins");
+        string pluginsDir = AppDataPath.GetPluginsPath();
 
         //Debug.WriteLine(pluginsDir);
 
@@ -112,13 +109,14 @@ public class ManituxFramework
     
     public async Task Init()
     {
+        SeedBundledApplicationLocalization();
         EnsureLocalizationCulturesConfigured();
 
         // ── Step 1: Initialize ────────────────────────────────────────────────────
         var initResult = await CodeLogic.CodeLogic.InitializeAsync(opts =>
         {
-            opts.FrameworkRootPath = "data/codelogic";
-            opts.ApplicationRootPath = "data/app";
+            opts.FrameworkRootPath = AppDataPath.GetDataPath("codelogic");
+            opts.ApplicationRootPath = AppDataPath.GetAppPath();
             opts.AppVersion = "1.0.0";
             opts.HandleShutdownSignals = false; // önemli!
         });
@@ -157,7 +155,7 @@ public class ManituxFramework
 
         var pluginMgr = new PluginManager(
             CodeLogic.CodeLogic.GetEventBus(),
-            new PluginOptions { PluginsDirectory = "data/plugins", EnableHotReload = false });
+            new PluginOptions { PluginsDirectory = AppDataPath.GetPluginsPath(), EnableHotReload = false });
 
         // Load our demo plugins directly (no separate DLL needed for in-process plugins)
         //await LoadInProcessPluginAsync(pluginMgr, new HdFilmCehennemi());
@@ -188,11 +186,7 @@ public class ManituxFramework
         // Build a PluginContext that reuses the app's paths/services
         //var pluginDir = Path.Combine("data/plugins", plugin.Manifest.Id);
 
-        string baseDir = OperatingSystem.IsAndroid()
-           ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) // for android: /data/user/0/.../files/
-           : AppContext.BaseDirectory;
-
-        string pluginsDir = Path.Combine(baseDir, "data/plugins");
+        string pluginsDir = AppDataPath.GetPluginsPath();
 
         var pluginDir = Path.Combine(pluginsDir, plugin.Manifest.Id);
         Directory.CreateDirectory(pluginDir);
@@ -234,11 +228,7 @@ public class ManituxFramework
     {
         try
         {
-            var baseDir = OperatingSystem.IsAndroid()
-                ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-                : AppContext.BaseDirectory;
-
-            var configPath = Path.Combine(baseDir, "data", "codelogic", "Framework", "CodeLogic.json");
+            var configPath = AppDataPath.GetDataPath("codelogic", "Framework", "CodeLogic.json");
             if (!File.Exists(configPath))
             {
                 return;
@@ -270,6 +260,37 @@ public class ManituxFramework
         catch (Exception ex)
         {
             Debug.WriteLine($"Localization culture config update failed: {ex}");
+        }
+    }
+
+    private static void SeedBundledApplicationLocalization()
+    {
+        try
+        {
+            var sourceDirectory = AppDataPath.GetBundledDataPath("app", "localization");
+            if (!Directory.Exists(sourceDirectory))
+            {
+                return;
+            }
+
+            var targetDirectory = AppDataPath.GetAppPath("localization");
+            Directory.CreateDirectory(targetDirectory);
+
+            foreach (var sourcePath in Directory.GetFiles(sourceDirectory, "*.json"))
+            {
+                var targetPath = Path.Combine(targetDirectory, Path.GetFileName(sourcePath));
+                if (File.Exists(targetPath)
+                    && File.GetLastWriteTimeUtc(targetPath) >= File.GetLastWriteTimeUtc(sourcePath))
+                {
+                    continue;
+                }
+
+                File.Copy(sourcePath, targetPath, overwrite: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Application localization seed failed: {ex}");
         }
     }
 }

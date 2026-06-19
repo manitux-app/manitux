@@ -50,6 +50,19 @@ namespace LibMPVSharp
 
         private static string ResolveLibraryPath(string libraryName)
         {
+            if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
+            {
+                var frameworkPath = Path.GetFullPath(Path.Combine(
+                    AppContext.BaseDirectory,
+                    "..",
+                    "Frameworks",
+                    libraryName));
+                if (File.Exists(frameworkPath))
+                {
+                    return frameworkPath;
+                }
+            }
+
             var libraryPath = Path.Combine(AppContext.BaseDirectory, "libs", libraryName);
             return File.Exists(libraryPath) ? libraryPath : libraryName;
         }

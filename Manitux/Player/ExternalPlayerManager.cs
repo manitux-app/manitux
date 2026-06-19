@@ -282,6 +282,14 @@ public class ExternalPlayerManager
         }
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+        var bundledPath = AppDataPath.GetBundledDataPath("app", "players.json");
+        if (File.Exists(bundledPath))
+        {
+            File.Copy(bundledPath, path, overwrite: false);
+            return;
+        }
+
         File.WriteAllText(path, JsonSerializer.Serialize(PlayerSettings.CreateDefault(), JsonOptions));
     }
 

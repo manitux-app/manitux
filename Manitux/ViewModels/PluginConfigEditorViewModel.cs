@@ -8,6 +8,7 @@ using Irihi.Avalonia.Shared.Contracts;
 using Manitux.Core.Application;
 using Manitux.Core.Plugins;
 using Manitux.Services.Localizations;
+using Manitux.Services.Storage;
 
 namespace Manitux.ViewModels;
 
@@ -123,11 +124,7 @@ public partial class PluginConfigEditorViewModel : ViewModelBase, IDialogContext
 
     private static string GetPluginConfigPath(string pluginId)
     {
-        var baseDir = OperatingSystem.IsAndroid()
-            ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
-            : AppContext.BaseDirectory;
-
-        return Path.Combine(baseDir, "data", "plugins", pluginId, "config.json");
+        return AppDataPath.GetPluginsPath(pluginId, "config.json");
     }
 
     public void Close()

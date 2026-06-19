@@ -14,11 +14,17 @@
 
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>favicon.ico</ApplicationIcon>
+    <ApplicationIcon>..\Manitux\Assets\icons\Manitux.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <Content Include="favicon.ico" />
+    <Content Include="..\Manitux\Assets\icons\Manitux.ico">
+      <Link>icons\Manitux.ico</Link>
+    </Content>
+    <Content Include="..\Manitux\Assets\icons\Manitux.icns">
+      <Link>icons\Manitux.icns</Link>
+    </Content>
     <None Include="data\app\players.json"
           CopyToOutputDirectory="PreserveNewest"
           CopyToPublishDirectory="PreserveNewest"
