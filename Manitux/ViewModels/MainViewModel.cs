@@ -26,6 +26,7 @@ using Manitux.Core.Services.Plugins;
 using Manitux.Models;
 using Manitux.Pages;
 using Manitux.Player;
+using Manitux.Services.Downloads;
 using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Notifications;
@@ -54,6 +55,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly ILocalizationService _localizationService;
     private readonly IRemotePluginService _remotePluginService;
     private readonly IFavoritesService _favoritesService;
+    private readonly IDownloadService _downloadService;
     private readonly IWatchedEpisodesService _watchedEpisodesService;
     private readonly IApplicationUpdateService _applicationUpdateService;
     private readonly UrsaWindowNotificationManager _notificationManager;
@@ -88,6 +90,7 @@ public partial class MainViewModel : ViewModelBase
         ILocalizationService localizationService,
         IRemotePluginService remotePluginService,
         IFavoritesService favoritesService,
+        IDownloadService downloadService,
         IWatchedEpisodesService watchedEpisodesService,
         IApplicationUpdateService applicationUpdateService,
         UrsaWindowNotificationManager notificationManager)
@@ -98,6 +101,7 @@ public partial class MainViewModel : ViewModelBase
         _localizationService = localizationService;
         _remotePluginService = remotePluginService;
         _favoritesService = favoritesService;
+        _downloadService = downloadService;
         _watchedEpisodesService = watchedEpisodesService;
         _applicationUpdateService = applicationUpdateService;
         _notificationManager = notificationManager;
@@ -132,6 +136,7 @@ public partial class MainViewModel : ViewModelBase
             MenuKeys.MenuKeyPageItems => new PageItemsViewModel(null),
             MenuKeys.MenuKeySettings => new RemotePluginsViewModel(_remotePluginService, _localizationService, _pluginService),
             MenuKeys.MenuKeyApplicationUpdate => new UpdateViewModel(_applicationUpdateService, _localizationService, _notificationService),
+            MenuKeys.MenuKeyDownloads => new DownloadsViewModel(_downloadService, _localizationService),
             _ => null //throw new ArgumentOutOfRangeException(nameof(s), s, null)
         };
         UpdateNavigationChrome();
@@ -179,6 +184,10 @@ public partial class MainViewModel : ViewModelBase
             case MenuKeys.MenuKeyFavorites:
                 _currentPageItemsViewModel = null;
                 Content = new FavoritesViewModel(_favoritesService, _pluginService, _localizationService, _remotePluginService);
+                break;
+            case MenuKeys.MenuKeyDownloads:
+                _currentPageItemsViewModel = null;
+                Content = new DownloadsViewModel(_downloadService, _localizationService);
                 break;
             case MenuKeys.MenuKeyPageItems:
                 message.Value.PageNumber = Math.Max(1, message.Value.PageNumber);
@@ -370,6 +379,7 @@ public partial class MainViewModel : ViewModelBase
             _pluginService,
             _localizationService,
             _favoritesService,
+            _downloadService,
             _watchedEpisodesService,
             pageItem,
             NavigateToPlayer,

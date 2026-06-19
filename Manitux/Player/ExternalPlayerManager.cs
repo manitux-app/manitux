@@ -287,7 +287,7 @@ public class ExternalPlayerManager
 
     private static string GetPlayersJsonPath()
     {
-        return AppDataPath.GetDataPath("players.json");
+        return AppDataPath.GetDataPath("app", "players.json");
     }
 
     private static string? ResolveExecutable(IEnumerable<string> candidates)

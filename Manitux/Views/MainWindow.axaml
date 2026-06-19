@@ -17,6 +17,6 @@
 	<!-- <views:TvView /> -->
 	<views:MainView />
         <u:UrsaWindow.RightContent>
-        <views:TitleBarRightContent DataContext="{Binding Locales}" />
-    </u:UrsaWindow.RightContent>
+         <views:TitleBarRightContent DataContext="{Binding Locales}" />
+        </u:UrsaWindow.RightContent>
 </u:UrsaWindow>

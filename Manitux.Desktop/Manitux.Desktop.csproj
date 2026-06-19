@@ -19,10 +19,10 @@
 
   <ItemGroup>
     <Content Include="favicon.ico" />
-    <None Include="data\players.json"
+    <None Include="data\app\players.json"
           CopyToOutputDirectory="PreserveNewest"
           CopyToPublishDirectory="PreserveNewest"
-          TargetPath="data\players.json" />
+          TargetPath="data\app\players.json" />
   </ItemGroup>
 
   <ItemGroup>
