@@ -11,6 +11,8 @@
   "healthy": "Tüm sistemler sağlıklı",
   "unhealthy": "Sorunlu: {0}",
   "aboutUs": "Hakkımızda",
+  "homePage": "Ana Sayfa",
+  "recentlyWatched": "Son İzlenenler",
   "settings": "Ayarlar",
   "pluginRepositories": "Eklenti depoları",
   "updates": "Güncellemeler",

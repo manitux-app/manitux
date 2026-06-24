@@ -33,6 +33,8 @@ public class AppStrings: LocalizationModelBase, INotifyPropertyChanged
     // ── GUI ────────────────────────────────────────────────────────────
     //[LocalizedString]
     public string AboutUs { get; set; } = "About Us";
+    public string HomePage { get; set; } = "Home";
+    public string RecentlyWatched { get; set; } = "Recently watched";
     public string Settings { get; set; } = "Settings";
     public string PluginRepositories { get; set; } = "Plugin repositories";
     public string Updates { get; set; } = "Updates";

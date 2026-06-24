@@ -1,0 +1,16 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <CornerRadius x:Key="ManituxRadiusSmall">8</CornerRadius>
+  <CornerRadius x:Key="ManituxRadiusMedium">14</CornerRadius>
+  <CornerRadius x:Key="ManituxRadiusLarge">22</CornerRadius>
+
+  <Thickness x:Key="ManituxPagePadding">24</Thickness>
+  <Thickness x:Key="ManituxPanelPadding">20</Thickness>
+  <Thickness x:Key="ManituxControlPadding">18,12</Thickness>
+
+  <x:Double x:Key="ManituxRemoteTargetMin">48</x:Double>
+  <x:Double x:Key="ManituxSidebarExpandedWidth">292</x:Double>
+  <x:Double x:Key="ManituxSidebarCompactWidth">84</x:Double>
+  <x:Double x:Key="ManituxPosterWidth">168</x:Double>
+  <x:Double x:Key="ManituxPosterHeight">252</x:Double>
+</ResourceDictionary>

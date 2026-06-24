@@ -11,6 +11,8 @@
   "healthy": "Tous les systemes sont operationnels",
   "unhealthy": "Degrade : {0}",
   "aboutUs": "A propos",
+  "homePage": "Accueil",
+  "recentlyWatched": "Recemment vus",
   "settings": "Parametres",
   "pluginRepositories": "Depots d'extensions",
   "updates": "Mises a jour",

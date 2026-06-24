@@ -1,0 +1,39 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:collections="clr-namespace:Avalonia.Collections;assembly=Avalonia.Base"
+             xmlns:iri="https://irihi.tech/shared"
+             xmlns:u="https://irihi.tech/ursa"
+             xmlns:async="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             xmlns:viewModels="clr-namespace:Manitux.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800"
+             d:DesignHeight="450"
+             x:DataType="viewModels:CategoriesViewModel"
+             x:Class="Manitux.Pages.Categories">
+    
+    <Grid RowDefinitions="*, Auto">
+        <ScrollViewer>
+             <!-- <StackPanel>
+                <TextBlock Text="{Binding SelectedCategory.Name, FallbackValue='Medya Listesi'}" FontSize="24" Foreground="White" Margin="20,20,0,10" FontWeight="Bold"/>
+                <ItemsControl ItemsSource="{Binding MediaList}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Margin="10" Width="200" Height="350" Command="{Binding ParentViewModel.ShowMediaDetailCommand}" CommandParameter="{Binding}">
+                                <StackPanel>
+                                    <Image async:ImageLoader.Source="{Binding ImageUrl}" Height="250" Stretch="UniformToFill" Margin="0,0,0,8"/>
+                                    <TextBlock Text="{Binding Name}" FontSize="18" Foreground="White" FontWeight="Bold" TextWrapping="Wrap" Margin="8,0,8,4"/>
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel> -->
+        </ScrollViewer>
+    </Grid>
+</UserControl>

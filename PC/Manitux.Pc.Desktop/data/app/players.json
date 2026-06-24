@@ -1,0 +1,52 @@
+{
+  "windows": {
+    "vlc": {
+      "defaultPaths": [
+        "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe",
+        "C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe"
+      ],
+      "selectedPath": null
+    },
+    "mpv": {
+      "defaultPaths": [
+        "C:\\Program Files\\mpv\\mpv.exe",
+        "C:\\Program Files\\Mpv\\mpv.exe",
+        "C:\\mpv\\mpv.exe"
+      ],
+      "selectedPath": null
+    }
+  },
+  "linux": {
+    "vlc": {
+      "defaultPaths": [
+        "vlc",
+        "cvlc"
+      ],
+      "selectedPath": null
+    },
+    "mpv": {
+      "defaultPaths": [
+        "mpv"
+      ],
+      "selectedPath": null
+    }
+  },
+  "macos": {
+    "vlc": {
+      "defaultPaths": [
+        "open",
+        "/Applications/VLC.app/Contents/MacOS/VLC",
+        "/Applications/VLC media player.app/Contents/MacOS/VLC"
+      ],
+      "selectedPath": null
+    },
+    "mpv": {
+      "defaultPaths": [
+        "/Applications/mpv.app/Contents/MacOS/mpv",
+        "/Applications/IINA.app/Contents/MacOS/iina-cli",
+        "mpv"
+      ],
+      "selectedPath": null
+    }
+  }
+}

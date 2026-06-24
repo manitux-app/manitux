@@ -1,0 +1,3 @@
+<Styles xmlns="https://github.com/avaloniaui">
+  <StyleInclude Source="avares://Manitux.Ui/Themes/Controls.axaml" />
+</Styles>

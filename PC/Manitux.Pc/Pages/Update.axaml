@@ -1,0 +1,77 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:u="https://irihi.tech/ursa"
+             xmlns:vm="clr-namespace:Manitux.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="900"
+             d:DesignHeight="640"
+             x:DataType="vm:UpdateViewModel"
+             x:Class="Manitux.Pages.Update">
+    <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="14" Margin="16">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <StackPanel Spacing="4">
+                <TextBlock Text="{Binding L.ApplicationUpdate}" FontSize="24" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding AssetName}" Opacity="0.7" />
+            </StackPanel>
+
+            <u:IconButton Grid.Column="1"
+                          Classes="Tertiary"
+                          Command="{Binding CheckForUpdatesCommand}"
+                          IsEnabled="{Binding !IsBusy}"
+                          Icon="{StaticResource SemiIconRefresh}"
+                          Content="{Binding L.CheckForUpdates}" />
+            <u:IconButton Grid.Column="2"
+                          Classes="Primary"
+                          Command="{Binding StartUpdateCommand}"
+                          IsEnabled="{Binding CanStartUpdate}"
+                          Icon="{StaticResource SemiIconDownload}"
+                          Content="{Binding L.StartApplicationUpdate}" />
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12">
+            <Border Padding="12" Theme="{DynamicResource CardBorder}">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding L.CurrentVersion}" Opacity="0.65" />
+                    <TextBlock Text="{Binding CurrentVersion}" FontSize="18" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Padding="12" Theme="{DynamicResource CardBorder}">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding L.LatestVersion}" Opacity="0.65" />
+                    <TextBlock Text="{Binding LatestVersion}" FontSize="18" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="10">
+            <u:Banner ShowIcon="True"
+                      Type="{Binding StatusType}"
+                      IsVisible="{Binding HasStatus}"
+                      Content="{Binding StatusMessage}" />
+            <StackPanel Grid.Row="1"
+                        Spacing="6"
+                        IsVisible="{Binding IsDownloading}">
+                <ProgressBar Minimum="0"
+                             Maximum="100"
+                             Value="{Binding DownloadedPercentage}" />
+                <TextBlock Text="{Binding DownloadProgressText}" Opacity="0.72" />
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="3"
+                Padding="12"
+                Theme="{DynamicResource CardBorder}"
+                IsVisible="{Binding HasChangelog}">
+            <Grid RowDefinitions="Auto,*" RowSpacing="8">
+                <TextBlock Text="{Binding L.ReleaseNotes}" FontSize="18" FontWeight="SemiBold" />
+                <ScrollViewer Grid.Row="1">
+                    <TextBlock Text="{Binding Changelog}"
+                               TextWrapping="Wrap"
+                               FontFamily="monospace" />
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

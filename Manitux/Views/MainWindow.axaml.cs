@@ -9,11 +9,15 @@ namespace Manitux.Views;
 
 public partial class MainWindow : UrsaWindow
 {
+    private const double PhoneBreakpoint = 760;
+
     //private ManituxFramework framework = new ManituxFramework();
 
     public MainWindow()
     {
         InitializeComponent();
+        SizeChanged += OnSizeChanged;
+        Opened += OnOpened;
 
         //framework.Init().ConfigureAwait(false);
 
@@ -47,6 +51,27 @@ public partial class MainWindow : UrsaWindow
                 ApiTlsClient.Dispose();
             }
         };
+    }
+
+    private void OnOpened(object? sender, EventArgs e)
+    {
+        UpdateDesktopChrome(Bounds.Width);
+    }
+
+    private void OnSizeChanged(object? sender, SizeChangedEventArgs e)
+    {
+        UpdateDesktopChrome(e.NewSize.Width);
+    }
+
+    private void UpdateDesktopChrome(double width)
+    {
+        var isDesktopLayout = width <= 0 || width >= PhoneBreakpoint;
+
+        CanMinimize = isDesktopLayout;
+        CanMaximize = isDesktopLayout;
+        IsCloseButtonVisible = isDesktopLayout;
+        IsManagedResizerVisible = isDesktopLayout && OperatingSystem.IsLinux();
+        DesktopTitleActions.IsVisible = isDesktopLayout;
     }
 
     // protected override async void OnOpened(EventArgs e)

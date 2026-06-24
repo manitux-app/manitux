@@ -1,0 +1,69 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Color x:Key="ManituxAccentColor">#FF2D9CFF</Color>
+  <Color x:Key="ManituxAccentWarmColor">#FFFFA629</Color>
+  <Color x:Key="ManituxSuccessColor">#FF35D07F</Color>
+  <Color x:Key="ManituxDangerColor">#FFFF5D5D</Color>
+
+  <SolidColorBrush x:Key="ManituxAccentBrush" Color="{StaticResource ManituxAccentColor}" />
+  <SolidColorBrush x:Key="ManituxAccentWarmBrush" Color="{StaticResource ManituxAccentWarmColor}" />
+  <SolidColorBrush x:Key="ManituxSuccessBrush" Color="{StaticResource ManituxSuccessColor}" />
+  <SolidColorBrush x:Key="ManituxDangerBrush" Color="{StaticResource ManituxDangerColor}" />
+
+  <SolidColorBrush x:Key="ManituxFocusBrush" Color="{StaticResource ManituxAccentColor}" />
+  <SolidColorBrush x:Key="ManituxFocusInnerBrush" Color="#FFFFFFFF" />
+
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Dark">
+      <Color x:Key="ManituxPageColor">#FF101114</Color>
+      <Color x:Key="ManituxSurfaceColor">#D923252B</Color>
+      <Color x:Key="ManituxSurfaceRaisedColor">#E332353D</Color>
+      <Color x:Key="ManituxSurfaceMutedColor">#992B2D33</Color>
+      <Color x:Key="ManituxChromeColor">#EF1C1E24</Color>
+      <Color x:Key="ManituxTextColor">#FFF7F8FA</Color>
+      <Color x:Key="ManituxTextMutedColor">#FFC1C7D0</Color>
+      <Color x:Key="ManituxTextSubtleColor">#FF858D99</Color>
+      <Color x:Key="ManituxBorderColor">#3DFFFFFF</Color>
+      <Color x:Key="ManituxGlassStrokeColor">#66FFFFFF</Color>
+      <Color x:Key="ManituxOverlayColor">#AA06070A</Color>
+
+      <SolidColorBrush x:Key="ManituxPageBrush" Color="{DynamicResource ManituxPageColor}" />
+      <SolidColorBrush x:Key="ManituxSurfaceBrush" Color="{DynamicResource ManituxSurfaceColor}" />
+      <SolidColorBrush x:Key="ManituxSurfaceRaisedBrush" Color="{DynamicResource ManituxSurfaceRaisedColor}" />
+      <SolidColorBrush x:Key="ManituxSurfaceMutedBrush" Color="{DynamicResource ManituxSurfaceMutedColor}" />
+      <SolidColorBrush x:Key="ManituxChromeBrush" Color="{DynamicResource ManituxChromeColor}" />
+      <SolidColorBrush x:Key="ManituxTextBrush" Color="{DynamicResource ManituxTextColor}" />
+      <SolidColorBrush x:Key="ManituxTextMutedBrush" Color="{DynamicResource ManituxTextMutedColor}" />
+      <SolidColorBrush x:Key="ManituxTextSubtleBrush" Color="{DynamicResource ManituxTextSubtleColor}" />
+      <SolidColorBrush x:Key="ManituxBorderBrush" Color="{DynamicResource ManituxBorderColor}" />
+      <SolidColorBrush x:Key="ManituxGlassStrokeBrush" Color="{DynamicResource ManituxGlassStrokeColor}" />
+      <SolidColorBrush x:Key="ManituxOverlayBrush" Color="{DynamicResource ManituxOverlayColor}" />
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Light">
+      <Color x:Key="ManituxPageColor">#FFF4F6F8</Color>
+      <Color x:Key="ManituxSurfaceColor">#DFFFFFFF</Color>
+      <Color x:Key="ManituxSurfaceRaisedColor">#FFFFFFFF</Color>
+      <Color x:Key="ManituxSurfaceMutedColor">#CCEBEEF3</Color>
+      <Color x:Key="ManituxChromeColor">#F8FFFFFF</Color>
+      <Color x:Key="ManituxTextColor">#FF16181D</Color>
+      <Color x:Key="ManituxTextMutedColor">#FF414852</Color>
+      <Color x:Key="ManituxTextSubtleColor">#FF69717E</Color>
+      <Color x:Key="ManituxBorderColor">#332D3540</Color>
+      <Color x:Key="ManituxGlassStrokeColor">#80FFFFFF</Color>
+      <Color x:Key="ManituxOverlayColor">#55FFFFFF</Color>
+
+      <SolidColorBrush x:Key="ManituxPageBrush" Color="{DynamicResource ManituxPageColor}" />
+      <SolidColorBrush x:Key="ManituxSurfaceBrush" Color="{DynamicResource ManituxSurfaceColor}" />
+      <SolidColorBrush x:Key="ManituxSurfaceRaisedBrush" Color="{DynamicResource ManituxSurfaceRaisedColor}" />
+      <SolidColorBrush x:Key="ManituxSurfaceMutedBrush" Color="{DynamicResource ManituxSurfaceMutedColor}" />
+      <SolidColorBrush x:Key="ManituxChromeBrush" Color="{DynamicResource ManituxChromeColor}" />
+      <SolidColorBrush x:Key="ManituxTextBrush" Color="{DynamicResource ManituxTextColor}" />
+      <SolidColorBrush x:Key="ManituxTextMutedBrush" Color="{DynamicResource ManituxTextMutedColor}" />
+      <SolidColorBrush x:Key="ManituxTextSubtleBrush" Color="{DynamicResource ManituxTextSubtleColor}" />
+      <SolidColorBrush x:Key="ManituxBorderBrush" Color="{DynamicResource ManituxBorderColor}" />
+      <SolidColorBrush x:Key="ManituxGlassStrokeBrush" Color="{DynamicResource ManituxGlassStrokeColor}" />
+      <SolidColorBrush x:Key="ManituxOverlayBrush" Color="{DynamicResource ManituxOverlayColor}" />
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

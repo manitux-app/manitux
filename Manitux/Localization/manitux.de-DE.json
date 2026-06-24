@@ -11,6 +11,8 @@
   "healthy": "Alle Systeme sind fehlerfrei",
   "unhealthy": "Beeintrachtigt: {0}",
   "aboutUs": "Uber uns",
+  "homePage": "Startseite",
+  "recentlyWatched": "Zuletzt angesehen",
   "settings": "Einstellungen",
   "pluginRepositories": "Plugin-Repositories",
   "updates": "Updates",

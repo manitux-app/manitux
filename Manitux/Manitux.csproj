@@ -31,6 +31,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Irihi.Ursa" />
     <PackageReference Include="Irihi.Ursa.Themes.Semi" />
+    <PackageReference Include="Material.Icons.Avalonia" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Semi.Avalonia" />
     <PackageReference Include="Updatum" />
@@ -38,6 +39,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Manitux.Core/Manitux.Core.csproj" />
+    <ProjectReference Include="..\Manitux.Ui\Manitux.Ui.csproj" />
     <ProjectReference Include="..\Misc\LibMPV\LibMPVSharp.Avalonia\LibMPVSharp.Avalonia.csproj" />
   </ItemGroup>
 
