@@ -4,62 +4,90 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:u="https://irihi.tech/ursa"
              xmlns:async="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:vm="clr-namespace:Manitux.ViewModels"
              mc:Ignorable="d"
              d:DesignWidth="800"
-             d:DesignHeight="60"
+             d:DesignHeight="76"
              x:DataType="vm:PluginTopBarViewModel"
              x:Class="Manitux.Pages.PluginTopBar"
              IsVisible="{Binding IsVisible}">
-    <Border Theme="{DynamicResource CardBorder}">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" TextElement.FontWeight="Normal">
-                    <TextBox
-                        Name="txtSearch"
-                        Width="300"
-                        InnerLeftContent="{Binding L.Search}"
-                        Text="{Binding SearchText, Mode=TwoWay}" />
-                    <u:IconButton IsVisible="True"
-                            HorizontalAlignment="Stretch"
-                            Classes="Tertiary"
-                            Command="{Binding SearchCommand}"
-                            Icon="{StaticResource SemiIconSearch}"
-                            RenderTransform="{x:Null}"
-                            ToolTip.Tip="{Binding L.Search}"
-                            FontWeight="Normal" FontSize="16"
-                            Theme="{DynamicResource BorderlessIconButton}"/>
-                    <u:IconButton IsVisible="{Binding IsPluginConfigVisible}"
-                            HorizontalAlignment="Stretch"
-                            Classes="Tertiary"
-                            Command="{Binding ShowPluginConfigCommand}"
-                            Icon="{StaticResource SemiIconSetting}"
-                            RenderTransform="{x:Null}"
-                            ToolTip.Tip="{Binding L.Settings}"
-                            FontWeight="Normal" FontSize="16"
-                            Theme="{DynamicResource BorderlessIconButton}"/>
-                    <u:IconButton IsVisible="{Binding IsRefreshVisible}"
-                            HorizontalAlignment="Stretch"
-                            Classes="Tertiary"
-                            Command="{Binding RefreshCommand}"
-                            Icon="{StaticResource SemiIconRefresh}"
-                            RenderTransform="{x:Null}"
-                            ToolTip.Tip="{Binding L.Refresh}"
-                            FontWeight="Normal" FontSize="16"
-                            Theme="{DynamicResource BorderlessIconButton}"/>
-                    <u:IconButton IsVisible="{Binding IsExtraActionVisible}"
-                            HorizontalAlignment="Stretch"
-                            Classes="Tertiary"
-                            Command="{Binding ExtraActionCommand}"
-                            Icon="{StaticResource SemiIconDelete}"
-                            RenderTransform="{x:Null}"
-                            ToolTip.Tip="{Binding ExtraActionToolTip}"
-                            FontWeight="Normal" FontSize="16"
-                            Theme="{DynamicResource BorderlessIconButton}"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Image async:ImageLoader.Source="{Binding PluginFavicon}" Stretch="Fill" Width="32" Height="32" IsVisible="{Binding IsPluginConfigVisible}"/>
-                    <TextBlock Text="{Binding PluginName}" FontSize="24"/>
-                </StackPanel>
-            </DockPanel>
+    <Border Classes="manitux-glass"
+            Padding="14,10"
+            Margin="0,0,0,18">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto"
+              ColumnSpacing="12">
+            <Button Grid.Column="0"
+                    Classes="rail"
+                    MinWidth="150"
+                    HorizontalContentAlignment="Center"
+                    Command="{Binding ShowPluginSelectorCommand}"
+                    ToolTip.Tip="{Binding PluginName}">
+                <Grid ColumnDefinitions="Auto,Auto"
+                      ColumnSpacing="8">
+                    <Border Width="28"
+                            Height="28"
+                            CornerRadius="8"
+                            ClipToBounds="True"
+                            Background="{DynamicResource ManituxSurfaceRaisedBrush}"
+                            IsVisible="{Binding IsPluginConfigVisible}">
+                        <Image async:ImageLoader.Source="{Binding PluginFavicon}"
+                               Stretch="UniformToFill"/>
+                    </Border>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding PluginName}"
+                               Classes="display"
+                               VerticalAlignment="Center"
+                               FontSize="16"
+                               TextWrapping="NoWrap"
+                               TextTrimming="CharacterEllipsis"/>
+                </Grid>
+            </Button>
+
+            <TextBox Grid.Column="1"
+                     Name="txtSearch"
+                     Watermark="{Binding L.Search}"
+                     Text="{Binding SearchText, Mode=TwoWay}" />
+
+            <Button Grid.Column="2"
+                    Classes="rail"
+                    MinWidth="56"
+                    Command="{Binding SearchCommand}"
+                    ToolTip.Tip="{Binding L.Search}">
+                <materialIcons:MaterialIcon Kind="Magnify"
+                                            Width="24"
+                                            Height="24"/>
+            </Button>
+            <Button Grid.Column="3"
+                    Classes="rail"
+                    MinWidth="56"
+                    IsVisible="{Binding IsPluginConfigVisible}"
+                    Command="{Binding ShowPluginConfigCommand}"
+                    ToolTip.Tip="{Binding L.Settings}">
+                <materialIcons:MaterialIcon Kind="Settings"
+                                            Width="24"
+                                            Height="24"/>
+            </Button>
+            <Button Grid.Column="4"
+                    Classes="rail"
+                    MinWidth="56"
+                    IsVisible="{Binding IsRefreshVisible}"
+                    Command="{Binding RefreshCommand}"
+                    ToolTip.Tip="{Binding L.Refresh}">
+                <materialIcons:MaterialIcon Kind="Refresh"
+                                            Width="24"
+                                            Height="24"/>
+            </Button>
+            <Button Grid.Column="5"
+                    Classes="rail"
+                    MinWidth="56"
+                    IsVisible="{Binding IsExtraActionVisible}"
+                    Command="{Binding ExtraActionCommand}"
+                    ToolTip.Tip="{Binding ExtraActionToolTip}">
+                <materialIcons:MaterialIcon Kind="Delete"
+                                            Width="24"
+                                            Height="24"/>
+            </Button>
+        </Grid>
     </Border>
 </UserControl>

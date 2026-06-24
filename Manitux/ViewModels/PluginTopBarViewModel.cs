@@ -2,11 +2,14 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using CodeLogic.Framework.Application.Plugins;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Manitux.Core.Application;
 using Manitux.Core.Plugins;
 using Manitux.Core.Services.Plugins;
+using Manitux.Models;
 using Manitux.Pages;
 using Manitux.Services.Localizations;
 using Manitux.Services.Plugins;
@@ -115,6 +118,53 @@ public partial class PluginTopBarViewModel : ViewModelBase
             options: options);
 
         UpdatePluginInfo();
+    }
+
+    [RelayCommand]
+    private async Task ShowPluginSelector()
+    {
+        var pluginManager = CodeLogic.CodeLogic.GetPluginManager();
+        var plugins = pluginManager?
+            .GetLoadedPlugins()
+            .Select(x => pluginManager.GetPlugin<PluginBase>(x.Manifest.Id))
+            .Where(x => x is not null && x.State == PluginState.Started)
+            .Select(x => x!)
+            .ToList();
+
+        if (plugins is null || plugins.Count == 0)
+        {
+            return;
+        }
+
+        var options = new OverlayDialogOptions
+        {
+            Buttons = DialogButton.None,
+            Mode = DialogMode.None,
+            CanDragMove = false,
+            CanResize = false,
+            FullScreen = false,
+            Title = L.Plugins
+        };
+
+        var selectedPluginId = await OverlayDialog.ShowCustomModal<PluginSelectionDialog, PluginSelectionDialogViewModel, string?>(
+            new PluginSelectionDialogViewModel(_localizationService, plugins, _pluginService.CurrentPlugin?.Manifest.Id),
+            null,
+            options: options);
+
+        if (string.IsNullOrWhiteSpace(selectedPluginId))
+        {
+            return;
+        }
+
+        var selectedPlugin = pluginManager?.GetPlugin<PluginBase>(selectedPluginId);
+        if (selectedPlugin is null || selectedPlugin.State != PluginState.Started)
+        {
+            return;
+        }
+
+        _pluginService.CurrentPlugin = selectedPlugin;
+        UpdatePluginInfo();
+        WeakReferenceMessenger.Default.Send(new PluginSelectionChangedMessage(selectedPlugin.Manifest.Id));
     }
 
     [RelayCommand]

@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -20,7 +19,7 @@ public partial class PageItems : UserControl
         DataContextChanged += VM_DataContextChanged;
     }
 
-     private void VM_DataContextChanged(object? sender, EventArgs e)
+    private void VM_DataContextChanged(object? sender, EventArgs e)
     {
         _viewModel = DataContext as PageItemsViewModel;
 

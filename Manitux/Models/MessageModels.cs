@@ -45,3 +45,10 @@ public class PluginCatalogReloadingMessage : ValueChangedMessage<bool>
     {
     }
 }
+
+public class PluginSelectionChangedMessage : ValueChangedMessage<string>
+{
+    public PluginSelectionChangedMessage(string value) : base(value)
+    {
+    }
+}

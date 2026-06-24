@@ -30,6 +30,9 @@ public partial class PageItemsViewModel :  ViewModelBase
     [ObservableProperty]
     private ObservableCollection<PageItemModel>? _pageItems;
 
+    [ObservableProperty]
+    private ObservableCollection<PageItemCategoryViewModel> _categoryRows = [];
+
     //private PluginManager? pluginManager;
     private bool _suppressPageChange;
 
@@ -59,7 +62,7 @@ public partial class PageItemsViewModel :  ViewModelBase
         _suppressPageChange = false;
         IsPaginationVisible = isPaginationVisible;
 
-        UpdatePageItems(pageItems);
+        UpdatePageItems(pageItems, navigationTitle: null);
     }
 
     public PageItemsViewModel(
@@ -131,13 +134,17 @@ public partial class PageItemsViewModel :  ViewModelBase
         return CurrentPage > 1;
     }
 
-    public void UpdatePageItems(List<PageItemModel>? pageItems)
+    public void UpdatePageItems(List<PageItemModel>? pageItems, string? navigationTitle = null)
     {
         PageItems = pageItems is null
             ? null
             : new ObservableCollection<PageItemModel>(pageItems);
 
-        IsVisible = PageItems is null? false: true;
+        CategoryRows = PageItems is null
+            ? []
+            : [new PageItemCategoryViewModel(navigationTitle ?? _navigation?.MenuHeader ?? string.Empty, PageItems)];
+
+        IsVisible = CategoryRows.Any();
 
         OnPropertyChanged(nameof(PageItems));
         OnDataRefreshed?.Invoke();
@@ -164,7 +171,7 @@ public partial class PageItemsViewModel :  ViewModelBase
             EnrichWithCurrentPlugin(results);
             _navigation = null;
             IsPaginationVisible = false;
-            UpdatePageItems(results);
+            UpdatePageItems(results, "Search");
             return true;
         }
         finally
@@ -192,7 +199,7 @@ public partial class PageItemsViewModel :  ViewModelBase
 
         var pluginId = _navigation.PluginId;
         var category = _navigation.Category;
-        if (pluginId is null || category is null)
+        if (pluginId is null)
         {
             UpdatePageItems(null);
             return;
@@ -215,14 +222,56 @@ public partial class PageItemsViewModel :  ViewModelBase
         try
         {
             Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(plugin.Manifest)}" + Environment.NewLine);
+            if (category is null)
+            {
+                await LoadPluginCategoryRows(plugin);
+                return;
+            }
+
             var pageItems = await plugin.GetPageItems(pageNumber, category);
             EnrichWithCurrentPlugin(pageItems);
-            UpdatePageItems(pageItems);
+            UpdatePageItems(pageItems, category.Title);
         }
         finally
         {
             IsLoading = false;
         }
+    }
+
+    private async Task LoadPluginCategoryRows(PluginBase plugin)
+    {
+        var categories = await plugin.GetCategories();
+        if (categories is null || categories.Count == 0)
+        {
+            UpdatePageItems(null);
+            return;
+        }
+
+        var rows = new ObservableCollection<PageItemCategoryViewModel>();
+        var allItems = new List<PageItemModel>();
+
+        foreach (var category in categories)
+        {
+            var pageItems = await plugin.GetPageItems(1, category);
+            EnrichWithCurrentPlugin(pageItems);
+
+            if (pageItems is null || pageItems.Count == 0)
+            {
+                continue;
+            }
+
+            var rowItems = new ObservableCollection<PageItemModel>(pageItems);
+            rows.Add(new PageItemCategoryViewModel(category.Title ?? string.Empty, rowItems));
+            allItems.AddRange(pageItems);
+        }
+
+        PageItems = new ObservableCollection<PageItemModel>(allItems);
+        CategoryRows = rows;
+        IsPaginationVisible = false;
+        IsVisible = CategoryRows.Any();
+
+        OnPropertyChanged(nameof(PageItems));
+        OnDataRefreshed?.Invoke();
     }
 
     private void EnrichWithCurrentPlugin(List<PageItemModel>? pageItems)
@@ -277,4 +326,10 @@ public partial class PageItemsViewModel :  ViewModelBase
     //        }
     //    }
     //}
+}
+
+public sealed class PageItemCategoryViewModel(string title, ObservableCollection<PageItemModel> pageItems)
+{
+    public string Title { get; } = title;
+    public ObservableCollection<PageItemModel> PageItems { get; } = pageItems;
 }

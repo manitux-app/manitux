@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Notifications;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using CodeLogic.Framework.Application.Plugins;
 using Manitux.Core.Services.Plugins;
@@ -14,6 +15,7 @@ using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Notifications;
 using Manitux.Services.Plugins;
+using Manitux.Services.Settings;
 using Manitux.Services.Updates;
 using Manitux.Services.WatchedEpisodes;
 using Manitux.ViewModels;
@@ -24,6 +26,8 @@ namespace Manitux;
 
 public partial class App : Application
 {
+    private bool _isShuttingDown;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -76,6 +80,7 @@ public partial class App : Application
             services.AddSingleton<IDownloadService, DownloadService>();
             services.AddSingleton<IWatchedEpisodesService, WatchedEpisodesService>();
             services.AddSingleton<IApplicationUpdateService, ApplicationUpdateService>();
+            services.AddSingleton<IAppSettingsService, AppSettingsService>();
 
             services.AddTransient<MainViewModel>();
 
@@ -88,10 +93,20 @@ public partial class App : Application
             vm.ShowToast(vm.L.ManituxDesktopApp, NotificationType.Information);
 
             desktop.ShutdownRequested += async (sender, e) =>
-               {
-                   Debug.WriteLine("ShutdownRequested");
-                   await CodeLogic.CodeLogic.StopAsync();
-               };
+            {
+                if (_isShuttingDown)
+                {
+                    return;
+                }
+
+                e.Cancel = true;
+                _isShuttingDown = true;
+
+                Debug.WriteLine("ShutdownRequested");
+                await SaveApplicationSettingsAsync(provider);
+                await CodeLogic.CodeLogic.StopAsync();
+                desktop.Shutdown();
+            };
         }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
         {
@@ -114,6 +129,7 @@ public partial class App : Application
             services.AddSingleton<IDownloadService, DownloadService>();
             services.AddSingleton<IWatchedEpisodesService, WatchedEpisodesService>();
             services.AddSingleton<IApplicationUpdateService, ApplicationUpdateService>();
+            services.AddSingleton<IAppSettingsService, AppSettingsService>();
 
             services.AddTransient<MainViewModel>();
 
@@ -137,5 +153,35 @@ public partial class App : Application
         };
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static async Task SaveApplicationSettingsAsync(IServiceProvider provider)
+    {
+        try
+        {
+            var settingsService = provider.GetRequiredService<IAppSettingsService>();
+            var localizationService = provider.GetRequiredService<ILocalizationService>();
+            var pluginService = provider.GetRequiredService<IPluginService>();
+            var remotePluginService = provider.GetRequiredService<IRemotePluginService>();
+            var remoteSettings = await remotePluginService.GetSettingsAsync();
+            var theme = Application.Current?.RequestedThemeVariant;
+            var themeName = theme == ThemeVariant.Light
+                ? "Light"
+                : theme == ThemeVariant.Dark
+                    ? "Dark"
+                    : theme == ThemeVariant.Default
+                        ? "Default"
+                        : settingsService.Settings.Theme;
+
+            await settingsService.SaveCurrentAsync(
+                localizationService.CurrentCulture,
+                themeName,
+                pluginService.CurrentPlugin,
+                remoteSettings.InstalledPlugins);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Application settings could not be saved: {ex}");
+        }
     }
 }

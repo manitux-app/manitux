@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:async="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             xmlns:input="using:Manitux.Ui.Input"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:vm="clr-namespace:Manitux.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="560"
+             d:DesignHeight="620"
+             x:DataType="vm:PluginSelectionDialogViewModel"
+             x:Class="Manitux.Pages.PluginSelectionDialog"
+             XYFocus.NavigationModes="Enabled"
+             XYFocus.UpNavigationStrategy="Projection"
+             XYFocus.DownNavigationStrategy="Projection"
+             XYFocus.LeftNavigationStrategy="Projection"
+             XYFocus.RightNavigationStrategy="Projection"
+             input:RemoteNavigation.IsEnabled="True">
+    <Border Classes="manitux-glass"
+            Width="560"
+            MaxHeight="620"
+            Padding="18">
+        <Grid RowDefinitions="Auto,*"
+              RowSpacing="16">
+            <Grid ColumnDefinitions="*,Auto"
+                  ColumnSpacing="12">
+                <StackPanel Spacing="3">
+                    <TextBlock Text="{Binding L.Plugins}"
+                               Classes="title"
+                               FontSize="22"/>
+                    <!-- <TextBlock Text="{Binding L.PluginNotSelected}"
+                               Classes="caption"/> -->
+                </StackPanel>
+
+                <!-- <Button Grid.Column="1"
+                        Classes="rail"
+                        Width="48"
+                        Height="48"
+                        MinWidth="48"
+                        MinHeight="48"
+                        Command="{Binding CancelCommand}"
+                        ToolTip.Tip="{Binding L.Close}">
+                    <materialIcons:MaterialIcon Kind="Close"
+                                                Width="22"
+                                                Height="22"/>
+                </Button> -->
+            </Grid>
+
+            <ScrollViewer Grid.Row="1"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Plugins}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="10"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PluginSelectionItemViewModel">
+                            <Button Classes="nav"
+                                    MinHeight="66"
+                                    HorizontalContentAlignment="Stretch"
+                                    Command="{Binding $parent[UserControl].((vm:PluginSelectionDialogViewModel)DataContext).SelectCommand}"
+                                    CommandParameter="{Binding}">
+                                <Grid ColumnDefinitions="Auto,*,Auto,Auto"
+                                      ColumnSpacing="12">
+                                    <Border Width="42"
+                                            Height="42"
+                                            CornerRadius="10"
+                                            ClipToBounds="True"
+                                            Background="{DynamicResource ManituxSurfaceRaisedBrush}">
+                                        <Image async:ImageLoader.Source="{Binding Favicon}"
+                                               Stretch="UniformToFill"/>
+                                    </Border>
+
+                                    <StackPanel Grid.Column="1"
+                                                VerticalAlignment="Center"
+                                                Spacing="2">
+                                        <TextBlock Text="{Binding Name}"
+                                                   FontWeight="SemiBold"
+                                                   FontSize="16"
+                                                   TextWrapping="NoWrap"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Id}"
+                                                   Classes="caption"
+                                                   TextWrapping="NoWrap"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+
+                                    <Border Grid.Column="2"
+                                            VerticalAlignment="Center"
+                                            Padding="8,4"
+                                            CornerRadius="8"
+                                            Background="{DynamicResource ManituxSurfaceMutedBrush}"
+                                            IsVisible="{Binding LanguageDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                        <TextBlock Text="{Binding LanguageDisplay}"
+                                                   Classes="caption"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="NoWrap"/>
+                                    </Border>
+
+                                    <materialIcons:MaterialIcon Grid.Column="3"
+                                                                Kind="CheckCircle"
+                                                                Width="24"
+                                                                Height="24"
+                                                                VerticalAlignment="Center"
+                                                                Foreground="{DynamicResource ManituxAccentBrush}"
+                                                                IsVisible="{Binding IsSelected}"/>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

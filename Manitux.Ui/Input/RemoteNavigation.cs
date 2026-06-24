@@ -93,6 +93,11 @@ public sealed class RemoteNavigation
             return;
         }
 
+        if (TopLevel.GetTopLevel(scope)?.FocusManager?.GetFocusedElement() is TextBox)
+        {
+            return;
+        }
+
         var focused = FindFocusableOwner(TopLevel.GetTopLevel(scope)?.FocusManager?.GetFocusedElement() as Control);
         focused ??= FindFocusableOwner(scope as Control);
 
@@ -144,6 +149,13 @@ public sealed class RemoteNavigation
         }
 
         var focused = TopLevel.GetTopLevel(scope)?.FocusManager?.GetFocusedElement();
+        if (focused is ToggleButton toggleButton && toggleButton.IsEnabled)
+        {
+            toggleButton.IsChecked = toggleButton.IsChecked != true;
+            toggleButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, toggleButton));
+            return true;
+        }
+
         if (focused is Button button && button.IsEnabled)
         {
             var parameter = button.CommandParameter;
@@ -167,7 +179,7 @@ public sealed class RemoteNavigation
 
     private static bool TryMoveFocus(InputElement scope, Control current, NavigationDirection direction)
     {
-        var root = TopLevel.GetTopLevel(scope) ?? scope.GetVisualRoot() as Visual;
+        var root = scope as Visual ?? scope.GetVisualRoot() as Visual;
         if (root is null)
         {
             return false;
@@ -204,7 +216,13 @@ public sealed class RemoteNavigation
             .ThenBy(item => item.Score!.Value.Secondary)
             .FirstOrDefault();
 
-        return target?.Control.Focus(NavigationMethod.Directional) == true;
+        if (target?.Control.Focus(NavigationMethod.Directional) != true)
+        {
+            return false;
+        }
+
+        target.Control.BringIntoView();
+        return true;
     }
 
     private static bool IsFocusableCandidate(Control candidate)
@@ -213,7 +231,17 @@ public sealed class RemoteNavigation
                && candidate.IsEnabled
                && candidate.IsEffectivelyVisible
                && candidate.Bounds.Width > 0
-               && candidate.Bounds.Height > 0;
+               && candidate.Bounds.Height > 0
+               && IsInteractiveCandidate(candidate);
+    }
+
+    private static bool IsInteractiveCandidate(Control candidate)
+    {
+        return candidate is Button
+               or TextBox
+               or MenuItem
+               or ListBoxItem
+               || candidate is RangeBase range && range.Classes.Contains("seek-active");
     }
 
     private static Rect? GetBounds(Control control, Visual root)

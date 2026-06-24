@@ -9,11 +9,10 @@
             xmlns:vm="using:Manitux.ViewModels"
             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:CompileBindings="True"
             x:Class="Manitux.Views.MainView"
-            XYFocus.NavigationModes="Enabled"
-            input:RemoteNavigation.IsEnabled="True"
             x:DataType="vm:MainViewModel">
   <!--<Design.DataContext>
     <vm:MainViewModel />
+    input:RemoteNavigation.IsEnabled="True"
   </Design.DataContext>-->
 
     <!-- <Grid> -->
@@ -48,23 +47,34 @@
                                 Spacing="10"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
-                        <Button Classes="rail"
+                        <Button x:Name="DesktopHomeButton"
+                                Classes="rail"
+                                Classes.selected="{Binding IsHomeSelected}"
+                                Command="{Binding ShowHomeCommand}"
                                 ToolTip.Tip="{Binding L.HomePage}">
                             <materialIcons:MaterialIcon Classes="nav-icon" Kind="HomeCircle" Width="25" Height="25" Foreground="{DynamicResource ManituxTextMutedBrush}" />
                         </Button>
-                        <Button Classes="rail"
+                        <Button x:Name="DesktopRecentButton"
+                                Classes="rail"
                                 ToolTip.Tip="{Binding L.RecentlyWatched}">
                             <materialIcons:MaterialIcon Classes="nav-icon" Kind="ClockTimeThree" Width="25" Height="25" Foreground="{DynamicResource ManituxTextMutedBrush}" />
                         </Button>
-                        <Button Classes="rail"
+                        <Button x:Name="DesktopFavoritesButton"
+                                Classes="rail"
+                                Classes.selected="{Binding IsFavoritesSelected}"
                                 ToolTip.Tip="{Binding L.Favorites}">
                             <materialIcons:MaterialIcon Classes="nav-icon" Kind="HeartCircle" Width="25" Height="25" Foreground="{DynamicResource ManituxTextMutedBrush}" />
                         </Button>
-                        <Button Classes="rail"
+                        <Button x:Name="DesktopSettingsButton"
+                                Classes="rail"
+                                Classes.selected="{Binding IsSettingsSelected}"
                                 ToolTip.Tip="{Binding L.Settings}">
                             <materialIcons:MaterialIcon Classes="nav-icon" Kind="ApplicationCog" Width="25" Height="25" Foreground="{DynamicResource ManituxTextMutedBrush}" />
                         </Button>
-                        <Button Classes="rail"
+                        <Button x:Name="DesktopPluginsButton"
+                                Classes="rail"
+                                Classes.selected="{Binding IsPluginsSelected}"
+                                Command="{Binding ShowPluginsCommand}"
                                 ToolTip.Tip="{Binding L.Plugins}">
                             <materialIcons:MaterialIcon Classes="nav-icon" Kind="Plugin" Width="25" Height="25" Foreground="{DynamicResource ManituxTextMutedBrush}" />
                         </Button>
@@ -73,7 +83,8 @@
                     <StackPanel Grid.Row="2"
                                 Spacing="8"
                                 HorizontalAlignment="Center">
-                        <Button Classes="rail"
+                        <Button x:Name="DesktopThemeButton"
+                                Classes="rail"
                                 Click="ToggleTheme"
                                 ToolTip.Tip="{Binding L.Theme}">
                             <materialIcons:MaterialIcon Classes="nav-icon" Kind="ThemeLightDark" Width="25" Height="25" Foreground="{DynamicResource ManituxTextMutedBrush}" />
@@ -102,26 +113,36 @@
                     Classes="manitux-glass"
                     Padding="8,6">
                 <Grid ColumnDefinitions="*,*,*,*,*">
-                    <Button Classes="mobile-nav"
+                    <Button x:Name="MobileHomeButton"
+                            Classes="mobile-nav"
+                            Classes.selected="{Binding IsHomeSelected}"
+                            Command="{Binding ShowHomeCommand}"
                             ToolTip.Tip="{Binding L.HomePage}">
                         <materialIcons:MaterialIcon Classes="nav-icon" Kind="HomeCircle" Width="25" Height="25" HorizontalAlignment="Center" Foreground="{DynamicResource ManituxTextMutedBrush}" />
                     </Button>
-                    <Button Grid.Column="1"
+                    <Button x:Name="MobileRecentButton"
+                            Grid.Column="1"
                             Classes="mobile-nav"
                             ToolTip.Tip="{Binding L.RecentlyWatched}">
                         <materialIcons:MaterialIcon Classes="nav-icon" Kind="ClockTimeThree" Width="25" Height="25" HorizontalAlignment="Center" Foreground="{DynamicResource ManituxTextMutedBrush}" />
                     </Button>
-                    <Button Grid.Column="2"
+                    <Button x:Name="MobileFavoritesButton"
+                            Grid.Column="2"
                             Classes="mobile-nav"
+                            Classes.selected="{Binding IsFavoritesSelected}"
                             ToolTip.Tip="{Binding L.Favorites}">
                         <materialIcons:MaterialIcon Classes="nav-icon" Kind="HeartCircle" Width="25" Height="25" HorizontalAlignment="Center" Foreground="{DynamicResource ManituxTextMutedBrush}" />
                     </Button>
-                    <Button Grid.Column="3"
+                    <Button x:Name="MobilePluginsButton"
+                            Grid.Column="3"
                             Classes="mobile-nav"
+                            Classes.selected="{Binding IsPluginsSelected}"
+                            Command="{Binding ShowPluginsCommand}"
                             ToolTip.Tip="{Binding L.Plugins}">
                         <materialIcons:MaterialIcon Classes="nav-icon" Kind="Plugin" Width="25" Height="25" HorizontalAlignment="Center" Foreground="{DynamicResource ManituxTextMutedBrush}" />
                     </Button>
-                    <Button Grid.Column="4"
+                    <Button x:Name="MobileThemeButton"
+                            Grid.Column="4"
                             Classes="mobile-nav"
                             Click="ToggleTheme"
                             ToolTip.Tip="{Binding L.Theme}">

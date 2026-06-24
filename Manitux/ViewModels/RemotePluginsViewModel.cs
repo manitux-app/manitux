@@ -392,7 +392,7 @@ public partial class RemotePluginsViewModel : ViewModelBase
 
                         plugin.Strings = L;
                         plugin.IsInstalled = installed is not null;
-                        plugin.IsEnabled = installed?.IsEnabled ?? true;
+                        plugin.IsEnabled = installed?.IsEnabled ?? false;
                     }
 
                     return new RemotePluginPackageGroup(

@@ -59,16 +59,16 @@
             <Setter Property="Foreground" Value="White" />
         </Style>
     </UserControl.Styles>
-    <StackPanel Orientation="Horizontal">
-        <u:IconButton
+    <StackPanel Orientation="Horizontal" Focusable="False">
+        <u:IconButton Focusable="False"
             Theme="{StaticResource BorderlessIconButton}"
             Classes="Tertiary"
             Icon="{StaticResource SemiIconGithubLogo}"
             Click="OpenRepository"/>
-        <u:ThemeToggleButton
+        <u:ThemeToggleButton Focusable="False"
             IsThreeState="False"
             Mode="Controller" />
-		<u:IconButton
+		<u:IconButton Focusable="False"
             Theme="{StaticResource BorderlessIconButton}"
             Classes="Tertiary"
             Icon="{StaticResource SemiIconLanguage}">
@@ -85,7 +85,7 @@
 			</u:IconButton.Styles>
 		</u:IconButton>
     
-        <u:IconButton
+        <u:IconButton Focusable="False"
             Theme="{StaticResource BorderlessIconButton}"
             Classes="Tertiary"
             Click="ToggleFullScreenWindow">
@@ -93,17 +93,17 @@
                 <PathIcon Width="12" Height="12" Data="M0.32 0.227 0.32 0.32l-0.093 0 0 -0.02 0.059 0L0.17 0.184 0.054 0.3l0.059 0 0 0.02L0.02 0.32l0 -0.093 0.02 0 0 0.059L0.156 0.17 0.04 0.054l0 0.059 -0.02 0L0.02 0.02l0.093 0 0 0.02 -0.059 0L0.17 0.156l0.116 -0.116 -0.059 0 0 -0.02L0.32 0.02l0 0.093 -0.02 0 0 -0.059L0.184 0.17l0.116 0.116 0 -0.059z" />
             </u:IconButton.Icon>
         </u:IconButton>
-        <u:IconButton
+        <u:IconButton Focusable="False"
             Theme="{StaticResource BorderlessIconButton}"
             Classes="Tertiary"
             Icon="{StaticResource SemiIconMinimize}"
             Click="MinimizeWindow"/>
-        <u:IconButton
+        <u:IconButton Focusable="False"
             Theme="{StaticResource BorderlessIconButton}"
             Classes="Tertiary"
             Icon="{StaticResource SemiIconMaximize}"
             Click="ToggleMaximizeWindow"/>
-        <u:IconButton
+        <u:IconButton Focusable="False"
             Classes="Danger"
             Icon="{StaticResource SemiIconClose}"
             Click="CloseWindow"/>

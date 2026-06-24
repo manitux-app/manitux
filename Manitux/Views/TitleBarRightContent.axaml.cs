@@ -32,11 +32,11 @@ public partial class TitleBarRightContent : UserControl
     {
         if (GetWindow() is { } window)
         {
-            //window.WindowState = WindowState.Minimized;
+            window.WindowState = WindowState.Minimized;
 
-            window.WindowState = window.WindowState == WindowState.Maximized || window.WindowState == WindowState.FullScreen
-            ? WindowState.Normal
-            : WindowState.Minimized;
+            // window.WindowState = window.WindowState == WindowState.Maximized || window.WindowState == WindowState.FullScreen
+            // ? WindowState.Normal
+            // : WindowState.Minimized;
         }
     }
 
@@ -47,11 +47,11 @@ public partial class TitleBarRightContent : UserControl
             return;
         }
 
-        window.WindowState = WindowState.Maximized;
+        //window.WindowState = WindowState.Maximized;
 
-        // window.WindowState = window.WindowState == WindowState.Maximized
-        //     ? WindowState.Normal
-        //     : WindowState.Maximized;
+        window.WindowState = window.WindowState == WindowState.Maximized
+            ? WindowState.Normal
+            : WindowState.Maximized;
     }
 
     private void ToggleFullScreenWindow(object? sender, RoutedEventArgs e)

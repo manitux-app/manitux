@@ -19,9 +19,10 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
-        Focusable = true;
+        Focusable = false;
         KeyDown += OnKeyDown;
         SizeChanged += OnSizeChanged;
+        AddHandler(GotFocusEvent, OnFocusEntered, RoutingStrategies.Tunnel);
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -62,6 +63,25 @@ public partial class MainView : UserControl
         }
     }
 
+    private void OnFocusEntered(object? sender, GotFocusEventArgs e)
+    {
+        if (e.Source is not Control source || source is TextBox)
+        {
+            return;
+        }
+
+        if (IsInside(source, DesktopRail) && !IsSelectedNavigationButton(source, isPhone: false))
+        {
+            Dispatcher.UIThread.Post(() => FocusSelectedNavigationButton(isPhone: false));
+            return;
+        }
+
+        if (IsInside(source, MobileNav) && !IsSelectedNavigationButton(source, isPhone: true))
+        {
+            Dispatcher.UIThread.Post(() => FocusSelectedNavigationButton(isPhone: true));
+        }
+    }
+
     private void OnBackRequested(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel viewModel && viewModel.GoBackCommand.CanExecute(null))
@@ -78,6 +98,12 @@ public partial class MainView : UserControl
 
     private void ToggleTheme(object? sender, RoutedEventArgs e)
     {
+        if (DataContext is MainViewModel viewModel)
+        {
+            viewModel.ToggleTheme();
+            return;
+        }
+
         if (Application.Current is null)
         {
             return;
@@ -136,6 +162,53 @@ public partial class MainView : UserControl
                 control.Bounds.Height > 0);
 
         target?.Focus(NavigationMethod.Tab);
+    }
+
+    private void FocusSelectedNavigationButton(bool isPhone)
+    {
+        var target = GetSelectedNavigationButton(isPhone);
+        if (target is { IsEnabled: true, IsEffectivelyVisible: true })
+        {
+            target.Focus(NavigationMethod.Directional);
+        }
+    }
+
+    private Button GetSelectedNavigationButton(bool isPhone)
+    {
+        if (DataContext is not MainViewModel viewModel)
+        {
+            return isPhone ? MobileHomeButton : DesktopHomeButton;
+        }
+
+        return viewModel.SelectedNavigationKey switch
+        {
+            NavigationBarKeys.Favorites => isPhone ? MobileFavoritesButton : DesktopFavoritesButton,
+            NavigationBarKeys.Plugins => isPhone ? MobilePluginsButton : DesktopPluginsButton,
+            NavigationBarKeys.Settings => DesktopSettingsButton,
+            _ => isPhone ? MobileHomeButton : DesktopHomeButton
+        };
+    }
+
+    private bool IsSelectedNavigationButton(Control source, bool isPhone)
+    {
+        var selected = GetSelectedNavigationButton(isPhone);
+        return ReferenceEquals(source, selected) || IsInside(source, selected);
+    }
+
+    private static bool IsInside(Control source, Control container)
+    {
+        var current = source;
+        while (current is not null)
+        {
+            if (ReferenceEquals(current, container))
+            {
+                return true;
+            }
+
+            current = current.GetVisualParent() as Control;
+        }
+
+        return false;
     }
 
     // protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

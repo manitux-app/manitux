@@ -31,6 +31,7 @@ using Manitux.Services.Favorites;
 using Manitux.Services.Localizations;
 using Manitux.Services.Notifications;
 using Manitux.Services.Plugins;
+using Manitux.Services.Settings;
 using Manitux.Services.Updates;
 using Manitux.Services.WatchedEpisodes;
 using Manitux.Views;
@@ -58,8 +59,10 @@ public partial class MainViewModel : ViewModelBase
     private readonly IDownloadService _downloadService;
     private readonly IWatchedEpisodesService _watchedEpisodesService;
     private readonly IApplicationUpdateService _applicationUpdateService;
+    private readonly IAppSettingsService _appSettingsService;
     private readonly UrsaWindowNotificationManager _notificationManager;
     private bool _applicationUpdateCheckStarted;
+    private bool _isApplyingSettings;
 
     private PluginManager? _pluginManager;
 
@@ -82,6 +85,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private bool _isReady = false;
     [ObservableProperty] private bool _isInitialized = false;
     [ObservableProperty] private bool _isPluginsLoaded = false;
+    [ObservableProperty] private string _selectedNavigationKey = NavigationBarKeys.Home;
 
     public MainViewModel(
         IToastService toastService,
@@ -93,6 +97,7 @@ public partial class MainViewModel : ViewModelBase
         IDownloadService downloadService,
         IWatchedEpisodesService watchedEpisodesService,
         IApplicationUpdateService applicationUpdateService,
+        IAppSettingsService appSettingsService,
         UrsaWindowNotificationManager notificationManager)
     {
         _toastService = toastService;
@@ -104,6 +109,7 @@ public partial class MainViewModel : ViewModelBase
         _downloadService = downloadService;
         _watchedEpisodesService = watchedEpisodesService;
         _applicationUpdateService = applicationUpdateService;
+        _appSettingsService = appSettingsService;
         _notificationManager = notificationManager;
         Locales = new LocaleViewModel(localizationService);
 
@@ -115,6 +121,7 @@ public partial class MainViewModel : ViewModelBase
         WeakReferenceMessenger.Default.Register<MainViewModel, PageItemChangedMessage>(this, OnNavigation);
         WeakReferenceMessenger.Default.Register<MainViewModel, PluginCatalogReloadingMessage>(this, OnPluginCatalogReloading);
         WeakReferenceMessenger.Default.Register<MainViewModel, PluginCatalogChangedMessage>(this, OnPluginCatalogChanged);
+        WeakReferenceMessenger.Default.Register<MainViewModel, PluginSelectionChangedMessage>(this, OnPluginSelectionChanged);
         _applicationUpdateService.UpdateAvailable += ApplicationUpdateServiceOnUpdateAvailable;
         //WeakReferenceMessenger.Default.Register<MainViewModel, string, string>(this, "JumpTo", OnNavigation);
         //OnNavigation(this, MenuKeys.MenuKeyEmptyPage);
@@ -127,6 +134,7 @@ public partial class MainViewModel : ViewModelBase
 
     private void OnNavigation(MainViewModel vm, string s)
     {
+        UpdateSelectedNavigationKey(s);
         ClearNavigationStack();
         Content = s switch
         {
@@ -150,6 +158,7 @@ public partial class MainViewModel : ViewModelBase
     private void OnNavigation(MainViewModel vm, MenuItemChangedMessage message)
     {
         string key = message.Value.Key ?? "";
+        UpdateSelectedNavigationKey(key);
 
         //Content = key switch
         //{
@@ -235,6 +244,69 @@ public partial class MainViewModel : ViewModelBase
         Menus.LoadDefaultMenu(L);
     }
 
+    public bool IsNavigationSelected(string key)
+    {
+        return string.Equals(SelectedNavigationKey, key, StringComparison.OrdinalIgnoreCase);
+    }
+
+    partial void OnSelectedNavigationKeyChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsHomeSelected));
+        OnPropertyChanged(nameof(IsFavoritesSelected));
+        OnPropertyChanged(nameof(IsPluginsSelected));
+        OnPropertyChanged(nameof(IsSettingsSelected));
+    }
+
+    public bool IsHomeSelected => IsNavigationSelected(NavigationBarKeys.Home);
+    public bool IsFavoritesSelected => IsNavigationSelected(NavigationBarKeys.Favorites);
+    public bool IsPluginsSelected => IsNavigationSelected(NavigationBarKeys.Plugins);
+    public bool IsSettingsSelected => IsNavigationSelected(NavigationBarKeys.Settings);
+
+    private void UpdateSelectedNavigationKey(string key)
+    {
+        SelectedNavigationKey = key switch
+        {
+            MenuKeys.MenuKeyPageItems or MenuKeys.MenuKeyMediaInfo or MenuKeys.MenuKeySearch => NavigationBarKeys.Home,
+            MenuKeys.MenuKeyFavorites => NavigationBarKeys.Favorites,
+            MenuKeys.MenuKeySettings => NavigationBarKeys.Plugins,
+            MenuKeys.MenuKeyApplicationUpdate => NavigationBarKeys.Settings,
+            _ => SelectedNavigationKey
+        };
+    }
+
+    private void OnPluginSelectionChanged(MainViewModel vm, PluginSelectionChangedMessage message)
+    {
+        var navigation = CreatePluginHomeNavigation(message.Value);
+        if (navigation is null)
+        {
+            ShowToast(L.PluginWasNotFound, NotificationType.Warning);
+            return;
+        }
+
+        OnNavigation(this, new MenuItemChangedMessage(navigation));
+    }
+
+    [RelayCommand]
+    private void ShowHome()
+    {
+        SelectedNavigationKey = NavigationBarKeys.Home;
+        var navigation = CreatePluginHomeNavigation(preferCurrentPlugin: true);
+        if (navigation is not null)
+        {
+            OnNavigation(this, new MenuItemChangedMessage(navigation));
+            return;
+        }
+
+        OnNavigation(this, IsPluginsLoaded ? MenuKeys.MenuKeyPageItems : MenuKeys.MenuKeySettings);
+    }
+
+    [RelayCommand]
+    private void ShowPlugins()
+    {
+        SelectedNavigationKey = NavigationBarKeys.Plugins;
+        OnNavigation(this, MenuKeys.MenuKeySettings);
+    }
+
     private Task InitTlsClient()
     {
         if (!OperatingSystem.IsLinux())
@@ -259,8 +331,31 @@ public partial class MainViewModel : ViewModelBase
             if (IsInitialized) break;
 
             _pluginManager = await _framework.InitAsync();
-            await _localizationService.SelectSystemOrDefaultLanguageAsync();
+            _config = await _appSettingsService.LoadAsync();
+            await ApplyStartupSettingsAsync();
             LoadPlugins();
+        }
+    }
+
+    private async Task ApplyStartupSettingsAsync()
+    {
+        _isApplyingSettings = true;
+        try
+        {
+            ApplyTheme(_config.Theme);
+
+            if (!string.IsNullOrWhiteSpace(_config.Language))
+            {
+                await _localizationService.ChangeLanguageAsync(_config.Language);
+            }
+            else
+            {
+                await _localizationService.SelectSystemOrDefaultLanguageAsync();
+            }
+        }
+        finally
+        {
+            _isApplyingSettings = false;
         }
     }
 
@@ -275,6 +370,11 @@ public partial class MainViewModel : ViewModelBase
         else
         {
             Menus.LoadDefaultMenu(L);
+        }
+
+        if (!_isApplyingSettings)
+        {
+            _ = SaveCurrentSettingsAsync();
         }
     }
 
@@ -319,7 +419,15 @@ public partial class MainViewModel : ViewModelBase
                 Menus.LoadMenus(_pluginMenus, L);
                 if (navigateToFirstPlugin)
                 {
-                    OnNavigation(this, MenuKeys.MenuKeyPageItems);
+                    var initialNavigation = CreateInitialPluginNavigation();
+                    if (initialNavigation is not null)
+                    {
+                        OnNavigation(this, new MenuItemChangedMessage(initialNavigation));
+                    }
+                    else
+                    {
+                        OnNavigation(this, MenuKeys.MenuKeyPageItems);
+                    }
                 }
             }
             else
@@ -360,6 +468,82 @@ public partial class MainViewModel : ViewModelBase
 
         _pluginService.CurrentPlugin = plugin;
         CurrentPlugin = plugin;
+        _ = SaveCurrentSettingsAsync();
+    }
+
+    private MenuItemViewModel? CreateInitialPluginNavigation()
+    {
+        return CreatePluginHomeNavigation(preferCurrentPlugin: false);
+    }
+
+    private MenuItemViewModel? CreatePluginHomeNavigation(bool preferCurrentPlugin)
+    {
+        if (_pluginMenus is null || _pluginMenus.Count == 0)
+        {
+            return null;
+        }
+
+        var selectedPlugin = preferCurrentPlugin && CurrentPlugin is not null
+            ? _pluginMenus.FirstOrDefault(x =>
+                string.Equals(x.Plugin.Manifest.Id, CurrentPlugin.Manifest.Id, StringComparison.OrdinalIgnoreCase))
+            : null;
+
+        selectedPlugin ??= _pluginMenus.FirstOrDefault(x =>
+                string.Equals(x.Plugin.Manifest.Id, _config.CurrentPluginId, StringComparison.OrdinalIgnoreCase))
+            ?? _pluginMenus.FirstOrDefault(x =>
+                _config.SelectedPlugins.Any(selected =>
+                    selected.IsCurrent &&
+                    string.Equals(selected.Id, x.Plugin.Manifest.Id, StringComparison.OrdinalIgnoreCase)))
+            ?? _pluginMenus.FirstOrDefault();
+
+        if (selectedPlugin is null)
+        {
+            return null;
+        }
+
+        return new MenuItemViewModel
+        {
+            MenuHeader = selectedPlugin.Plugin.Manifest.Name,
+            Key = MenuKeys.MenuKeyPageItems,
+            PluginId = selectedPlugin.Plugin.Manifest.Id,
+            PageNumber = 1
+        };
+    }
+
+    private MenuItemViewModel? CreatePluginHomeNavigation(string pluginId)
+    {
+        var selectedPlugin = _pluginMenus?.FirstOrDefault(x =>
+            string.Equals(x.Plugin.Manifest.Id, pluginId, StringComparison.OrdinalIgnoreCase));
+
+        if (selectedPlugin is null)
+        {
+            return null;
+        }
+
+        return new MenuItemViewModel
+        {
+            MenuHeader = selectedPlugin.Plugin.Manifest.Name,
+            Key = MenuKeys.MenuKeyPageItems,
+            PluginId = selectedPlugin.Plugin.Manifest.Id,
+            PageNumber = 1
+        };
+    }
+
+    private async Task SaveCurrentSettingsAsync()
+    {
+        try
+        {
+            var remoteSettings = await _remotePluginService.GetSettingsAsync();
+            await _appSettingsService.SaveCurrentAsync(
+                _localizationService.CurrentCulture,
+                GetCurrentThemeName(),
+                _pluginService.CurrentPlugin,
+                remoteSettings.InstalledPlugins);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Application settings could not be saved: {ex}");
+        }
     }
 
     private void ShowMediaInfo(PageItemModel pageItem)
@@ -578,15 +762,52 @@ public partial class MainViewModel : ViewModelBase
     partial void OnSelectedThemeChanged(ThemeItem? oldValue, ThemeItem? newValue)
     {
         if (newValue is null) return;
+        ApplyTheme(newValue.Name);
+
+        if (!_isApplyingSettings)
+        {
+            _ = SaveCurrentSettingsAsync();
+        }
+    }
+
+    public void ToggleTheme()
+    {
+        var app = Application.Current;
+        if (app is null)
+        {
+            return;
+        }
+
+        var nextTheme = app.ActualThemeVariant == ThemeVariant.Dark ? "Light" : "Dark";
+        ApplyTheme(nextTheme);
+        _ = SaveCurrentSettingsAsync();
+    }
+
+    private void ApplyTheme(string? themeName)
+    {
+        var theme = ResolveTheme(themeName);
         var app = Application.Current;
         if (app is not null)
         {
-            app.RequestedThemeVariant = newValue.Theme;
-            // NotificationManager?.Show(
-            //     new Notification("Theme changed", $"Theme changed to {newValue.Name}"),
-            //     type: NotificationType.Success,
-            //     classes: ["Light"]);
+            app.RequestedThemeVariant = theme.Theme;
         }
+
+        SelectedTheme = Themes.FirstOrDefault(x =>
+            string.Equals(x.Name, theme.Name, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private ThemeItem ResolveTheme(string? themeName)
+    {
+        return Themes.FirstOrDefault(x =>
+                   string.Equals(x.Name, themeName, StringComparison.OrdinalIgnoreCase))
+               ?? Themes.First(x => x.Name == "Dark");
+    }
+
+    private string GetCurrentThemeName()
+    {
+        var requestedTheme = Application.Current?.RequestedThemeVariant;
+        var selectedTheme = Themes.FirstOrDefault(x => x.Theme == requestedTheme);
+        return selectedTheme?.Name ?? SelectedTheme?.Name ?? "Dark";
     }
 
     [ObservableProperty] private string? _footerText;
@@ -603,4 +824,12 @@ public class ThemeItem(string name, ThemeVariant theme)
 {
     public string Name { get; set; } = name;
     public ThemeVariant Theme { get; set; } = theme;
+}
+
+public static class NavigationBarKeys
+{
+    public const string Home = "Home";
+    public const string Favorites = "Favorites";
+    public const string Plugins = "Plugins";
+    public const string Settings = "Settings";
 }
