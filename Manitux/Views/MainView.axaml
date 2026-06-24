@@ -34,13 +34,12 @@
                     <Border Width="54"
                             Height="54"
                             CornerRadius="18"
+                            ClipToBounds="True"
                             Background="{DynamicResource ManituxSurfaceRaisedBrush}"
                             BorderBrush="{DynamicResource ManituxAccentBrush}"
-                            BorderThickness="1">
-                        <Image Source="avares://Manitux/Assets/logo_trans.png"
-                               Width="36"
-                               Height="36"
-                               Stretch="Uniform"
+                            BorderThickness="0">
+                        <Image Source="avares://Manitux/Assets/logo.png"
+                               Stretch="UniformToFill"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center" />
                     </Border>
@@ -103,7 +102,7 @@
                     Classes="manitux-glass"
                     Padding="8,6">
                 <Grid ColumnDefinitions="*,*,*,*,*">
-                    <Button Classes="mobile-nav selected"
+                    <Button Classes="mobile-nav"
                             ToolTip.Tip="{Binding L.HomePage}">
                         <materialIcons:MaterialIcon Classes="nav-icon" Kind="HomeCircle" Width="25" Height="25" HorizontalAlignment="Center" Foreground="{DynamicResource ManituxTextMutedBrush}" />
                     </Button>

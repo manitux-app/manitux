@@ -7,8 +7,8 @@
              mc:Ignorable="d" d:DesignWidth="800"
              d:DesignHeight="450"
              x:Class="Manitux.Views.SingleView">
-    <u:UrsaView.RightContent>
+    <!-- <u:UrsaView.RightContent>
         <views:TitleBarRightContent/>
-    </u:UrsaView.RightContent>
+    </u:UrsaView.RightContent> -->
     <views:MainView/>
 </u:UrsaView>

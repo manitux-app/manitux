@@ -4,9 +4,61 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:u="https://irihi.tech/ursa"
 			 xmlns:vm="using:Manitux.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="20"
              x:Class="Manitux.Views.TitleBarRightContent"
 			 x:DataType="vm:LocaleViewModel">
+    <UserControl.Styles>
+        <Style Selector="Button.window-chrome">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="MinWidth" Value="38" />
+            <Setter Property="MinHeight" Value="30" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource ManituxTextSubtleBrush}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Regular" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="RenderTransform" Value="scale(1.0)" />
+            <Setter Property="Transitions" Value="{x:Null}" />
+        </Style>
+        <Style Selector="Button.window-chrome /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BoxShadow" Value="0 0 0 0 #00000000" />
+            <Setter Property="Transitions" Value="{x:Null}" />
+        </Style>
+        <Style Selector="Button.window-chrome:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.0)" />
+        </Style>
+        <Style Selector="Button.window-chrome:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#22FFFFFF" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BoxShadow" Value="0 0 0 0 #00000000" />
+        </Style>
+        <Style Selector="Button.window-chrome:pressed">
+            <Setter Property="RenderTransform" Value="scale(1.0)" />
+            <Setter Property="ZIndex" Value="0" />
+        </Style>
+        <Style Selector="Button.window-chrome:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#33FFFFFF" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BoxShadow" Value="0 0 0 0 #00000000" />
+        </Style>
+        <Style Selector="Button.window-chrome.close:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#FFE81123" />
+        </Style>
+        <Style Selector="Button.window-chrome.close:pointerover">
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+    </UserControl.Styles>
     <StackPanel Orientation="Horizontal">
         <u:IconButton
             Theme="{StaticResource BorderlessIconButton}"
@@ -32,5 +84,33 @@
 				</Style>
 			</u:IconButton.Styles>
 		</u:IconButton>
+    
+        <u:IconButton
+            Theme="{StaticResource BorderlessIconButton}"
+            Classes="Tertiary"
+            Click="ToggleFullScreenWindow">
+             <u:IconButton.Icon>
+                <PathIcon Width="12" Height="12" Data="M0.32 0.227 0.32 0.32l-0.093 0 0 -0.02 0.059 0L0.17 0.184 0.054 0.3l0.059 0 0 0.02L0.02 0.32l0 -0.093 0.02 0 0 0.059L0.156 0.17 0.04 0.054l0 0.059 -0.02 0L0.02 0.02l0.093 0 0 0.02 -0.059 0L0.17 0.156l0.116 -0.116 -0.059 0 0 -0.02L0.32 0.02l0 0.093 -0.02 0 0 -0.059L0.184 0.17l0.116 0.116 0 -0.059z" />
+            </u:IconButton.Icon>
+        </u:IconButton>
+        <u:IconButton
+            Theme="{StaticResource BorderlessIconButton}"
+            Classes="Tertiary"
+            Icon="{StaticResource SemiIconMinimize}"
+            Click="MinimizeWindow"/>
+        <u:IconButton
+            Theme="{StaticResource BorderlessIconButton}"
+            Classes="Tertiary"
+            Icon="{StaticResource SemiIconMaximize}"
+            Click="ToggleMaximizeWindow"/>
+        <u:IconButton
+            Classes="Danger"
+            Icon="{StaticResource SemiIconClose}"
+            Click="CloseWindow"/>
+
+        <!-- <Button Classes="window-chrome" Content="-" Click="MinimizeWindow" />
+        <Button Classes="window-chrome" Content="[]" Click="ToggleMaximizeWindow" />
+        <Button Classes="window-chrome" Content="⛶" Click="ToggleFullScreenWindow" />
+        <Button Classes="window-chrome close" Content="X" Click="CloseWindow" /> -->
     </StackPanel>
 </UserControl>

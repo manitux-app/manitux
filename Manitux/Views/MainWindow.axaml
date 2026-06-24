@@ -11,9 +11,10 @@
         Icon="/Assets/logo.ico"
         Title="Manitux" WindowStartupLocation="CenterScreen" WindowState="Normal"
         Width="1366" Height="768"
-        CanMinimize="True"
-        CanMaximize="True"
-        IsCloseButtonVisible="True"
+        MinWidth="360" MinHeight="768"
+        CanMinimize="False"
+        CanMaximize="False"
+        IsCloseButtonVisible="False"
         IsFullScreenButtonVisible="False"
         IsManagedResizerVisible="{OnPlatform {x:False}, Linux={x:True}}"
         XYFocus.NavigationModes="Enabled"
@@ -24,7 +25,6 @@
         input:RemoteNavigation.IsEnabled="True"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:CompileBindings="True"
         x:DataType="vm:MainViewModel">
-	<!-- <views:TvView /> -->
 	<views:MainView />
         <u:UrsaWindow.RightContent>
          <views:TitleBarRightContent x:Name="DesktopTitleActions" DataContext="{Binding Locales}" />

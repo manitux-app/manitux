@@ -16,8 +16,8 @@ public partial class MainWindow : UrsaWindow
     public MainWindow()
     {
         InitializeComponent();
-        SizeChanged += OnSizeChanged;
-        Opened += OnOpened;
+        //SizeChanged += OnSizeChanged;
+        //Opened += OnOpened;
 
         //framework.Init().ConfigureAwait(false);
 
@@ -53,26 +53,26 @@ public partial class MainWindow : UrsaWindow
         };
     }
 
-    private void OnOpened(object? sender, EventArgs e)
-    {
-        UpdateDesktopChrome(Bounds.Width);
-    }
+    // private void OnOpened(object? sender, EventArgs e)
+    // {
+    //     UpdateDesktopChrome(Bounds.Width);
+    // }
 
-    private void OnSizeChanged(object? sender, SizeChangedEventArgs e)
-    {
-        UpdateDesktopChrome(e.NewSize.Width);
-    }
+    // private void OnSizeChanged(object? sender, SizeChangedEventArgs e)
+    // {
+    //     UpdateDesktopChrome(e.NewSize.Width);
+    // }
 
-    private void UpdateDesktopChrome(double width)
-    {
-        var isDesktopLayout = width <= 0 || width >= PhoneBreakpoint;
+    // private void UpdateDesktopChrome(double width)
+    // {
+    //     var isDesktopLayout = width <= 0 || width >= PhoneBreakpoint;
 
-        CanMinimize = isDesktopLayout;
-        CanMaximize = isDesktopLayout;
-        IsCloseButtonVisible = isDesktopLayout;
-        IsManagedResizerVisible = isDesktopLayout && OperatingSystem.IsLinux();
-        DesktopTitleActions.IsVisible = isDesktopLayout;
-    }
+    //     CanMinimize = isDesktopLayout;
+    //     CanMaximize = isDesktopLayout;
+    //     IsCloseButtonVisible = isDesktopLayout;
+    //     IsManagedResizerVisible = isDesktopLayout && OperatingSystem.IsLinux();
+    //     DesktopTitleActions.IsVisible = isDesktopLayout;
+    // }
 
     // protected override async void OnOpened(EventArgs e)
     // {
