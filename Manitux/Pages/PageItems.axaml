@@ -2,99 +2,47 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:collections="clr-namespace:Avalonia.Collections;assembly=Avalonia.Base"
-             xmlns:iri="https://irihi.tech/shared"
 			 xmlns:u="https://irihi.tech/ursa"
-			 xmlns:async="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
              xmlns:vm="clr-namespace:Manitux.ViewModels"
 			 xmlns:pages="clr-namespace:Manitux.Pages"
-			 xmlns:loaders="clr-namespace:Manitux.Services.ImageLoaders"
              mc:Ignorable="d" d:DesignWidth="800"
              d:DesignHeight="450"
              x:DataType="vm:PageItemsViewModel"
              x:Class="Manitux.Pages.PageItems">
-	<UserControl.Styles>
-		<Style Selector="Button.poster async|AdvancedImage">
-			<Setter Property="Transitions">
-				<Transitions>
-					<DoubleTransition Property="Opacity" Duration="0:0:0.18"/>
-				</Transitions>
-			</Setter>
-		</Style>
-
-		<Style Selector="Button.poster:pointerover async|AdvancedImage">
-			<Setter Property="Opacity" Value="0.86"/>
-		</Style>
-	</UserControl.Styles>
-
-
 	<Grid RowDefinitions="Auto,*" Background="{DynamicResource ManituxPageBrush}">
 		<pages:PluginTopBar Grid.Row="0" DataContext="{Binding TopBar}"/>
 
 		<u:LoadingContainer Grid.Row="1" IsLoading="{Binding IsLoading}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
 			<Grid RowDefinitions="*,Auto">
-				<ScrollViewer Name="MainScrollViewer"
-							  Grid.Row="0"
-							  Padding="4,2,12,8"
-							  HorizontalScrollBarVisibility="Disabled"
-							  VerticalScrollBarVisibility="Auto">
-					<ItemsControl ItemsSource="{Binding CategoryRows}">
-						<ItemsControl.ItemsPanel>
+				<ListBox Name="CategoryList"
+						 Grid.Row="0"
+						 Padding="4,2,12,8"
+						 Background="Transparent"
+						 BorderThickness="0"
+						 SelectionMode="Single"
+						 ItemsSource="{Binding CategoryRows}"
+						 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+						 ScrollViewer.VerticalScrollBarVisibility="Auto">
+					<ListBox.Styles>
+						<Style Selector="ListBoxItem">
+							<Setter Property="Focusable" Value="False"/>
+							<Setter Property="Padding" Value="0"/>
+							<Setter Property="Margin" Value="0,0,0,22"/>
+							<Setter Property="Background" Value="Transparent"/>
+							<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+						</Style>
+					</ListBox.Styles>
+						<ListBox.ItemsPanel>
 							<ItemsPanelTemplate>
-								<StackPanel Spacing="22"/>
+								<VirtualizingStackPanel/>
 							</ItemsPanelTemplate>
-						</ItemsControl.ItemsPanel>
-						<ItemsControl.ItemTemplate>
-							<DataTemplate>
-								<StackPanel Spacing="10">
-									<TextBlock Text="{Binding Title}"
-											   Classes="title"
-											   FontSize="20"/>
-									<ScrollViewer HorizontalScrollBarVisibility="Auto"
-												  VerticalScrollBarVisibility="Disabled">
-										<ItemsControl ItemsSource="{Binding PageItems}">
-											<ItemsControl.ItemsPanel>
-												<ItemsPanelTemplate>
-													<StackPanel Orientation="Horizontal"
-																Spacing="16"
-																Margin="8,14,8,22"/>
-												</ItemsPanelTemplate>
-											</ItemsControl.ItemsPanel>
-											<ItemsControl.ItemTemplate>
-												<DataTemplate>
-													<Button Classes="poster"
-															Width="{StaticResource ManituxPosterWidth}"
-															Height="{StaticResource ManituxPosterHeight}"
-															ToolTip.Tip="{Binding Title}"
-															Command="{Binding $parent[UserControl].((vm:PageItemsViewModel)DataContext).OnActivate}"
-															CommandParameter="{Binding}">
-														<Border Classes="poster-content">
-															<Grid RowDefinitions="*,Auto">
-																<async:AdvancedImage Source="{Binding Poster}"
-																					 Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
-																					 Stretch="UniformToFill"/>
-																<Border Grid.Row="1"
-																		Background="{DynamicResource ManituxChromeBrush}"
-																		Padding="12">
-																	<TextBlock Text="{Binding Title}"
-																			   FontWeight="SemiBold"
-																			   FontSize="14"
-																			   TextTrimming="CharacterEllipsis"
-																			   TextWrapping="NoWrap"
-																			   HorizontalAlignment="Center"/>
-																</Border>
-															</Grid>
-														</Border>
-													</Button>
-												</DataTemplate>
-											</ItemsControl.ItemTemplate>
-										</ItemsControl>
-									</ScrollViewer>
-								</StackPanel>
+						</ListBox.ItemsPanel>
+						<ListBox.ItemTemplate>
+							<DataTemplate x:DataType="vm:PageItemCategoryViewModel">
+								<pages:PageItemShelf ActivateCommand="{Binding $parent[UserControl].((vm:PageItemsViewModel)DataContext).ActivateCommand}"/>
 							</DataTemplate>
-						</ItemsControl.ItemTemplate>
-					</ItemsControl>
-				</ScrollViewer>
+						</ListBox.ItemTemplate>
+				</ListBox>
 
 				<Grid Grid.Row="1"
 					  Margin="0,12,0,0"

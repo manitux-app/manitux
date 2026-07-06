@@ -17,12 +17,7 @@
         IsFullScreenButtonVisible="False"
         IsManagedResizerVisible="{OnPlatform {x:False}, Linux={x:True}}"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:CompileBindings="True"
-        x:DataType="vm:MainViewModel"
-        XYFocus.NavigationModes="Enabled"
-        XYFocus.UpNavigationStrategy="Projection"
-        XYFocus.DownNavigationStrategy="Projection"
-        XYFocus.LeftNavigationStrategy="Projection"
-        XYFocus.RightNavigationStrategy="Projection">
+        x:DataType="vm:MainViewModel">
 	<views:MainView />
         <u:UrsaWindow.RightContent>
          <views:TitleBarRightContent x:Name="DesktopTitleActions" DataContext="{Binding Locales}" />

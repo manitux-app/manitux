@@ -1,0 +1,89 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:u="https://irihi.tech/ursa"
+             xmlns:async="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             xmlns:loaders="clr-namespace:Manitux.Services.ImageLoaders"
+             xmlns:vm="clr-namespace:Manitux.ViewModels"
+             x:Name="Shelf"
+             x:Class="Manitux.Pages.PageItemShelf"
+             x:DataType="vm:PageItemCategoryViewModel"
+             mc:Ignorable="d">
+    <UserControl.Styles>
+        <Style Selector="Button.poster async|AdvancedImage">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.18"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.poster:pointerover async|AdvancedImage">
+            <Setter Property="Opacity" Value="0.86"/>
+        </Style>
+        <Style Selector="UserControl.android-performance Button.poster async|AdvancedImage">
+            <Setter Property="Transitions" Value="{x:Null}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel Spacing="10">
+        <TextBlock Text="{Binding Title}"
+                   Classes="title"
+                   FontSize="20"/>
+
+        <u:LoadingContainer IsLoading="{Binding IsLoading}"
+                            MinHeight="{StaticResource ManituxPosterHeight}"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Stretch">
+                <ListBox ItemsSource="{Binding PageItems}"
+                         Padding="8,14,8,22"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                         ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="Focusable" Value="False"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0,0,16,0"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                        </Style>
+                    </ListBox.Styles>
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Button Classes="poster"
+                                    Width="{StaticResource ManituxPosterWidth}"
+                                    Height="{StaticResource ManituxPosterHeight}"
+                                    Margin="10"
+                                    ToolTip.Tip="{Binding Title}"
+                                    Command="{Binding #Shelf.ActivateCommand}"
+                                    CommandParameter="{Binding}">
+                                <Border Classes="poster-content">
+                                    <Grid RowDefinitions="*,Auto">
+                                        <async:AdvancedImage Source="{Binding Poster}"
+                                                             Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
+                                                             Stretch="UniformToFill"/>
+                                        <Border Grid.Row="1"
+                                                Background="{DynamicResource ManituxChromeBrush}"
+                                                Padding="12">
+                                            <TextBlock Text="{Binding Title}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="14"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       TextWrapping="NoWrap"
+                                                       HorizontalAlignment="Center"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </Button>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+        </u:LoadingContainer>
+    </StackPanel>
+</UserControl>

@@ -19,7 +19,7 @@
               ColumnSpacing="12">
             <Button Grid.Column="0"
                     Classes="rail"
-                    MinWidth="150"
+                    MinWidth="200"
                     HorizontalContentAlignment="Center"
                     Command="{Binding ShowPluginSelectorCommand}"
                     ToolTip.Tip="{Binding PluginName}">

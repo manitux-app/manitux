@@ -9,7 +9,13 @@
             xmlns:vm="using:Manitux.ViewModels"
             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:CompileBindings="True"
             x:Class="Manitux.Views.MainView"
-            x:DataType="vm:MainViewModel">
+            x:DataType="vm:MainViewModel"
+            XYFocus.NavigationModes="Enabled"
+            XYFocus.UpNavigationStrategy="Projection"
+            XYFocus.DownNavigationStrategy="Projection"
+            XYFocus.LeftNavigationStrategy="Projection"
+            XYFocus.RightNavigationStrategy="Projection"
+            input:RemoteNavigation.IsEnabled="True">
   <!--<Design.DataContext>
     <vm:MainViewModel />
     input:RemoteNavigation.IsEnabled="True"

@@ -173,7 +173,7 @@ public partial class MainViewModel : ViewModelBase
         ClearNavigationStack();
         if (key != MenuKeys.MenuKeyPageItems)
         {
-            _currentPageItemsViewModel = null;
+            DisposeCurrentPageItems();
         }
 
         switch (key)
@@ -191,14 +191,15 @@ public partial class MainViewModel : ViewModelBase
                 Content = new UpdateViewModel(_applicationUpdateService, _localizationService, _notificationService);
                 break;
             case MenuKeys.MenuKeyFavorites:
-                _currentPageItemsViewModel = null;
+                DisposeCurrentPageItems();
                 Content = new FavoritesViewModel(_favoritesService, _pluginService, _localizationService, _remotePluginService);
                 break;
             case MenuKeys.MenuKeyDownloads:
-                _currentPageItemsViewModel = null;
+                DisposeCurrentPageItems();
                 Content = new DownloadsViewModel(_downloadService, _localizationService);
                 break;
             case MenuKeys.MenuKeyPageItems:
+                DisposeCurrentPageItems();
                 message.Value.PageNumber = Math.Max(1, message.Value.PageNumber);
                 SetCurrentPlugin(message.Value.PluginId);
                 _currentPageItemsViewModel = new PageItemsViewModel(_pluginService, _localizationService, _remotePluginService, message.Value);
@@ -239,9 +240,15 @@ public partial class MainViewModel : ViewModelBase
         _pluginService.CurrentPlugin = null;
         CurrentPlugin = null;
         _pluginMenus = null;
-        _currentPageItemsViewModel = null;
+        DisposeCurrentPageItems();
         ClearNavigationStack();
         Menus.LoadDefaultMenu(L);
+    }
+
+    private void DisposeCurrentPageItems()
+    {
+        _currentPageItemsViewModel?.Dispose();
+        _currentPageItemsViewModel = null;
     }
 
     public bool IsNavigationSelected(string key)

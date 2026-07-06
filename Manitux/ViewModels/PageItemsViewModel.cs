@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Controls;
@@ -21,7 +22,7 @@ using Manitux.Services.Plugins;
 
 namespace Manitux.ViewModels;
 
-public partial class PageItemsViewModel :  ViewModelBase
+public partial class PageItemsViewModel : ViewModelBase, IDisposable
 {
     private readonly IPluginService? _pluginService;
     private PluginManager? _pluginManager;
@@ -35,6 +36,10 @@ public partial class PageItemsViewModel :  ViewModelBase
 
     //private PluginManager? pluginManager;
     private bool _suppressPageChange;
+    private int _loadVersion;
+    private bool _hasRefreshedCurrentLoad;
+    private readonly SemaphoreSlim _categoryLoadLimiter = new(2, 2);
+    private CancellationTokenSource? _loadCancellation;
 
     [ObservableProperty]
     private int _currentPage = 1;
@@ -52,8 +57,11 @@ public partial class PageItemsViewModel :  ViewModelBase
 
     public event Action? OnDataRefreshed;
 
+    public ICommand ActivateCommand { get; }
+
     public PageItemsViewModel(List<PageItemModel>? pageItems, int currentPage = 1, bool isPaginationVisible = true)
     {
+        ActivateCommand = new RelayCommand<PageItemModel>(OnActivate);
         //pluginManager = CodeLogic.CodeLogic.GetPluginManager();
         //WeakReferenceMessenger.Default.Register<PageItemsViewModel, MenuItemChangedMessage>(this, OnNavigation);
 
@@ -71,6 +79,7 @@ public partial class PageItemsViewModel :  ViewModelBase
         IRemotePluginService remotePluginService,
         MenuItemViewModel? navigation)
     {
+        ActivateCommand = new RelayCommand<PageItemModel>(OnActivate);
         _pluginService = pluginService;
         _navigation = navigation;
         TopBar = new PluginTopBarViewModel(
@@ -88,7 +97,7 @@ public partial class PageItemsViewModel :  ViewModelBase
         _ = LoadPageItems(CurrentPage);
     }
 
-    public void OnActivate(PageItemModel pageItem)
+    public void OnActivate(PageItemModel? pageItem)
     {
         if (pageItem is null) return;
         WeakReferenceMessenger.Default.Send(new PageItemChangedMessage(pageItem));
@@ -158,6 +167,7 @@ public partial class PageItemsViewModel :  ViewModelBase
             return false;
         }
 
+        CancelCurrentLoad();
         IsLoading = true;
 
         try
@@ -214,6 +224,10 @@ public partial class PageItemsViewModel :  ViewModelBase
             return;
         }
 
+        CancelCurrentLoad();
+        _loadCancellation = new CancellationTokenSource();
+        var cancellationToken = _loadCancellation.Token;
+        var loadVersion = Interlocked.Increment(ref _loadVersion);
         IsLoading = true;
         _pluginService.CurrentPlugin = plugin;
         TopBar?.UpdatePluginInfo();
@@ -224,54 +238,132 @@ public partial class PageItemsViewModel :  ViewModelBase
             Debug.WriteLine($"Plugin: {JsonSerializer.Serialize(plugin.Manifest)}" + Environment.NewLine);
             if (category is null)
             {
-                await LoadPluginCategoryRows(plugin);
+                await LoadPluginCategoryRows(plugin, loadVersion, cancellationToken);
                 return;
             }
 
             var pageItems = await plugin.GetPageItems(pageNumber, category);
+            if (loadVersion != _loadVersion)
+            {
+                return;
+            }
+
             EnrichWithCurrentPlugin(pageItems);
             UpdatePageItems(pageItems, category.Title);
         }
         finally
         {
-            IsLoading = false;
+            if (loadVersion == _loadVersion)
+            {
+                IsLoading = false;
+            }
         }
     }
 
-    private async Task LoadPluginCategoryRows(PluginBase plugin)
+    private async Task LoadPluginCategoryRows(
+        PluginBase plugin,
+        int loadVersion,
+        CancellationToken cancellationToken)
     {
         var categories = await plugin.GetCategories();
+        if (loadVersion != _loadVersion)
+        {
+            return;
+        }
+
         if (categories is null || categories.Count == 0)
         {
             UpdatePageItems(null);
             return;
         }
 
-        var rows = new ObservableCollection<PageItemCategoryViewModel>();
-        var allItems = new List<PageItemModel>();
-
-        foreach (var category in categories)
+        CategoryRows = new ObservableCollection<PageItemCategoryViewModel>(categories.Select(category =>
         {
-            var pageItems = await plugin.GetPageItems(1, category);
-            EnrichWithCurrentPlugin(pageItems);
-
-            if (pageItems is null || pageItems.Count == 0)
-            {
-                continue;
-            }
-
-            var rowItems = new ObservableCollection<PageItemModel>(pageItems);
-            rows.Add(new PageItemCategoryViewModel(category.Title ?? string.Empty, rowItems));
-            allItems.AddRange(pageItems);
-        }
-
-        PageItems = new ObservableCollection<PageItemModel>(allItems);
-        CategoryRows = rows;
+            PageItemCategoryViewModel? row = null;
+            row = new PageItemCategoryViewModel(
+                category.Title ?? string.Empty,
+                () => LoadCategoryRow(plugin, category, row!, loadVersion, cancellationToken));
+            return row;
+        }));
+        PageItems = [];
         IsPaginationVisible = false;
-        IsVisible = CategoryRows.Any();
+        IsVisible = true;
+        IsLoading = false;
+        _hasRefreshedCurrentLoad = false;
 
         OnPropertyChanged(nameof(PageItems));
-        OnDataRefreshed?.Invoke();
+
+        // İlk raflar ekrana gelir gelmez hazırlanır; kalan raflar görsel ağaca
+        // girdiklerinde PageItemShelf tarafından tembel olarak yüklenir.
+        foreach (var row in CategoryRows.Take(2))
+        {
+            _ = row.EnsureLoadedAsync();
+        }
+    }
+
+    private async Task LoadCategoryRow(
+        PluginBase plugin,
+        CategoryModel category,
+        PageItemCategoryViewModel row,
+        int loadVersion,
+        CancellationToken cancellationToken)
+    {
+        await _categoryLoadLimiter.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var pageItems = await plugin.GetPageItems(1, category);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (loadVersion != _loadVersion)
+            {
+                return;
+            }
+
+            EnrichWithCurrentPlugin(pageItems);
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                row.SetPageItems(pageItems);
+
+                if (!_hasRefreshedCurrentLoad &&
+                    pageItems?.Count > 0 &&
+                    ReferenceEquals(row, CategoryRows.FirstOrDefault()))
+                {
+                    _hasRefreshedCurrentLoad = true;
+                    OnDataRefreshed?.Invoke();
+                }
+
+                if (pageItems is not null)
+                {
+                    foreach (var pageItem in pageItems)
+                    {
+                        PageItems?.Add(pageItem);
+                    }
+                }
+            });
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception exception)
+        {
+            Debug.WriteLine($"Category '{category.Title}' could not be loaded: {exception}");
+        }
+        finally
+        {
+            _categoryLoadLimiter.Release();
+        }
+    }
+
+    public void Dispose()
+    {
+        CancelCurrentLoad();
+    }
+
+    private void CancelCurrentLoad()
+    {
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = null;
+        Interlocked.Increment(ref _loadVersion);
     }
 
     private void EnrichWithCurrentPlugin(List<PageItemModel>? pageItems)
@@ -328,8 +420,61 @@ public partial class PageItemsViewModel :  ViewModelBase
     //}
 }
 
-public sealed class PageItemCategoryViewModel(string title, ObservableCollection<PageItemModel> pageItems)
+public partial class PageItemCategoryViewModel : ObservableObject
 {
-    public string Title { get; } = title;
-    public ObservableCollection<PageItemModel> PageItems { get; } = pageItems;
+    private readonly Func<Task>? _loader;
+    private int _loadStarted;
+
+    public PageItemCategoryViewModel(
+        string title,
+        ObservableCollection<PageItemModel>? pageItems = null,
+        Func<Task>? loader = null)
+    {
+        Title = title;
+        PageItems = pageItems ?? [];
+        _loader = loader;
+        IsLoading = loader is not null;
+    }
+
+    public PageItemCategoryViewModel(string title, Func<Task> loader)
+        : this(title, null, loader)
+    {
+    }
+
+    public string Title { get; }
+    public ObservableCollection<PageItemModel> PageItems { get; }
+
+    [ObservableProperty]
+    private bool _isLoading;
+
+    public async Task EnsureLoadedAsync()
+    {
+        if (_loader is null || Interlocked.Exchange(ref _loadStarted, 1) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await _loader();
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    public void SetPageItems(IEnumerable<PageItemModel>? pageItems)
+    {
+        PageItems.Clear();
+        if (pageItems is null)
+        {
+            return;
+        }
+
+        foreach (var pageItem in pageItems)
+        {
+            PageItems.Add(pageItem);
+        }
+    }
 }

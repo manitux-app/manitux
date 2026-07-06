@@ -519,4 +519,34 @@
   <Style Selector="u|NavMenuItem">
     <Setter Property="MinHeight" Value="{DynamicResource ManituxRemoteTargetMin}" />
   </Style>
+
+  <!-- Android TV cihazlarında pahalı gölge ve geçişleri kapatır. Bu sınıf yalnızca
+       Android MainView tarafından eklenir; masaüstü platform stilleri değişmez. -->
+  <Style Selector="UserControl.android-performance Button">
+    <Setter Property="Transitions" Value="{x:Null}" />
+    <Setter Property="RenderTransform" Value="scale(1.0)" />
+  </Style>
+
+  <Style Selector="UserControl.android-performance ToggleButton">
+    <Setter Property="Transitions" Value="{x:Null}" />
+    <Setter Property="RenderTransform" Value="scale(1.0)" />
+  </Style>
+
+  <Style Selector="UserControl.android-performance Button /template/ ContentPresenter">
+    <Setter Property="Transitions" Value="{x:Null}" />
+    <Setter Property="BoxShadow" Value="0 0 0 0 #00000000" />
+  </Style>
+
+  <Style Selector="UserControl.android-performance ToggleButton /template/ ContentPresenter">
+    <Setter Property="Transitions" Value="{x:Null}" />
+    <Setter Property="BoxShadow" Value="0 0 0 0 #00000000" />
+  </Style>
+
+  <Style Selector="UserControl.android-performance Border.manitux-glass">
+    <Setter Property="BoxShadow" Value="0 0 0 0 #00000000" />
+  </Style>
+
+  <Style Selector="UserControl.android-performance Border.player-osd">
+    <Setter Property="BoxShadow" Value="0 0 0 0 #00000000" />
+  </Style>
 </Styles>

@@ -19,6 +19,11 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
+        if (OperatingSystem.IsAndroid())
+        {
+            Classes.Add("android-performance");
+        }
+
         Focusable = false;
         KeyDown += OnKeyDown;
         SizeChanged += OnSizeChanged;

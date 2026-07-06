@@ -9,6 +9,11 @@ using Avalonia.VisualTree;
 
 namespace Manitux.Ui.Input;
 
+public interface IRemoteDirectionalNavigation
+{
+    bool TryMoveFocus(Control current, NavigationDirection direction);
+}
+
 public sealed class RemoteNavigation
 {
     private const double DirectionTolerance = 6;
@@ -93,16 +98,29 @@ public sealed class RemoteNavigation
             return;
         }
 
-        if (TopLevel.GetTopLevel(scope)?.FocusManager?.GetFocusedElement() is TextBox)
+        var rawFocused = TopLevel.GetTopLevel(scope)?.FocusManager?.GetFocusedElement() as Control;
+        if (rawFocused is TextBox)
         {
             return;
         }
 
-        var focused = FindFocusableOwner(TopLevel.GetTopLevel(scope)?.FocusManager?.GetFocusedElement() as Control);
-        focused ??= FindFocusableOwner(scope as Control);
+        var focused = rawFocused is ListBoxItem or ListBox
+            ? FindFocusableDescendant(rawFocused) ?? FindFocusableOwner(rawFocused)
+            : FindFocusableOwner(rawFocused) ?? FindFocusableDescendant(rawFocused);
+        focused ??= FindFocusableOwner(scope as Control)
+                    ?? FindFocusableDescendant(scope as Control);
 
         if (focused is null)
         {
+            return;
+        }
+
+        var directionalScope = focused.GetVisualAncestors()
+            .OfType<IRemoteDirectionalNavigation>()
+            .FirstOrDefault();
+        if (directionalScope?.TryMoveFocus(focused, direction.Value) == true)
+        {
+            e.Handled = true;
             return;
         }
 
@@ -369,6 +387,24 @@ public sealed class RemoteNavigation
         }
 
         return null;
+    }
+
+    private static Control? FindFocusableDescendant(Control? control)
+    {
+        if (control is null)
+        {
+            return null;
+        }
+
+        // Sanallaştırılmış ListBox bazen odağı öğe konteynerinde tutar.
+        // CloudStream'in RecyclerView yönlendirmesi gibi gerçek içerik
+        // kontrolüne dönerek yön bilgisinin liste dışına kaçmasını önler.
+        return control.GetVisualDescendants()
+            .OfType<Control>()
+            .Where(IsFocusableCandidate)
+            .OrderByDescending(candidate => candidate is Button button && button.Classes.Contains("poster"))
+            .ThenBy(candidate => candidate.Bounds.X)
+            .FirstOrDefault();
     }
 
     private static bool IsInside(Control candidate, Control current)

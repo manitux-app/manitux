@@ -65,9 +65,9 @@
             Classes="Tertiary"
             Icon="{StaticResource SemiIconGithubLogo}"
             Click="OpenRepository"/>
-        <u:ThemeToggleButton Focusable="False"
+        <!-- <u:ThemeToggleButton Focusable="False"
             IsThreeState="False"
-            Mode="Controller" />
+            Mode="Controller" /> -->
 		<u:IconButton Focusable="False"
             Theme="{StaticResource BorderlessIconButton}"
             Classes="Tertiary"
