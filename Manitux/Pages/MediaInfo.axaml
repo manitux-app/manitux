@@ -87,7 +87,7 @@
 				<StackPanel Margin="40,10,40,40" Spacing="40">
 
 					<Grid ColumnDefinitions="Auto, *">
-						<Border Grid.Column="0" CornerRadius="12" ClipToBounds="True" BoxShadow="0 10 30 0 #A0000000" Width="260">
+						<Border Grid.Column="0" CornerRadius="12" ClipToBounds="True" BoxShadow="0 10 30 0 #A0000000" Width="{StaticResource ManituxDetailPosterWidth}">
 							<async:AdvancedImage Source="{Binding MediaInfo.Poster}"
 											     Loader="{x:Static loaders:CustomWebImageLoader.Instance}" 
 												 Stretch="Uniform"/>
@@ -360,14 +360,14 @@
 							</ItemsControl.ItemsPanel>
 							<ItemsControl.ItemTemplate>
 								<DataTemplate>
-									<StackPanel Width="150" Margin="10">
+									<StackPanel Width="{StaticResource ManituxRelatedPosterWidth}" Margin="10">
 
 										<Border Classes="MovieCard"
 												CornerRadius="8"
 												ClipToBounds="True"
 												Background="Black"
 												BoxShadow="0 4 10 0 #40000000">
-											<Button Height="220"
+											<Button Height="{StaticResource ManituxRelatedPosterHeight}"
 													Padding="0"
 													HorizontalAlignment="Stretch"
 													HorizontalContentAlignment="Stretch"

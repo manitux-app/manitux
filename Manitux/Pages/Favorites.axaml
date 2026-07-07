@@ -65,14 +65,14 @@
 
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Width="150" Margin="10">
+                                <StackPanel Width="{StaticResource ManituxFavoritePosterWidth}" Margin="10">
                                     <Border Classes="MovieCard"
                                             CornerRadius="8"
                                             ClipToBounds="True"
                                             Background="Black"
                                             BoxShadow="0 4 10 0 #40000000"
-                                            Width="150"
-                                            Height="220">
+                                            Width="{StaticResource ManituxFavoritePosterWidth}"
+                                            Height="{StaticResource ManituxFavoritePosterHeight}">
                                         <Button Padding="0"
                                                 HorizontalAlignment="Stretch"
                                                 VerticalAlignment="Stretch"
@@ -82,8 +82,8 @@
                                                 CommandParameter="{Binding}">
                                             <Grid>
                                                 <async:AdvancedImage
-                                                    Width="150"
-                                                    Height="220"
+                                                    Width="{StaticResource ManituxFavoritePosterWidth}"
+                                                    Height="{StaticResource ManituxFavoritePosterHeight}"
                                                     Source="{Binding Poster}"
                                                     Loader="{x:Static loaders:CustomWebImageLoader.Instance}"
                                                     Stretch="Uniform"/>

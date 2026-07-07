@@ -3,6 +3,9 @@
   <Folder Name="/Manitux.Framework/">
     <Project Path="Manitux.Framework/CodeLogic.csproj" />
   </Folder>
+  <Folder Name="/Manitux.Ui/">
+    <Project Path="Manitux.Ui/Manitux.Ui.csproj" />
+  </Folder>
   <Folder Name="/Misc/" />
   <Folder Name="/Misc/LibMPV/">
     <Project Path="Misc/LibMPV/LibMPVSharp.Avalonia/LibMPVSharp.Avalonia.csproj" />

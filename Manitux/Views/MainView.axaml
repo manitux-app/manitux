@@ -36,7 +36,8 @@
                 IsVisible="{Binding IsNavigationVisible}"
                 VerticalAlignment="Stretch">
                 <Grid RowDefinitions="Auto,*,Auto">
-                    <Border Width="54"
+                    <Border x:Name="DesktopLogo"
+                            Width="54"
                             Height="54"
                             CornerRadius="18"
                             ClipToBounds="True"
@@ -49,7 +50,8 @@
                                VerticalAlignment="Center" />
                     </Border>
 
-                    <StackPanel Grid.Row="1"
+                    <StackPanel x:Name="DesktopPrimaryNav"
+                                Grid.Row="1"
                                 Spacing="10"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center">
@@ -86,7 +88,8 @@
                         </Button>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="2"
+                    <StackPanel x:Name="DesktopBottomNav"
+                                Grid.Row="2"
                                 Spacing="8"
                                 HorizontalAlignment="Center">
                         <Button x:Name="DesktopThemeButton"

@@ -523,13 +523,46 @@
   <!-- Android TV cihazlarında pahalı gölge ve geçişleri kapatır. Bu sınıf yalnızca
        Android MainView tarafından eklenir; masaüstü platform stilleri değişmez. -->
   <Style Selector="UserControl.android-performance Button">
+    <Setter Property="MinHeight" Value="{DynamicResource ManituxRemoteTargetMin}" />
+    <Setter Property="MinWidth" Value="{DynamicResource ManituxRemoteTargetMin}" />
+    <Setter Property="Padding" Value="{DynamicResource ManituxControlPadding}" />
     <Setter Property="Transitions" Value="{x:Null}" />
     <Setter Property="RenderTransform" Value="scale(1.0)" />
   </Style>
 
   <Style Selector="UserControl.android-performance ToggleButton">
+    <Setter Property="MinHeight" Value="{DynamicResource ManituxRemoteTargetMin}" />
+    <Setter Property="MinWidth" Value="{DynamicResource ManituxRemoteTargetMin}" />
+    <Setter Property="Padding" Value="{DynamicResource ManituxControlPadding}" />
     <Setter Property="Transitions" Value="{x:Null}" />
     <Setter Property="RenderTransform" Value="scale(1.0)" />
+  </Style>
+
+  <Style Selector="UserControl.android-performance Button.rail">
+    <Setter Property="Width" Value="{DynamicResource ManituxRemoteTargetMin}" />
+    <Setter Property="Height" Value="{DynamicResource ManituxRemoteTargetMin}" />
+    <Setter Property="MinWidth" Value="{DynamicResource ManituxRemoteTargetMin}" />
+    <Setter Property="MinHeight" Value="{DynamicResource ManituxRemoteTargetMin}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource ManituxRadiusMedium}" />
+  </Style>
+
+  <Style Selector="UserControl.android-performance Button.mobile-nav">
+    <Setter Property="MinWidth" Value="56" />
+    <Setter Property="MinHeight" Value="48" />
+    <Setter Property="Padding" Value="6,4" />
+  </Style>
+
+  <Style Selector="UserControl.android-performance materialIcons|MaterialIcon.nav-icon">
+    <Setter Property="Width" Value="22" />
+    <Setter Property="Height" Value="22" />
+  </Style>
+
+  <Style Selector="UserControl.android-performance Button.poster:focus">
+    <Setter Property="RenderTransform" Value="scale(1.02)" />
+  </Style>
+
+  <Style Selector="UserControl.android-performance Button.poster:focus-visible">
+    <Setter Property="RenderTransform" Value="scale(1.02)" />
   </Style>
 
   <Style Selector="UserControl.android-performance Button /template/ ContentPresenter">

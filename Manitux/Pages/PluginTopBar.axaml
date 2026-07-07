@@ -13,11 +13,14 @@
              x:Class="Manitux.Pages.PluginTopBar"
              IsVisible="{Binding IsVisible}">
     <Border Classes="manitux-glass"
+            x:Name="TopBarChrome"
             Padding="14,10"
             Margin="0,0,0,18">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto"
+        <Grid x:Name="TopBarGrid"
+              ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto"
               ColumnSpacing="12">
             <Button Grid.Column="0"
+                    x:Name="PluginSelectorButton"
                     Classes="rail"
                     MinWidth="200"
                     HorizontalContentAlignment="Center"
@@ -50,6 +53,7 @@
                      Text="{Binding SearchText, Mode=TwoWay}" />
 
             <Button Grid.Column="2"
+                    x:Name="SearchButton"
                     Classes="rail"
                     MinWidth="56"
                     Command="{Binding SearchCommand}"
@@ -59,6 +63,7 @@
                                             Height="24"/>
             </Button>
             <Button Grid.Column="3"
+                    x:Name="SettingsButton"
                     Classes="rail"
                     MinWidth="56"
                     IsVisible="{Binding IsPluginConfigVisible}"
@@ -69,6 +74,7 @@
                                             Height="24"/>
             </Button>
             <Button Grid.Column="4"
+                    x:Name="RefreshButton"
                     Classes="rail"
                     MinWidth="56"
                     IsVisible="{Binding IsRefreshVisible}"
@@ -79,6 +85,7 @@
                                             Height="24"/>
             </Button>
             <Button Grid.Column="5"
+                    x:Name="ExtraActionButton"
                     Classes="rail"
                     MinWidth="56"
                     IsVisible="{Binding IsExtraActionVisible}"

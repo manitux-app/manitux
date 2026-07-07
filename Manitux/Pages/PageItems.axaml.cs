@@ -19,6 +19,10 @@ public partial class PageItems : UserControl, IRemoteDirectionalNavigation
     public PageItems()
     {
         InitializeComponent();
+        if (OperatingSystem.IsAndroid())
+        {
+            Classes.Add("android-performance");
+        }
 
         DataContextChanged += VM_DataContextChanged;
     }

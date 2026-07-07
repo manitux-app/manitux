@@ -13,15 +13,23 @@ namespace Manitux.Views;
 public partial class MainView : UserControl
 {
     private const double PhoneBreakpoint = 760;
+    private const double AndroidPhoneBreakpoint = 540;
+    private const double AndroidRailWidth = 50;
 
     //private MainViewModel? _viewModel;
 
     public MainView()
     {
+        if (OperatingSystem.IsAndroid())
+        {
+            ApplyAndroidLayoutResources();
+        }
+
         InitializeComponent();
         if (OperatingSystem.IsAndroid())
         {
             Classes.Add("android-performance");
+            ApplyAndroidChrome();
         }
 
         Focusable = false;
@@ -122,11 +130,17 @@ public partial class MainView : UserControl
 
     private void UpdateShellMode(double width)
     {
-        var isPhone = width > 0 && width < PhoneBreakpoint;
+        var phoneBreakpoint = OperatingSystem.IsAndroid() ? AndroidPhoneBreakpoint : PhoneBreakpoint;
+        var isPhone = width > 0 && width < phoneBreakpoint;
 
         DesktopRail.IsVisible = !isPhone;
         MobileNav.IsVisible = isPhone;
-        RootShell.Margin = isPhone ? new Thickness(14, 14, 14, 12) : new Thickness(22, 20, 22, 20);
+        RootShell.Margin = isPhone
+            ? new Thickness(8, 8, 8, 8)
+            : OperatingSystem.IsAndroid()
+                ? new Thickness(8, 8, 8, 8)
+                : new Thickness(22, 20, 22, 20);
+        RootShell.ColumnSpacing = OperatingSystem.IsAndroid() ? 8 : 18;
 
         RootShell.ColumnDefinitions.Clear();
         RootShell.RowDefinitions.Clear();
@@ -144,7 +158,7 @@ public partial class MainView : UserControl
             return;
         }
 
-        RootShell.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(76)));
+        RootShell.ColumnDefinitions.Add(new ColumnDefinition(new GridLength(OperatingSystem.IsAndroid() ? AndroidRailWidth : 76)));
         RootShell.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
         RootShell.RowDefinitions.Add(new RowDefinition(GridLength.Star));
 
@@ -214,6 +228,37 @@ public partial class MainView : UserControl
         }
 
         return false;
+    }
+
+    private static void ApplyAndroidLayoutResources()
+    {
+        if (Application.Current?.Resources is not { } resources)
+        {
+            return;
+        }
+
+        resources["ManituxPagePadding"] = new Thickness(16);
+        resources["ManituxPanelPadding"] = new Thickness(14);
+        resources["ManituxControlPadding"] = new Thickness(12, 7);
+        resources["ManituxRemoteTargetMin"] = 38d;
+        resources["ManituxPosterWidth"] = 126d;
+        resources["ManituxPosterHeight"] = 189d;
+        resources["ManituxFavoritePosterWidth"] = 118d;
+        resources["ManituxFavoritePosterHeight"] = 174d;
+        resources["ManituxDetailPosterWidth"] = 190d;
+        resources["ManituxRelatedPosterWidth"] = 118d;
+        resources["ManituxRelatedPosterHeight"] = 174d;
+    }
+
+    private void ApplyAndroidChrome()
+    {
+        DesktopRail.Padding = new Thickness(5);
+        DesktopLogo.Width = 40;
+        DesktopLogo.Height = 40;
+        DesktopLogo.CornerRadius = new CornerRadius(12);
+        DesktopPrimaryNav.Spacing = 5;
+        DesktopBottomNav.Spacing = 4;
+        MobileNav.Padding = new Thickness(6, 4);
     }
 
     // protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

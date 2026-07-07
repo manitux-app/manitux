@@ -24,6 +24,25 @@
         <Style Selector="UserControl.android-performance Button.poster async|AdvancedImage">
             <Setter Property="Transitions" Value="{x:Null}"/>
         </Style>
+        <Style Selector="UserControl.android-performance StackPanel">
+            <Setter Property="Spacing" Value="1"/>
+        </Style>
+        <Style Selector="UserControl.android-performance TextBlock.title">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="LineHeight" Value="16"/>
+        </Style>
+        <Style Selector="UserControl.android-performance ListBox">
+            <Setter Property="Padding" Value="0,1,0,3"/>
+        </Style>
+        <Style Selector="UserControl.android-performance ListBoxItem">
+            <Setter Property="Margin" Value="0,0,1,0"/>
+        </Style>
+        <Style Selector="UserControl.android-performance Button.poster">
+            <Setter Property="Margin" Value="1"/>
+        </Style>
+        <Style Selector="UserControl.android-performance Button.poster Border.poster-content Border">
+            <Setter Property="Padding" Value="5"/>
+        </Style>
     </UserControl.Styles>
 
     <StackPanel Spacing="10">

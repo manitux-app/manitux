@@ -9,6 +9,14 @@
              d:DesignHeight="450"
              x:DataType="vm:PageItemsViewModel"
              x:Class="Manitux.Pages.PageItems">
+	<UserControl.Styles>
+		<Style Selector="UserControl.android-performance ListBox#CategoryList">
+			<Setter Property="Padding" Value="0,0,2,2"/>
+		</Style>
+		<Style Selector="UserControl.android-performance ListBox#CategoryList > ListBoxItem">
+			<Setter Property="Margin" Value="0,0,0,2"/>
+		</Style>
+	</UserControl.Styles>
 	<Grid RowDefinitions="Auto,*" Background="{DynamicResource ManituxPageBrush}">
 		<pages:PluginTopBar Grid.Row="0" DataContext="{Binding TopBar}"/>
 
