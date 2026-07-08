@@ -61,6 +61,57 @@ Bu dosya, Manitux projesinde yapılan değişikliklerin kalıcı kaydıdır.
 - Audio panel kapanırken focus'un alt bardaki audio butonunda kalması sağlandı ve kapanış sonrası tekrar kendiliğinden açılmasını engelleyen focus koruması eklendi.
 - Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
 - Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Audio panelin yalnızca audio butonu üzerindeyken `OK/Enter/Space` ile açılması sağlandı; audio butonuna focus gelince otomatik panel açma davranışı kaldırıldı.
+- Audio panel açıkken focus liste satırlarına geçse bile alt bardaki audio butonu seçili/focuslu görünümünü koruyacak tema stili eklendi.
+- Panelden seçim yapılınca veya `Back/Escape` ile kapanınca focus audio butonuna dönmeye devam ediyor.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- MPV `track-list` içinde aynı dilde birden fazla audio track döndüğünde audio panelde yinelenen dil seçenekleri tekilleştirildi.
+- Audio tekilleştirme öncelikle `Language`, yoksa `Title`, o da yoksa `Id` üzerinden yapılıyor; listede ilk uygun track'in MPV id'si korunuyor.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+
+## 2026-07-09
+
+- Player odağı ana pencereye kaçtığında klavye/kumanda tuşlarının boşa düşmemesi için `PlayerView` açıkken `TopLevel` tünel key handler eklendi.
+- `OK/Enter/Select` ana video alanında artık play/pause yapmıyor; alt bar OSD'yi açıp varsayılan kontrol odağına yönlendiriyor.
+- Play/pause klavye tarafında yalnızca `Space` ile çalışacak şekilde ayrıldı; alt bar içindeki buton aktivasyonları `OK/Enter/Select` ile devam ediyor.
+- Player alt bar gizlendikten sonra ana player kontrolüne fallback focus verme kaldırıldı; böylece pencere etrafında mavi focus çizgisi oluşması engellendi.
+- Değişen dosyalar: `Manitux/Player/PlayerView.axaml.cs`, `Manitux/Player/MediaPlayerView.cs`.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux.Desktop\Manitux.Desktop.csproj` başarılı. Mevcut nullable/event/XML yorum uyarıları dışında hata yok.
+- Audio panelde üst satırdaki büyük yazı `tur`, `eng`, `tr`, `en-US` gibi dil kodları geldiğinde `System.Globalization.CultureInfo` ile `Türkçe`, `English` gibi yerel dil adına çevrilecek şekilde düzenlendi.
+- Audio panelde alt satırdaki ham `Language`/id bilgisi değiştirilmeden bırakıldı.
+- Değişen dosya: `Manitux/Player/MediaPlayerView.cs`.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux.Desktop\Manitux.Desktop.csproj --no-restore` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Seek slider aktif kumanda moduna `OK/Enter/Select` ile girip aynı tuşlarla veya `Back/Escape` ile çıkacak şekilde korunurken aktif durumda slider rengi turuncuya dönecek şekilde tema stili genişletildi.
+- Altyazı butonu artık `HasSubTitles` değerine bağlı gizlenmiyor; alt barda her zaman görünür ve açıldığında en az `Closed` satırını içeren işlevli panel gösteriyor.
+- Altyazı seçimi eski flyout yerine audio panelle aynı sabit panel, kaydırılabilir liste, `Up/Down/OK/Enter/Back/Escape` kumanda davranışı ve buton seçili görünümüyle çalışacak şekilde düzenlendi.
+- Değişen dosyalar: `Manitux/Player/MediaPlayerView.cs`, `Manitux/Player/Themes/Generic.axaml`.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux.Desktop\Manitux.Desktop.csproj --no-restore` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Altyazı butonu tekrar yalnızca videoda altyazı olduğunda `HasSubTitles` ile görünür hale getirildi; audio butonu da yalnızca birden fazla ses seçeneğinde `HasAudioTracks` ile görünmeye devam ediyor.
+- Yeni video yüklenirken eski audio/altyazı listeleri temizlenerek butonların önceki videodan kalan state ile yanlış görünmesi engellendi.
+- Player template'inde ve key handler'da artık kullanılmayan flyout kodları kaldırıldı; altyazı seçimi yalnızca yeni sabit panel akışıyla çalışıyor.
+- Değişen dosyalar: `Manitux/Player/MediaPlayerView.cs`, `Manitux/Player/Themes/Generic.axaml`.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux.Desktop\Manitux.Desktop.csproj --no-restore` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- MPV bazı streamlerde altyazı `track-list` bilgisini `file-loaded` anından sonra doldurduğu için altyazı taraması kısa aralıklarla tekrar denenecek şekilde güçlendirildi.
+- Dışarıdan çözülen altyazı listesi geldiğinde `HasSubTitles` gecikmeden true yapılacak şekilde düzenlendi; böylece altyazı olduğu halde butonun gizli kalması engellendi.
+- Değişen dosya: `Manitux/Player/MediaPlayerView.cs`.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux.Desktop\Manitux.Desktop.csproj --no-restore` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- MPV altyazı yükleme akışı yeniden kuruldu: video artık `loadfile` içinde `sub-files` verilmeden yükleniyor, `file-loaded` sonrasında altyazılar tek tek `sub-add` ile ekleniyor.
+- Uzak VTT altyazılarında MPV'nin video yüklemesini kilitlemesini engellemek için altyazı ekleme video yükleme aşamasından ayrıldı; altyazı dili dosya/id/ad bilgisinden tahmin edilip MPV'ye ayrıca gönderiliyor.
+- `file-loaded` olayı makul süre içinde gelmezse yükleme ekranında sonsuz beklemek yerine player hata durumuna geçirilecek şekilde zaman aşımı davranışı sertleştirildi.
+- MPV altyazı track eşleştirmesinde gerçek `track-list` id'si korunacak ve dosya adı eşleşmezse altyazı başlığına göre de eşleşme denenecek şekilde düzenlendi.
+- Değişen dosyalar: `Manitux/ViewModels/PlayerViewModel.cs`, `Manitux/Player/MediaPlayerView.cs`.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux.Desktop\Manitux.Desktop.csproj --no-restore` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Player alt barındaki hız kontrolünde `Speedometer` ikonu kaldırıldı; `X1`/`X2` yazısı butonun sağındaki ayrı metin yerine doğrudan buton içine alındı.
+- Hız butonu yazı taşmayacak ve alt bar hizasını bozmayacak şekilde sabit genişlikli metin butonuna dönüştürüldü.
+- Değişen dosya: `Manitux/Player/Themes/Generic.axaml`.
 
 ## Android
 

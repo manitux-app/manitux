@@ -2,6 +2,7 @@
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -129,6 +130,13 @@ namespace Manitux.Player
             set => SetValue(IsAudioPanelVisibleProperty, value);
         }
 
+        public static readonly StyledProperty<bool> IsSubtitlePanelVisibleProperty = AvaloniaProperty.Register<MediaPlayerView, bool>(nameof(IsSubtitlePanelVisible));
+        public bool IsSubtitlePanelVisible
+        {
+            get => GetValue(IsSubtitlePanelVisibleProperty);
+            set => SetValue(IsSubtitlePanelVisibleProperty, value);
+        }
+
         public static readonly StyledProperty<string?> TitleProperty = AvaloniaProperty.Register<MediaPlayerView, string?>(nameof(Title), "");
         public string? Title
         {
@@ -224,15 +232,15 @@ namespace Manitux.Player
         private Button? _volumeButton;
         private Button? _subtitleButton;
         private Button? _audioButton;
-        private Button? _lastPlaybackFlyoutButton;
         private Control? _audioPanel;
+        private Control? _subtitlePanel;
         private Control? _controlBar;
         private DispatcherTimer? _seekDebounceTimer;
         private TimeSpan _pendingSeekTime;
         private bool _isTimeSliderRemoteActive;
         private bool _isScrubbing;
         private bool _isUpdatingTimeFromPlayer;
-        private bool _suppressAudioPanelOnFocus;
+        private int _subtitleTrackReadVersion;
         private WindowState _restoreWindowState = WindowState.Normal;
         private readonly DispatcherTimer _controlsIdleTimer;
 
@@ -342,6 +350,7 @@ namespace Manitux.Player
 
             _controlBar = e.NameScope.Find<Control>("PART_ControlBar");
             _audioPanel = e.NameScope.Find<Control>("PART_AudioPanel");
+            _subtitlePanel = e.NameScope.Find<Control>("PART_SubtitlePanel");
             _timeSlider = e.NameScope.Find<Slider>("PART_TimeBar");
             if (_timeSlider is not null)
             {
@@ -358,18 +367,6 @@ namespace Manitux.Player
             {
                 _volumeButton.GotFocus -= VolumeButtonGotFocus;
                 _volumeButton.GotFocus += VolumeButtonGotFocus;
-            }
-
-            if (_subtitleButton is not null)
-            {
-                _subtitleButton.GotFocus -= PlaybackFlyoutButtonGotFocus;
-                _subtitleButton.GotFocus += PlaybackFlyoutButtonGotFocus;
-            }
-
-            if (_audioButton is not null)
-            {
-                _audioButton.GotFocus -= AudioButtonGotFocus;
-                _audioButton.GotFocus += AudioButtonGotFocus;
             }
 
             ShowTransientControls(focusDefaultControl: true);
@@ -393,15 +390,9 @@ namespace Manitux.Player
                 return;
             }
 
-            if (IsPlaybackMenuSource(e.Source) || IsFocusInPlaybackMenu())
+            if (IsSubtitlePanelSource(e.Source) || IsFocusInSubtitlePanel())
             {
-                if (e.Key is Key.Escape or Key.Back)
-                {
-                    HidePlaybackPopups(focusLastFlyoutButton: true);
-                    ShowTransientControls();
-                    e.Handled = true;
-                }
-
+                HandleSubtitlePanelKey(e);
                 return;
             }
 
@@ -471,19 +462,10 @@ namespace Manitux.Player
                         return;
                     }
 
-                    TryPlayPause();
                     ShowTransientControls(focusDefaultControl: true);
                     e.Handled = true;
                     break;
                 case Key.Space:
-                    if (focusIsInChrome)
-                    {
-                        ActivateFocusedChromeControl();
-                        ShowTransientControls();
-                        e.Handled = true;
-                        return;
-                    }
-
                     TryPlayPause();
                     ShowTransientControls();
                     e.Handled = true;
@@ -493,6 +475,14 @@ namespace Manitux.Player
                     if (IsAudioPanelVisible)
                     {
                         HideAudioPanel(focusAudioButton: true);
+                        ShowTransientControls();
+                        e.Handled = true;
+                        return;
+                    }
+
+                    if (IsSubtitlePanelVisible)
+                    {
+                        HideSubtitlePanel(focusSubtitleButton: true);
                         ShowTransientControls();
                         e.Handled = true;
                         return;
@@ -586,8 +576,6 @@ namespace Manitux.Player
             {
                 return;
             }
-
-            Focus(NavigationMethod.Directional);
         }
 
         private bool TryMoveChromeFocus(Key key)
@@ -636,7 +624,7 @@ namespace Manitux.Player
         {
             if (GetFocusedVisual() is not Control focused)
             {
-                TryPlayPause();
+                ShowTransientControls(focusDefaultControl: true);
                 return;
             }
 
@@ -654,9 +642,9 @@ namespace Manitux.Player
                     return;
                 }
 
-                if (button.Flyout is not null)
+                if (ReferenceEquals(button, _subtitleButton))
                 {
-                    ShowButtonFlyout(button, focusFirstItem: true);
+                    ShowSubtitlePanel(focusFirstItem: true);
                     return;
                 }
 
@@ -676,7 +664,7 @@ namespace Manitux.Player
                 return;
             }
 
-            TryPlayPause();
+            ShowTransientControls(focusDefaultControl: true);
         }
 
         private List<Control> GetChromeFocusTargets()
@@ -722,61 +710,32 @@ namespace Manitux.Player
                 HideVolumePanel();
             }
 
-            if (ReferenceEquals(target, _audioButton))
-            {
-                ShowAudioPanel(focusFirstItem: true);
-            }
-            else if (_audioPanel is null || !IsVisualAncestorOf(_audioPanel, target))
+            if (!ReferenceEquals(target, _audioButton)
+                && (_audioPanel is null || !IsVisualAncestorOf(_audioPanel, target)))
             {
                 HideAudioPanel();
+            }
+
+            if (!ReferenceEquals(target, _subtitleButton)
+                && (_subtitlePanel is null || !IsVisualAncestorOf(_subtitlePanel, target)))
+            {
+                HideSubtitlePanel();
             }
 
             return target.Focus(NavigationMethod.Directional);
         }
 
-        private void HidePlaybackPopups(bool focusLastFlyoutButton = false)
+        private void HidePlaybackPopups()
         {
             HideVolumePanel();
             HideAudioPanel();
-
-            if (_controlBar is null)
-            {
-                return;
-            }
-
-            foreach (var button in _controlBar.GetVisualDescendants().OfType<Button>())
-            {
-                button.Flyout?.Hide();
-            }
-
-            if (focusLastFlyoutButton && _lastPlaybackFlyoutButton is { IsEffectivelyVisible: true, IsEnabled: true })
-            {
-                _lastPlaybackFlyoutButton.Focus(NavigationMethod.Directional);
-            }
-        }
-
-        private void PlaybackFlyoutButtonGotFocus(object? sender, GotFocusEventArgs e)
-        {
-            if (sender is Button button)
-            {
-                ShowButtonFlyout(button, focusFirstItem: true);
-            }
-        }
-
-        private void AudioButtonGotFocus(object? sender, GotFocusEventArgs e)
-        {
-            if (_suppressAudioPanelOnFocus)
-            {
-                _suppressAudioPanelOnFocus = false;
-                return;
-            }
-
-            ShowAudioPanel(focusFirstItem: true);
+            HideSubtitlePanel();
         }
 
         private void ShowAudioPanel(bool focusFirstItem)
         {
             HideVolumePanel();
+            HideSubtitlePanel();
             SetCurrentValue(IsAudioPanelVisibleProperty, true);
 
             if (focusFirstItem)
@@ -791,7 +750,6 @@ namespace Manitux.Player
 
             if (focusAudioButton && _audioButton is { IsEffectivelyVisible: true, IsEnabled: true })
             {
-                _suppressAudioPanelOnFocus = true;
                 _audioButton.Focus(NavigationMethod.Directional);
             }
         }
@@ -811,6 +769,73 @@ namespace Manitux.Player
                 : items.FirstOrDefault(button => Equals(button.CommandParameter, selected.Id)) ?? items[0];
 
             target.Focus(NavigationMethod.Directional);
+        }
+
+        private void ShowSubtitlePanel(bool focusFirstItem)
+        {
+            HideVolumePanel();
+            HideAudioPanel();
+            EnsureClosedSubtitleItem();
+            SetCurrentValue(IsSubtitlePanelVisibleProperty, true);
+
+            if (focusFirstItem)
+            {
+                Dispatcher.UIThread.Post(FocusSelectedOrFirstSubtitlePanelItem, DispatcherPriority.Background);
+            }
+        }
+
+        private void HideSubtitlePanel(bool focusSubtitleButton = false)
+        {
+            SetCurrentValue(IsSubtitlePanelVisibleProperty, false);
+
+            if (focusSubtitleButton && _subtitleButton is { IsEffectivelyVisible: true, IsEnabled: true })
+            {
+                _subtitleButton.Focus(NavigationMethod.Directional);
+            }
+        }
+
+        private void FocusSelectedOrFirstSubtitlePanelItem()
+        {
+            var items = GetSubtitlePanelButtons();
+            if (items.Count == 0)
+            {
+                _subtitleButton?.Focus(NavigationMethod.Directional);
+                return;
+            }
+
+            var selected = SelectedSubTitle;
+            var target = selected is null
+                ? items[0]
+                : items.FirstOrDefault(button => Equals(button.CommandParameter, selected.Id)) ?? items[0];
+
+            target.Focus(NavigationMethod.Directional);
+        }
+
+        private void EnsureClosedSubtitleItem()
+        {
+            if (SubTitles.Any(s => s.Id == "no"))
+            {
+                return;
+            }
+
+            var items = new AvaloniaList<SubtitleModel>
+            {
+                new()
+                {
+                    Id = "no",
+                    Name = Localize?.Closed ?? "Closed",
+                    Url = string.Empty
+                }
+            };
+
+            foreach (var subtitle in SubTitles)
+            {
+                items.Add(subtitle);
+            }
+
+            SetCurrentValue(SubTitlesProperty, items);
+            SetCurrentValue(HasSubTitlesProperty, true);
+            SetCurrentValue(SelectedSubTitleProperty, items.FirstOrDefault());
         }
 
         private void HandleAudioPanelKey(KeyEventArgs e)
@@ -934,38 +959,99 @@ namespace Manitux.Player
                    && button.IsEnabled;
         }
 
-        private void ShowButtonFlyout(Button button, bool focusFirstItem)
+        private void HandleSubtitlePanelKey(KeyEventArgs e)
         {
-            if (button.Flyout is null)
+            if (!IsSubtitlePanelVisible)
             {
                 return;
             }
 
-            HidePlaybackPopups();
-            _lastPlaybackFlyoutButton = button;
-            button.Flyout.ShowAt(button);
-
-            if (focusFirstItem)
+            switch (e.Key)
             {
-                Dispatcher.UIThread.Post(FocusFirstPlaybackMenuItem, DispatcherPriority.Background);
+                case Key.Up:
+                case Key.Down:
+                    MoveSubtitlePanelFocus(e.Key == Key.Up ? -1 : 1);
+                    ShowTransientControls();
+                    e.Handled = true;
+                    break;
+                case Key.Enter:
+                case Key.Select:
+                case Key.Space:
+                    ActivateFocusedSubtitlePanelItem();
+                    HideSubtitlePanel(focusSubtitleButton: true);
+                    ShowTransientControls();
+                    e.Handled = true;
+                    break;
+                case Key.Escape:
+                case Key.Back:
+                    HideSubtitlePanel(focusSubtitleButton: true);
+                    ShowTransientControls();
+                    e.Handled = true;
+                    break;
+                case Key.Left:
+                case Key.Right:
+                    HideSubtitlePanel(focusSubtitleButton: true);
+                    ShowTransientControls();
+                    e.Handled = true;
+                    break;
             }
         }
 
-        private void FocusFirstPlaybackMenuItem()
+        private void MoveSubtitlePanelFocus(int direction)
         {
-            var firstItem = TopLevel.GetTopLevel(this)?
-                .GetVisualDescendants()
-                .OfType<Button>()
-                .FirstOrDefault(IsPlaybackMenuButton);
+            var items = GetSubtitlePanelButtons();
+            if (items.Count == 0)
+            {
+                return;
+            }
 
-            firstItem?.Focus(NavigationMethod.Directional);
+            var focused = GetFocusedVisual() as Control;
+            var current = focused is null
+                ? -1
+                : items.FindIndex(button => ReferenceEquals(button, focused) || IsVisualAncestorOf(button, focused));
+
+            var next = current < 0
+                ? 0
+                : (current + direction + items.Count) % items.Count;
+
+            items[next].Focus(NavigationMethod.Directional);
         }
 
-        private static bool IsPlaybackMenuSource(object? source)
+        private void ActivateFocusedSubtitlePanelItem()
+        {
+            if (GetFocusedVisual() is not Button button || !IsSubtitlePanelButton(button))
+            {
+                return;
+            }
+
+            var parameter = button.CommandParameter;
+            if (button.Command?.CanExecute(parameter) == true)
+            {
+                button.Command.Execute(parameter);
+            }
+        }
+
+        private List<Button> GetSubtitlePanelButtons()
+        {
+            if (_subtitlePanel is null || !IsSubtitlePanelVisible)
+            {
+                return [];
+            }
+
+            return _subtitlePanel
+                .GetVisualDescendants()
+                .OfType<Button>()
+                .Where(IsSubtitlePanelButton)
+                .OrderBy(button => GetBoundsTop(button, _subtitlePanel))
+                .ToList();
+        }
+
+        private bool IsSubtitlePanelSource(object? source)
         {
             for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
             {
-                if (visual is Button button && IsPlaybackMenuButton(button))
+                if (ReferenceEquals(visual, _subtitlePanel)
+                    || visual is Button button && IsSubtitlePanelButton(button))
                 {
                     return true;
                 }
@@ -974,14 +1060,22 @@ namespace Manitux.Player
             return false;
         }
 
-        private bool IsFocusInPlaybackMenu()
+        private bool IsFocusInSubtitlePanel()
         {
-            return GetFocusedVisual() is Button button && IsPlaybackMenuButton(button);
+            var focused = GetFocusedVisual();
+            if (focused is null || _subtitlePanel is null)
+            {
+                return false;
+            }
+
+            return ReferenceEquals(focused, _subtitlePanel)
+                   || IsVisualAncestorOf(_subtitlePanel, focused)
+                   || focused is Button button && IsSubtitlePanelButton(button);
         }
 
-        private static bool IsPlaybackMenuButton(Button button)
+        private static bool IsSubtitlePanelButton(Button button)
         {
-            return button.Classes.Contains("player-menu-item")
+            return button.Classes.Contains("subtitle-panel-item")
                    && button.IsEffectivelyVisible
                    && button.IsEnabled;
         }
@@ -1172,6 +1266,7 @@ namespace Manitux.Player
                 case MpvEventId.MPV_EVENT_COMMAND_REPLY:
                     break;
                 case MpvEventId.MPV_EVENT_START_FILE:
+                    Dispatcher.UIThread.InvokeAsync(ResetTrackSelectionState);
                     break;
                 case MpvEventId.MPV_EVENT_END_FILE:
                     break;
@@ -1283,7 +1378,36 @@ namespace Manitux.Player
             Debug.WriteLine("[MediaPlayerView] file-loaded received.");
             Dispatcher.UIThread.InvokeAsync(TryGetVideoParams);
             Dispatcher.UIThread.InvokeAsync(TryGetAudioTracks);
-            Dispatcher.UIThread.InvokeAsync(TryGetSubtitleTracks);
+            Dispatcher.UIThread.InvokeAsync(() => RetryGetSubtitleTracks(++_subtitleTrackReadVersion, 0));
+        }
+
+        private async void RetryGetSubtitleTracks(int version, int attempt)
+        {
+            if (version != _subtitleTrackReadVersion || MediaPlayer is null)
+            {
+                return;
+            }
+
+            var foundSubtitles = TryGetSubtitleTracks();
+            if (foundSubtitles || HasSubTitles || attempt >= 6)
+            {
+                return;
+            }
+
+            await Task.Delay(500);
+            RetryGetSubtitleTracks(version, attempt + 1);
+        }
+
+        private void ResetTrackSelectionState()
+        {
+            HideAudioPanel();
+            HideSubtitlePanel();
+            SetCurrentValue(AudioTracksProperty, new AvaloniaList<AudioTrackModel>());
+            SetCurrentValue(SelectedAudioTrackProperty, null);
+            SetCurrentValue(HasAudioTracksProperty, false);
+            SetCurrentValue(SubTitlesProperty, new AvaloniaList<SubtitleModel>());
+            SetCurrentValue(SelectedSubTitleProperty, null);
+            SetCurrentValue(HasSubTitlesProperty, false);
         }
 
         private void DispatchSetCurrentValue(AvaloniaProperty property, object value)
@@ -1545,14 +1669,10 @@ namespace Manitux.Player
             {
                 Debug.WriteLine("[MediaPlayerView] reading audio track-list.");
                 node = MediaPlayer.GetPropertyNode(MPVMediaPlayer.Properties.TrackList);
-                var tracks = ReadTracks(node.Node, "audio")
+                var tracks = DistinctAudioTracks(ReadTracks(node.Node, "audio"))
                     .Select((track, index) =>
                     {
-                        var name = !string.IsNullOrWhiteSpace(track.Title)
-                            ? track.Title
-                            : !string.IsNullOrWhiteSpace(track.Language)
-                                ? track.Language
-                                : string.Format(Localize?.AudioTrackFormat ?? "Audio {0}", index + 1);
+                        var name = GetAudioTrackDisplayName(track, index);
 
                         return new AudioTrackModel
                         {
@@ -1582,9 +1702,9 @@ namespace Manitux.Player
             }
         }
 
-        private void TryGetSubtitleTracks()
+        private bool TryGetSubtitleTracks()
         {
-            if (MediaPlayer == null) return;
+            if (MediaPlayer == null) return false;
 
             MpvNodeWrap? node = null;
 
@@ -1608,7 +1728,7 @@ namespace Manitux.Player
                 if (tracks.Count == 0)
                 {
                     SetCurrentValue(HasSubTitlesProperty, SubTitles.Any(s => s.Id != "no"));
-                    return;
+                    return false;
                 }
 
                 var closed = SubTitles.FirstOrDefault(s => s.Id == "no")
@@ -1624,10 +1744,12 @@ namespace Manitux.Player
                 SetCurrentValue(HasSubTitlesProperty, true);
                 SetCurrentValue(SelectedSubTitleProperty, newList.FirstOrDefault());
                 Debug.WriteLine($"[MediaPlayerView] subtitle track-list read. Count: {newList.Count}");
+                return true;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[MediaPlayerView] subtitle track-list read failed. Error: {ex}");
+                return false;
             }
             finally
             {
@@ -1636,6 +1758,96 @@ namespace Manitux.Player
                     MediaPlayer.FreeNode(node);
                 }
             }
+        }
+
+        private static List<MpvTrackInfo> DistinctAudioTracks(IEnumerable<MpvTrackInfo> tracks)
+        {
+            var result = new List<MpvTrackInfo>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var track in tracks)
+            {
+                var key = GetAudioTrackDistinctKey(track);
+                if (!seen.Add(key))
+                {
+                    continue;
+                }
+
+                result.Add(track);
+            }
+
+            return result;
+        }
+
+        private static string GetAudioTrackDistinctKey(MpvTrackInfo track)
+        {
+            if (!string.IsNullOrWhiteSpace(track.Language))
+            {
+                return $"lang:{track.Language.Trim()}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(track.Title))
+            {
+                return $"title:{track.Title.Trim()}";
+            }
+
+            return $"id:{track.Id}";
+        }
+
+        private string GetAudioTrackDisplayName(MpvTrackInfo track, int index)
+        {
+            var languageName = GetNativeLanguageName(track.Title)
+                ?? GetNativeLanguageName(track.Language);
+
+            if (!string.IsNullOrWhiteSpace(languageName))
+            {
+                return languageName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(track.Title))
+            {
+                return track.Title;
+            }
+
+            if (!string.IsNullOrWhiteSpace(track.Language))
+            {
+                return track.Language;
+            }
+
+            return string.Format(Localize?.AudioTrackFormat ?? "Audio {0}", index + 1);
+        }
+
+        private static string? GetNativeLanguageName(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var languageCode = value.Trim();
+            var culture = TryGetCulture(languageCode);
+            if (culture is null)
+            {
+                return null;
+            }
+
+            return culture.TextInfo.ToTitleCase(culture.NativeName);
+        }
+
+        private static CultureInfo? TryGetCulture(string languageCode)
+        {
+            try
+            {
+                return CultureInfo.GetCultureInfo(languageCode);
+            }
+            catch (CultureNotFoundException)
+            {
+            }
+
+            return CultureInfo.GetCultures(CultureTypes.NeutralCultures | CultureTypes.SpecificCultures)
+                .FirstOrDefault(culture =>
+                    string.Equals(culture.TwoLetterISOLanguageName, languageCode, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(culture.ThreeLetterISOLanguageName, languageCode, StringComparison.OrdinalIgnoreCase));
         }
 
         private static List<MpvTrackInfo> ReadTracks(MpvNode root, string type)
@@ -1797,6 +2009,9 @@ namespace Manitux.Player
             {
                 if (MediaPlayer == null) return;
 
+                var hasVisibleSubtitles = subtitles.Any(s => s.Id != "no");
+                SetCurrentValue(HasSubTitlesProperty, hasVisibleSubtitles);
+
                 await Task.Delay(800);
 
                 var mappedSubtitles = MapSubtitlesToMpvTrackIds(subtitles);
@@ -1843,7 +2058,7 @@ namespace Manitux.Player
                         
                         var sub = new SubtitleModel
                         {
-                            Id = subtitle?.Id,
+                            Id = track?.Id ?? subtitle?.Id,
                             Name = subtitle?.Name ?? "",
                             Url = subtitle?.Url ?? ""
                         };
@@ -1876,7 +2091,10 @@ namespace Manitux.Player
 
             return tracks.FirstOrDefault(track =>
                 !string.IsNullOrWhiteSpace(track.ExternalFilename)
-                && GetSubtitleMatchKeys(track.ExternalFilename).Any(subtitleKeys.Contains));
+                && GetSubtitleMatchKeys(track.ExternalFilename).Any(subtitleKeys.Contains))
+                ?? tracks.FirstOrDefault(track =>
+                    !string.IsNullOrWhiteSpace(track.Title)
+                    && string.Equals(track.Title.Trim(), subtitle.Name.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
         private static IEnumerable<string> GetSubtitleMatchKeys(string? value)

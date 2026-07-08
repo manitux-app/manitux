@@ -23,6 +23,7 @@ public partial class PlayerView : UserControl, IDisposable
     private PlayerViewModel? _viewModel;
     private PlayerViewModel? _vm;
     private bool _isAttachedToVisualTree;
+    private TopLevel? _topLevel;
     protected bool disposed = false;
 
     public PlayerView()
@@ -61,12 +62,16 @@ public partial class PlayerView : UserControl, IDisposable
     {
         _isAttachedToVisualTree = true;
         base.OnAttachedToVisualTree(e);
+        _topLevel = TopLevel.GetTopLevel(this);
+        _topLevel?.AddHandler(KeyDownEvent, OnTopLevelKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         Dispatcher.UIThread.Post(() => MPView?.FocusForRemote(), DispatcherPriority.Background);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         _isAttachedToVisualTree = false;
+        _topLevel?.RemoveHandler(KeyDownEvent, OnTopLevelKeyDown);
+        _topLevel = null;
         base.OnDetachedFromVisualTree(e);
 
         Dispatcher.UIThread.Post(() =>
@@ -132,5 +137,28 @@ public partial class PlayerView : UserControl, IDisposable
     private void OnPlayerKeyDown(object? sender, KeyEventArgs e)
     {
         MPView?.HandleRemoteKeyDown(e);
+    }
+
+    private void OnTopLevelKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Handled || IsEventFromPlayer(e.Source))
+        {
+            return;
+        }
+
+        MPView?.HandleRemoteKeyDown(e);
+    }
+
+    private bool IsEventFromPlayer(object? source)
+    {
+        for (var control = source as Control; control is not null; control = control.Parent as Control)
+        {
+            if (ReferenceEquals(control, this))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
