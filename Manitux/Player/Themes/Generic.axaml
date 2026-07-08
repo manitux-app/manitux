@@ -4,6 +4,7 @@
 					xmlns:local="using:Manitux.Player"
 					xmlns:models="using:Manitux.Core.Models"
 					xmlns:converter="using:Manitux.Converters"
+					xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
 					xmlns:mpv="using:LibMPVSharp.Avalonia">
   <!-- Add Resources Here -->
 	<Design.PreviewWith>
@@ -16,6 +17,7 @@
 
 	<ControlTheme TargetType="local:MediaPlayerView" x:Key="{x:Type local:MediaPlayerView}">
 		<Setter Property="Foreground" Value="White"/>
+		<Setter Property="FocusAdorner" Value="{x:Null}"/>
 		<Setter Property="Template">
 			<ControlTemplate TargetType="local:MediaPlayerView">
 				<Grid RowDefinitions="auto,*,auto">
@@ -25,6 +27,40 @@
 							<Setter Property="HorizontalContentAlignment" Value="Center"/>
 							<Setter Property="BorderThickness" Value="0"/>
 						</Style>
+						<Style Selector="Slider.remote-active /template/ Thumb#PART_Thumb">
+							<Setter Property="Background" Value="Orange"/>
+							<Setter Property="BorderBrush" Value="{DynamicResource ManituxFocusInnerBrush}"/>
+						</Style>
+						<Style Selector="Slider.volume-slider /template/ Thumb#PART_Thumb">
+							<Setter Property="Background" Value="{DynamicResource ManituxAccentBrush}"/>
+							<Setter Property="BorderBrush" Value="{DynamicResource ManituxFocusInnerBrush}"/>
+						</Style>
+						<Style Selector="Button.player-menu-item">
+							<Setter Property="MinHeight" Value="56"/>
+							<Setter Property="Padding" Value="12,8"/>
+							<Setter Property="CornerRadius" Value="{DynamicResource ManituxRadiusSmall}"/>
+							<Setter Property="Background" Value="Transparent"/>
+							<Setter Property="BorderBrush" Value="Transparent"/>
+							<Setter Property="BorderThickness" Value="1"/>
+							<Setter Property="Foreground" Value="{DynamicResource ManituxTextBrush}"/>
+							<Setter Property="FocusAdorner" Value="{x:Null}"/>
+						</Style>
+						<Style Selector="Button.player-menu-item:pointerover /template/ ContentPresenter">
+							<Setter Property="Background" Value="{DynamicResource ManituxSurfaceMutedBrush}"/>
+							<Setter Property="BorderBrush" Value="{DynamicResource ManituxAccentBrush}"/>
+						</Style>
+						<Style Selector="Button.player-menu-item:focus /template/ ContentPresenter">
+							<Setter Property="Background" Value="{DynamicResource ManituxSurfaceRaisedBrush}"/>
+							<Setter Property="BorderBrush" Value="{DynamicResource ManituxFocusBrush}"/>
+							<Setter Property="BorderThickness" Value="3"/>
+							<Setter Property="BoxShadow" Value="0 0 0 3 #66FFFFFF, 0 0 0 7 #882D9CFF"/>
+						</Style>
+						<Style Selector="Button.player-menu-item:focus-visible /template/ ContentPresenter">
+							<Setter Property="Background" Value="{DynamicResource ManituxSurfaceRaisedBrush}"/>
+							<Setter Property="BorderBrush" Value="{DynamicResource ManituxFocusBrush}"/>
+							<Setter Property="BorderThickness" Value="3"/>
+							<Setter Property="BoxShadow" Value="0 0 0 3 #66FFFFFF, 0 0 0 7 #882D9CFF"/>
+						</Style>
 					</Grid.Styles>
 						
 					<mpv:VideoView Grid.RowSpan="3"
@@ -32,7 +68,60 @@
 
 					<Panel Grid.RowSpan="3"
 					       Background="Transparent"/>
-						
+
+					<Border Grid.RowSpan="3"
+							x:Name="PART_AudioPanel"
+							IsVisible="{TemplateBinding IsAudioPanelVisible}"
+							HorizontalAlignment="Right"
+							VerticalAlignment="Bottom"
+							Margin="0,0,24,104"
+							Width="320"
+							MaxHeight="360"
+							CornerRadius="{DynamicResource ManituxRadiusMedium}"
+							Background="{DynamicResource ManituxSurfaceBrush}"
+							BorderBrush="{DynamicResource ManituxGlassStrokeBrush}"
+							BorderThickness="1"
+							BoxShadow="0 18 44 0 #88000000"
+							Padding="12">
+						<ScrollViewer MaxHeight="336"
+									  VerticalScrollBarVisibility="Auto">
+							<ItemsControl ItemsSource="{TemplateBinding AudioTracks}">
+								<ItemsControl.ItemTemplate>
+									<DataTemplate x:DataType="models:AudioTrackModel">
+										<Button Classes="player-menu-item audio-panel-item"
+												HorizontalAlignment="Stretch"
+												HorizontalContentAlignment="Stretch"
+												Command="{x:Static local:MediaPlayerView.AudioTrackCmd}"
+												CommandParameter="{Binding Id}">
+											<Grid ColumnDefinitions="32,*" ColumnSpacing="10">
+												<materialIcons:MaterialIcon Grid.Column="0"
+																			Kind="MusicNote"
+																			Width="24"
+																			Height="24"
+																			Foreground="{DynamicResource ManituxTextMutedBrush}"
+																			VerticalAlignment="Center"/>
+												<StackPanel Grid.Column="1"
+															Orientation="Vertical"
+															VerticalAlignment="Center"
+															Spacing="2">
+													<TextBlock Text="{Binding Name}"
+															   Foreground="{DynamicResource ManituxTextBrush}"
+															   FontSize="18"
+															   FontWeight="SemiBold"
+															   TextTrimming="CharacterEllipsis"/>
+													<TextBlock Text="{Binding Language}"
+															   Foreground="{DynamicResource ManituxTextMutedBrush}"
+															   FontSize="13"
+															   TextTrimming="CharacterEllipsis"/>
+												</StackPanel>
+											</Grid>
+										</Button>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</ScrollViewer>
+					</Border>
+
 					<Border Grid.Row="0" HorizontalAlignment="Left" Margin="0,10,0,0" IsVisible="False">
 							<Button Theme="{StaticResource IconButton}"
 							        Content="{StaticResource icon-ri-information-line}">
@@ -58,42 +147,39 @@
 
 					
 					<Border Grid.Row="2"
-							IsVisible="{TemplateBinding AreControlsVisible}">
-						<Border.Background>
-							<SolidColorBrush Color="Black" Opacity="0.5"/>
-						</Border.Background>
-						<DockPanel Margin="0,8">
+							x:Name="PART_ControlBar"
+							Classes="player-osd"
+							IsVisible="{TemplateBinding AreControlsVisible}"
+							Margin="16,0,16,18"
+							Padding="12,8"
+							Height="76">
+						<DockPanel LastChildFill="True">
 							<!-- play -->
 							<Button Theme="{StaticResource IconButton}"
-									Content="{StaticResource icon-play}"
 									DockPanel.Dock="Left"
 									VerticalAlignment="Center"
 									Margin="8,0,4,0"
 									Command="{x:Static local:MediaPlayerView.PlayPauseCmd}"
-									x:Name="playpause_button"/>
+									x:Name="playpause_button">
+								<Grid>
+									<materialIcons:MaterialIcon x:Name="play_icon" Kind="Play" Width="26" Height="26"/>
+									<materialIcons:MaterialIcon x:Name="pause_icon" Kind="Pause" Width="26" Height="26" IsVisible="False"/>
+								</Grid>
+							</Button>
 
 							<Button Theme="{StaticResource IconButton}"
-									Content="{StaticResource icon-stop}"
 									DockPanel.Dock="Left"
 									VerticalAlignment="Center"
 									Margin="0,0,8,0"
-									Foreground="#ff6b6b"
-									Command="{x:Static local:MediaPlayerView.StopCmd}"/>
+									Foreground="{DynamicResource ManituxDangerBrush}"
+									Command="{x:Static local:MediaPlayerView.StopCmd}">
+								<materialIcons:MaterialIcon Kind="Stop" Width="26" Height="26"/>
+							</Button>
 
-							<!-- time -->
 							<StackPanel Orientation="Horizontal"
 										DockPanel.Dock="Right"
 										Margin="4,0,8,0"
 										Spacing="8">
-								<TextBlock Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Time, StringFormat='{}{0:hh\\:mm\\:ss}'}"
-										   Foreground="{TemplateBinding Foreground}"
-										   VerticalAlignment="Center"/>
-								
-								<TextBlock Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Duration, StringFormat='/{0:hh\\:mm\\:ss}'}"
-										   Foreground="{TemplateBinding Foreground}"
-										   VerticalAlignment="Center"
-										   Margin="-8,0,0,0"/>
-
 								<!-- ratio -->
 								<!--<StackPanel Orientation="Horizontal"
 											Spacing="8">
@@ -110,9 +196,10 @@
 								<StackPanel Orientation="Horizontal"
 											Spacing="8">
 									<Button Theme="{StaticResource IconButton}"
-											Content="{StaticResource icon-speed}"
 											VerticalAlignment="Center"
-											Command="{x:Static local:MediaPlayerView.SpeedCmd}"/>
+											Command="{x:Static local:MediaPlayerView.SpeedCmd}">
+										<materialIcons:MaterialIcon Kind="Speedometer" Width="26" Height="26"/>
+									</Button>
 									<TextBlock Foreground="{TemplateBinding Foreground}"
 											   Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Speed, StringFormat='X{0:N0}'}"
 											   VerticalAlignment="Center"
@@ -121,64 +208,116 @@
 
 								<!-- volume -->
 								<Button Theme="{StaticResource IconButton}"
-										Content="{StaticResource icon-volume}"
-										VerticalAlignment="Center">
-									<Button.Flyout>
-										<Flyout Placement="Top"
-											    ShowMode="TransientWithDismissOnPointerMoveAway"
-												FlyoutPresenterClasses="bgTansparent">
-											<Border CornerRadius="6"
-													Padding="0,6">
-												<Border.Background>
-													<SolidColorBrush Color="White" Opacity="0.8"/>
-												</Border.Background>
-												<StackPanel Orientation="Vertical"
-															Spacing="6">
-													<TextBlock Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Volume}"
-															   Foreground="Black"
-															   HorizontalAlignment="Center"
-															   FontWeight="Bold"/>
-													<Slider Orientation="Vertical"
-															HorizontalAlignment="Center"
-															Height="120"
-															Maximum="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=MaxVolume}"
-															Minimum="0"
-															Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Volume, Converter={x:Static converter:AutoValueConverters.Instance}, Mode=TwoWay}"/>
-												</StackPanel>
-											</Border>
-										</Flyout>
-									</Button.Flyout>
+										VerticalAlignment="Center"
+										x:Name="volume_button">
+									<materialIcons:MaterialIcon Kind="VolumeHigh" Width="26" Height="26"/>
 								</Button>
+								<Popup IsOpen="{TemplateBinding IsVolumePanelVisible}"
+									   PlacementTarget="{Binding #volume_button}"
+									   Placement="Top"
+									   HorizontalOffset="-26"
+									   VerticalOffset="-10"
+									   IsLightDismissEnabled="False">
+									<Border Width="104"
+											Height="224"
+											CornerRadius="{DynamicResource ManituxRadiusMedium}"
+											Background="{DynamicResource ManituxSurfaceBrush}"
+											BorderBrush="{DynamicResource ManituxGlassStrokeBrush}"
+											BorderThickness="1"
+											BoxShadow="0 18 44 0 #88000000"
+											Padding="14">
+										<Grid RowDefinitions="Auto,*,Auto">
+											<TextBlock Grid.Row="0"
+													   Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=VolumePercent}"
+													   Foreground="{DynamicResource ManituxTextBrush}"
+													   FontSize="18"
+													   FontWeight="SemiBold"
+													   HorizontalAlignment="Center"
+													   TextWrapping="NoWrap"/>
+											<Slider Grid.Row="1"
+													Classes="volume-slider"
+													Focusable="False"
+													Orientation="Vertical"
+													HorizontalAlignment="Center"
+													VerticalAlignment="Stretch"
+													Margin="0,10"
+													Maximum="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=MaxVolume}"
+													Minimum="0"
+													Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Volume, Converter={x:Static converter:AutoValueConverters.Instance}, Mode=TwoWay}"/>
+											<materialIcons:MaterialIcon Grid.Row="2"
+																		Kind="VolumeHigh"
+																		Width="24"
+																		Height="24"
+																		Foreground="{DynamicResource ManituxAccentBrush}"
+																		HorizontalAlignment="Center"/>
+										</Grid>
+									</Border>
+								</Popup>
 
 								<!-- subtitles -->
 								<Button Theme="{StaticResource IconButton}"
-										Content="{StaticResource icon-subtitles}"
 										VerticalAlignment="Center"
-										IsVisible="{TemplateBinding HasSubTitles}">
+										IsVisible="{TemplateBinding HasSubTitles}"
+										x:Name="subtitle_button">
+									<materialIcons:MaterialIcon Kind="Subtitles" Width="26" Height="26"/>
 									<Button.Flyout>
 										<Flyout Placement="Top"
 										        ShowMode="TransientWithDismissOnPointerMoveAway"
 										        FlyoutPresenterClasses="bgTansparent">
-											<Border CornerRadius="6" Padding="6" Width="160">
-												<Border.Background>
-													<SolidColorBrush Color="Black" Opacity="0.85"/>
-												</Border.Background>
-												<ItemsControl ItemsSource="{TemplateBinding SubTitles}">
-													<ItemsControl.ItemTemplate>
-														<DataTemplate x:DataType="models:SubtitleModel">
-															<Button HorizontalAlignment="Stretch"
-																	HorizontalContentAlignment="Left"
-																	Background="Transparent"
-																	Foreground="White"
-																	Focusable="False"
-																	BorderThickness="0"
-																	Command="{x:Static local:MediaPlayerView.SubTitleCmd}"
-																	CommandParameter="{Binding Id}">
-																<TextBlock Text="{Binding Name}" Foreground="White" FontSize="12"/>
-															</Button>
-														</DataTemplate>
-													</ItemsControl.ItemTemplate>
-												</ItemsControl>
+											<Border CornerRadius="{DynamicResource ManituxRadiusMedium}"
+													Background="{DynamicResource ManituxSurfaceBrush}"
+													BorderBrush="{DynamicResource ManituxGlassStrokeBrush}"
+													BorderThickness="1"
+													BoxShadow="0 18 44 0 #88000000"
+													Padding="12"
+													Width="300">
+												<Grid RowDefinitions="Auto,*" RowSpacing="10">
+													<Grid ColumnDefinitions="32,*" ColumnSpacing="10">
+														<materialIcons:MaterialIcon Grid.Column="0"
+																					Kind="Subtitles"
+																					Width="26"
+																					Height="26"
+																					Foreground="{DynamicResource ManituxAccentBrush}"
+																					VerticalAlignment="Center"/>
+														<TextBlock Grid.Column="1"
+																   Text="Altyazı"
+																   Foreground="{DynamicResource ManituxTextBrush}"
+																   FontSize="18"
+																   FontWeight="SemiBold"
+																   VerticalAlignment="Center"/>
+													</Grid>
+													<ScrollViewer Grid.Row="1"
+																  MaxHeight="300"
+																  VerticalScrollBarVisibility="Auto">
+														<ItemsControl ItemsSource="{TemplateBinding SubTitles}">
+															<ItemsControl.ItemTemplate>
+																<DataTemplate x:DataType="models:SubtitleModel">
+																	<Button Classes="player-menu-item"
+																			HorizontalAlignment="Stretch"
+																			HorizontalContentAlignment="Stretch"
+																			Command="{x:Static local:MediaPlayerView.SubTitleCmd}"
+																			CommandParameter="{Binding Id}">
+																		<Grid ColumnDefinitions="32,*" ColumnSpacing="10">
+																			<materialIcons:MaterialIcon Grid.Column="0"
+																										Kind="ClosedCaption"
+																										Width="24"
+																										Height="24"
+																										Foreground="{DynamicResource ManituxTextMutedBrush}"
+																										VerticalAlignment="Center"/>
+																			<TextBlock Grid.Column="1"
+																					   Text="{Binding Name}"
+																					   Foreground="{DynamicResource ManituxTextBrush}"
+																					   FontSize="18"
+																					   FontWeight="SemiBold"
+																					   TextTrimming="CharacterEllipsis"
+																					   VerticalAlignment="Center"/>
+																		</Grid>
+																	</Button>
+																</DataTemplate>
+															</ItemsControl.ItemTemplate>
+														</ItemsControl>
+													</ScrollViewer>
+												</Grid>
 											</Border>
 										</Flyout>
 									</Button.Flyout>
@@ -186,44 +325,22 @@
 
 								<!-- audio tracks -->
 								<Button Theme="{StaticResource IconButton}"
-										Content="{StaticResource icon-audio-track}"
 										VerticalAlignment="Center"
-										IsVisible="{TemplateBinding HasAudioTracks}">
-									<Button.Flyout>
-										<Flyout Placement="Top"
-										        ShowMode="TransientWithDismissOnPointerMoveAway"
-										        FlyoutPresenterClasses="bgTansparent">
-											<Border CornerRadius="6" Padding="6" Width="160">
-												<Border.Background>
-													<SolidColorBrush Color="Black" Opacity="0.85"/>
-												</Border.Background>
-												<ItemsControl ItemsSource="{TemplateBinding AudioTracks}">
-													<ItemsControl.ItemTemplate>
-														<DataTemplate x:DataType="models:AudioTrackModel">
-															<Button HorizontalAlignment="Stretch"
-																	HorizontalContentAlignment="Left"
-																	Background="Transparent"
-																	Foreground="White"
-																	Focusable="False"
-																	BorderThickness="0"
-																	Command="{x:Static local:MediaPlayerView.AudioTrackCmd}"
-																	CommandParameter="{Binding Id}">
-																<TextBlock Text="{Binding Name}" Foreground="White" FontSize="12"/>
-															</Button>
-														</DataTemplate>
-													</ItemsControl.ItemTemplate>
-												</ItemsControl>
-											</Border>
-										</Flyout>
-									</Button.Flyout>
+										IsVisible="{TemplateBinding HasAudioTracks}"
+										x:Name="audio_button">
+									<materialIcons:MaterialIcon Kind="MusicNote" Width="26" Height="26"/>
 								</Button>
 
 								<!-- fullscreen -->
 								<Button Theme="{StaticResource IconButton}"
-										Content="{StaticResource icon-fullscreen}"
 										VerticalAlignment="Center"
 										Command="{x:Static local:MediaPlayerView.FullScreenCmd}"
-										x:Name="fullscreen_button"/>
+										x:Name="fullscreen_button">
+									<Grid>
+										<materialIcons:MaterialIcon x:Name="fullscreen_icon" Kind="Fullscreen" Width="26" Height="26"/>
+										<materialIcons:MaterialIcon x:Name="fullscreen_exit_icon" Kind="FullscreenExit" Width="26" Height="26" IsVisible="False"/>
+									</Grid>
+								</Button>
 
 								<!-- file picker -->
 								<!--<Button Theme="{StaticResource IconButton}"
@@ -234,25 +351,54 @@
 							</StackPanel>
 
 							<!-- seek -->
-							<Slider VerticalAlignment="Center"
-									Margin="4,0,4,0"
-									Maximum="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Duration, Converter={x:Static converter:AutoValueConverters.Instance}}"
-									Minimum="0"
-									Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Time, Converter={x:Static converter:AutoValueConverters.Instance}, Mode=TwoWay}"
-									x:Name="PART_TimeBar"/>
+							<Grid ColumnDefinitions="112,*,112"
+								  ColumnSpacing="12"
+								  Margin="4,0,4,0"
+								  VerticalAlignment="Center">
+								<TextBlock Grid.Column="0"
+										   Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Time, StringFormat='{}{0:hh\\:mm\\:ss}'}"
+										   Foreground="{TemplateBinding Foreground}"
+										   FontSize="20"
+										   FontWeight="SemiBold"
+										   TextAlignment="Right"
+										   VerticalAlignment="Center"
+										   TextWrapping="NoWrap"/>
+								<Slider Grid.Column="1"
+										VerticalAlignment="Center"
+										Classes="seek-active"
+										Focusable="True"
+										Maximum="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Duration, Converter={x:Static converter:AutoValueConverters.Instance}}"
+										Minimum="0"
+										Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Time, Converter={x:Static converter:AutoValueConverters.Instance}, Mode=TwoWay}"
+										x:Name="PART_TimeBar"/>
+								<TextBlock Grid.Column="2"
+										   Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=RemainingTime, StringFormat='-{0:hh\\:mm\\:ss}'}"
+										   Foreground="{TemplateBinding Foreground}"
+										   FontSize="20"
+										   FontWeight="SemiBold"
+										   TextAlignment="Left"
+										   VerticalAlignment="Center"
+										   TextWrapping="NoWrap"/>
+							</Grid>
 						</DockPanel>
 					</Border>
 				</Grid>
 			</ControlTemplate>
 		</Setter>
 		<Style Selector="^[Playing=True]">
-			<Style Selector="^ /template/ Button#playpause_button">
-				<Setter Property="Content" Value="{DynamicResource icon-pause}"/>
+			<Style Selector="^ /template/ materialIcons|MaterialIcon#play_icon">
+				<Setter Property="IsVisible" Value="False"/>
+			</Style>
+			<Style Selector="^ /template/ materialIcons|MaterialIcon#pause_icon">
+				<Setter Property="IsVisible" Value="True"/>
 			</Style>
 		</Style>
 		<Style Selector="^[IsFullScreen=True]">
-			<Style Selector="^ /template/ Button#fullscreen_button">
-				<Setter Property="Content" Value="{DynamicResource icon-fullscreen-exit}"/>
+			<Style Selector="^ /template/ materialIcons|MaterialIcon#fullscreen_icon">
+				<Setter Property="IsVisible" Value="False"/>
+			</Style>
+			<Style Selector="^ /template/ materialIcons|MaterialIcon#fullscreen_exit_icon">
+				<Setter Property="IsVisible" Value="True"/>
 			</Style>
 		</Style>
 	</ControlTheme>

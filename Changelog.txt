@@ -1,0 +1,97 @@
+# Changelog
+
+Bu dosya, Manitux projesinde yapılan değişikliklerin kalıcı kaydıdır.
+
+## Kural
+
+- Bundan sonra yapılan her UI, davranış, build, paketleme, test veya bakım değişikliği tarihli olarak buraya yazılacak.
+- Kayıtlarda değişen dosyalar, sebep, doğrulama komutu ve varsa cihazdaki gözlem kısa şekilde belirtilecek.
+- Sürüm artırma veya paketleme yalnızca açıkça istendiğinde yapılacak.
+
+## 2026-07-08
+
+- `Changelog.txt` oluşturuldu ve proje değişiklik günlüğü için ana kayıt dosyası yapıldı.
+- `Android.md` içeriği `Android` başlığı altına taşındı.
+- Player alt barı ana Manitux temasına uygun hale getirildi; Material ikonlar, tema renkleri, focus görünümü ve klavye/kumanda odağı düzenlendi.
+- Değişen player dosyaları: `Manitux/Player/Themes/Generic.axaml`, `Manitux/Player/Themes/ButtonThemes.axaml`, `Manitux/Player/MediaPlayerView.cs`.
+- Aynı player düzenlemeleri `PC/Manitux.Pc` kopyasına da uygulandı.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Player odak ve alt bar davranışları Android TV kullanımına göre yeniden düzenlendi.
+- Kontrol barı gizlenirken odak player köküne geri alındı; böylece gizli kontrollerde odak kalması engellendi.
+- Kumanda yön tuşları gizli barı uyandıracak, bar görünürken D-pad odak gezintisine izin verecek şekilde ayrıldı.
+- `Select/OK` gizli barda kontrol barını açıp play/pause düğmesine odaklıyor; bar görünürken odaktaki kontrolün çalışmasına izin veriyor.
+- `Space` ve `Enter` klavye kullanımı için play/pause davranışını koruyor; `Escape/Back` barı kapatıyor.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- `PlayerView`'ın Ursa dialog içeriği olduğu dikkate alınarak player kumanda tuşları `TopLevel` yerine `PlayerView` tünel key scope'una taşındı.
+- `MediaPlayerView` artık `HandleRemoteKeyDown` ile dialog içinden gelen tuşları işler; alt bar içinde D-pad gezinmesini ve OK/Select aktivasyonunu kendi kontrol listesiyle yönetir.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Pause durumunda player alt barının idle timer ile kaybolması engellendi; oynatma tekrar başlayınca timer yeniden devreye giriyor.
+- Seek slider için pasif/aktif kumanda modu eklendi: slider focus alınca yön tuşları odak gezdirir, `OK/Enter/Space` ile aktif moda geçince slider thumb rengi değişir ve `Left/Right` videoyu ileri/geri sarar.
+- Slider aktif moddan `Back/Escape` ile çıkılır; çıkınca focus sliderda kalır ama yön tuşları tekrar diğer kontrollere geçebilir.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Slider aktif olduğunda thumb rengi açık turuncu yapıldı.
+- Slider focus/aktif state değişimlerinde alt bar yüksekliğinin oynamaması için alt bar ve ikon butonları sabit ölçüye alındı.
+- Geçen süre bilgisi sliderın soluna, kalan süre bilgisi sliderın sağına taşındı ve fontları büyütüldü.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Ses butonu focus olduğunda temalı ses paneli görünür hale getirildi.
+- Ses butonu focus'tayken `Up/Down` tuşları ses seviyesini değiştiriyor; `Back/Escape` paneli kapatıp focus'u ses butonunda bırakıyor.
+- Eski ses flyout'u yerine player temasıyla uyumlu, cam yüzeyli ve dikey slider içeren sabit panel kullanıldı.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Ses paneli sabit sağ margin yerine `volume_button` hedefli `Popup` olarak konumlandırıldı; panel ses butonunun tam üstüne hizalandı.
+- Ses göstergesi ham MPV değeri yerine `MaxVolume` oranına göre hesaplanan 0-100 arası yüzde değerini gösteriyor; MPV tam ses değerini 130 döndürse bile ekranda 100 görünüyor.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Player alt barı `Escape/Back` ile gizlenirken açık ses popup'ı ve buton flyout'ları kapatılacak şekilde temizleme akışı eklendi.
+- Alt bar gizlendikten sonra player penceresi etrafında mavi focus çizgisi görünmemesi için player kök focus adorner'ı kaldırıldı ve gizleme sırasında köke odak taşıma görsel focus üretmeyecek şekilde düzenlendi.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Subtitle ve audio track popupları ses paneliyle aynı temaya yaklaştırıldı; cam yüzeyli panel, gölge, büyük Material ikonlu başlık, TV için daha okunur menü satırları ve net focus görünümü eklendi.
+- Uzun altyazı/ses listelerinde panelin taşmaması için popup içerikleri kaydırılabilir hale getirildi.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Dil/audio ve altyazı butonları focus aldığında veya focus üzerindeyken `Enter/Select` basıldığında flyout açılıp ilk menü satırına odak verecek şekilde düzenlendi.
+- Player key handler, popup içindeki `player-menu-item` satırlarında yön/enter tuşlarını artık ezmiyor; popup içinde doğal kumanda navigasyonu çalışacak hale getirildi.
+- Audio popup üstündeki `Ses` başlığı ve ikonu kaldırıldı; dil seçeneklerinde ses ikonu yerine `Translate` Material ikonu kullanıldı.
+- MPV `track-list` içindeki gömülü/HLS altyazı track'leri de okunarak altyazı butonunun görünmesi sağlandı.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+- Audio seçim UI'ı flyout/popup yerine player template'i içinde sağa dayalı sabit panel olarak yeniden düzenlendi.
+- Audio paneli temalı cam yüzey, `MusicNote` ikonları, kaydırılabilir liste ve `Up/Down/Enter/Back` kumanda davranışıyla odaklanabilir hale getirildi.
+- Audio panel kapanırken focus'un alt bardaki audio butonunda kalması sağlandı ve kapanış sonrası tekrar kendiliğinden açılmasını engelleyen focus koruması eklendi.
+- Bu düzenleme yalnızca `Manitux` player tarafına uygulandı; `PC/Manitux.Pc` desktop kopyasına yeni değişiklik yapılmadı.
+- Doğrulama: `dotnet build .\Manitux\Manitux.csproj --no-restore -m:1 -v:minimal` başarılı. Mevcut nullable/event uyarıları dışında hata yok.
+
+## Android
+
+Android hedefi için yapılan değişikliklerin ve doğrulama notlarının kalıcı kaydıdır.
+
+### Kural
+
+- Android için yapılan her UI, davranış, build, paketleme veya cihaz testi değişikliği bu dosyaya tarihli olarak yazılacak.
+- Kayıtlarda değişen dosyalar, sebep, doğrulama komutu ve varsa cihazdaki gözlem kısaca belirtilecek.
+- Sürüm artırma veya paketleme yalnızca açıkça istendiğinde yapılacak.
+
+### 2026-07-07
+
+- Android'de 1920x1080 fiziksel ekranda arayüzün düşük çözünürlük gibi büyüyüp poster ve butonları şişirmesi için kompakt Android ölçek katmanı eklendi.
+- `Manitux/Views/MainView.axaml.cs` içinde Android'e özel layout resource override, daha düşük telefon breakpoint'i ve daha dar desktop rail genişliği tanımlandı.
+- `Manitux.Ui/Themes/Layout.axaml` içinde favori, detay ve benzer içerik poster boyutları resource anahtarlarına taşındı.
+- `Manitux.Ui/Themes/Controls.axaml` içinde `android-performance` sınıfı Android'de buton min boyutlarını, padding'i, nav ikonlarını ve poster focus büyümesini daha kompakt hale getirecek şekilde genişletildi.
+- `Manitux/Pages/Favorites.axaml` ve `Manitux/Pages/MediaInfo.axaml` içindeki sabit poster boyutları resource anahtarlarına bağlandı.
+- Doğrulama: `dotnet build Manitux.slnx` başarılı. Mevcut nullable/XML yorum uyarıları dışında hata yok.
+
+#### Android boşluk ve chrome sıkılaştırma
+
+- Posterler küçüldükten sonra araların fazla açık kalması nedeniyle `Manitux/Pages/PageItemShelf.axaml` içinde Android'e özel shelf spacing, ListBox padding, item margin ve poster margin değerleri daraltıldı.
+- `Manitux/Pages/PageItems.axaml` ve `Manitux/Pages/PageItems.axaml.cs` içinde Android sınıfı eklenerek kategori satırları arasındaki dikey boşluk azaltıldı.
+- Sol rail'in fazla yer kaplaması nedeniyle `Manitux/Views/MainView.axaml` ve `Manitux/Views/MainView.axaml.cs` içinde Android rail genişliği, dış margin, column spacing, rail padding, logo boyutu ve nav stack aralıkları küçültüldü.
+- Top bar'ın fazla yer kaplaması nedeniyle `Manitux/Pages/PluginTopBar.axaml` ve `Manitux/Pages/PluginTopBar.axaml.cs` içinde Android top bar padding/margin, kolon aralığı, plugin seçici genişliği ve action buton boyutları küçültüldü.
+- Doğrulama: `dotnet build Manitux.slnx --no-restore` başarılı. Sandbox içinde Avalonia BuildServices `buildtasks.log` izin hatası verdi; izinli çalıştırmada build geçti. Mevcut nullable/event uyarıları dışında hata yok.
+
+#### Poster ve raf boşluklarını minimuma indirme
+
+- `Manitux/Pages/PageItemShelf.axaml` içinde Android shelf spacing `1`, title font/line height `14/16`, ListBox padding `0,1,0,3`, poster item margin `1`, poster button margin `1` yapıldı.
+- Poster alt başlık bandı padding'i Android'de `5` yapılarak poster içi dikey kayıp azaltıldı.
+- `Manitux/Pages/PageItems.axaml` içinde Android kategori listesi padding'i `0,0,2,2`, raflar arası margin `0,0,0,2` yapıldı.
+- Doğrulama: `dotnet build Manitux.slnx --no-restore` başarılı. Mevcut nullable/event uyarıları dışında hata yok.

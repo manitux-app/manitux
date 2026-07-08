@@ -5,8 +5,10 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using LibMPVSharp;
 using Manitux.Core.Models;
@@ -27,6 +29,7 @@ public partial class PlayerView : UserControl, IDisposable
     {
         InitializeComponent();
         DataContextChanged += VM_DataContextChanged;
+        AddHandler(KeyDownEvent, OnPlayerKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
     }
 
     private void VM_DataContextChanged(object? sender, EventArgs e)
@@ -58,6 +61,7 @@ public partial class PlayerView : UserControl, IDisposable
     {
         _isAttachedToVisualTree = true;
         base.OnAttachedToVisualTree(e);
+        Dispatcher.UIThread.Post(() => MPView?.FocusForRemote(), DispatcherPriority.Background);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -103,6 +107,7 @@ public partial class PlayerView : UserControl, IDisposable
     {
         if (!this.disposed && disposing)
         {
+            RemoveHandler(KeyDownEvent, OnPlayerKeyDown);
             DataContextChanged -= VM_DataContextChanged;
 
             if (_vm is not null)
@@ -122,5 +127,10 @@ public partial class PlayerView : UserControl, IDisposable
     {
         Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    private void OnPlayerKeyDown(object? sender, KeyEventArgs e)
+    {
+        MPView?.HandleRemoteKeyDown(e);
     }
 }
